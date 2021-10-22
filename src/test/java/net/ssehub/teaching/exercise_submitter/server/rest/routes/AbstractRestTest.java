@@ -10,6 +10,7 @@ import org.junit.jupiter.api.BeforeEach;
 import jakarta.ws.rs.client.Client;
 import jakarta.ws.rs.client.ClientBuilder;
 import jakarta.ws.rs.client.WebTarget;
+import net.ssehub.studentmgmt.backend_api.ApiException;
 import net.ssehub.teaching.exercise_submitter.server.auth.AuthManager;
 import net.ssehub.teaching.exercise_submitter.server.auth.PermissiveAuthManager;
 import net.ssehub.teaching.exercise_submitter.server.rest.ExerciseSubmissionServer;
@@ -33,7 +34,7 @@ public abstract class AbstractRestTest {
     private AuthManager authManager;
     
     @BeforeEach
-    public void setupServer() {
+    public void setupServer() throws ApiException {
         uri = "http://localhost:" + generateRandomPort() + "/";
         Client client = ClientBuilder.newClient();
         target = client.target(uri);

@@ -28,7 +28,7 @@ public class SubmissionManager {
     }
     
     /**
-     * Executes a full submission. TODO: add a return type.
+     * Executes a full submission.
      * <p>
      * This class runs the necessary {@link Check}s.
      * 
@@ -43,10 +43,12 @@ public class SubmissionManager {
     public SubmissionResultDto submit(SubmissionTarget target, Submission submission)
             throws NoSuchTargetException, StorageException {
     
+        // TODO: actually run checks before storing
+        
         storage.submitNewVersion(target, submission);
         
         SubmissionResultDto result = new SubmissionResultDto();
-        result.setAccepted(true); // TODO
+        result.setAccepted(true);
         return result;
     }
     

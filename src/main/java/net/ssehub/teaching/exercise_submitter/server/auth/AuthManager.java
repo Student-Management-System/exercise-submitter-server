@@ -5,6 +5,10 @@ import net.ssehub.studentmgmt.sparkyservice_api.ApiException;
 import net.ssehub.studentmgmt.sparkyservice_api.api.AuthControllerApi;
 import net.ssehub.studentmgmt.sparkyservice_api.model.AuthenticationInfoDto;
 import net.ssehub.teaching.exercise_submitter.server.storage.SubmissionTarget;
+import net.ssehub.teaching.exercise_submitter.server.stu_mgmt.Assignment;
+import net.ssehub.teaching.exercise_submitter.server.stu_mgmt.Course;
+import net.ssehub.teaching.exercise_submitter.server.stu_mgmt.Participant;
+import net.ssehub.teaching.exercise_submitter.server.stu_mgmt.StuMgmtView;
 import net.ssehub.teaching.exercise_submitter.server.submission.UnauthorizedException;
 
 /**
@@ -16,13 +20,17 @@ public class AuthManager {
 
     private String authApiUrl;
     
+    private StuMgmtView stuMgmtView;
+    
     /**
      * Creates a new authentication manager.
      * 
      * @param authApiUrl The URL to the authentication system (Sparky-Service) to check tokens.
+     * @param stuMgmtView The view on the student management system.
      */
-    public AuthManager(String authApiUrl) {
+    public AuthManager(String authApiUrl, StuMgmtView stuMgmtView) {
         this.authApiUrl = authApiUrl;
+        this.stuMgmtView = stuMgmtView;
     }
     
     /**
@@ -59,7 +67,18 @@ public class AuthManager {
      * @throws UnauthorizedException If the user is not allowed to submit.
      */
     public void checkSubmissionAllowed(String user, SubmissionTarget target) throws UnauthorizedException {
-        // TODO
+        Course course = stuMgmtView.getCourse(target.getCourse())
+                .orElseThrow(() -> new UnauthorizedException());
+        
+        Assignment assignment = course.getAssignment(target.getAssignmentName())
+                .orElseThrow(() -> new UnauthorizedException());
+        
+        Participant participant = course.getParticipant(user)
+                .orElseThrow(() -> new UnauthorizedException());
+        
+        if (!assignment.canSubmit(participant)) {
+            throw new UnauthorizedException();
+        }
     }
     
     /**
@@ -71,7 +90,18 @@ public class AuthManager {
      * @throws UnauthorizedException If the user is not allowed to submit.
      */
     public void checkReplayAllowed(String user, SubmissionTarget target) throws UnauthorizedException {
-        // TODO
+        Course course = stuMgmtView.getCourse(target.getCourse())
+                .orElseThrow(() -> new UnauthorizedException());
+        
+        Assignment assignment = course.getAssignment(target.getAssignmentName())
+                .orElseThrow(() -> new UnauthorizedException());
+        
+        Participant participant = course.getParticipant(user)
+                .orElseThrow(() -> new UnauthorizedException());
+        
+        if (!assignment.canReplay(participant)) {
+            throw new UnauthorizedException();
+        }
     }
     
 }

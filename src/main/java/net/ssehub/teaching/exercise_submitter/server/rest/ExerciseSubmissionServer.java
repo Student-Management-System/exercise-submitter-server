@@ -12,12 +12,17 @@ import io.swagger.v3.oas.annotations.OpenAPIDefinition;
 import io.swagger.v3.oas.annotations.enums.SecuritySchemeType;
 import io.swagger.v3.oas.annotations.info.Info;
 import io.swagger.v3.oas.annotations.security.SecurityScheme;
+import net.ssehub.studentmgmt.backend_api.ApiClient;
+import net.ssehub.studentmgmt.backend_api.ApiException;
+import net.ssehub.studentmgmt.sparkyservice_api.api.AuthControllerApi;
+import net.ssehub.studentmgmt.sparkyservice_api.model.CredentialsDto;
 import net.ssehub.teaching.exercise_submitter.server.auth.AuthManager;
 import net.ssehub.teaching.exercise_submitter.server.rest.routes.HeartbeatRoute;
 import net.ssehub.teaching.exercise_submitter.server.rest.routes.NotificationRoute;
 import net.ssehub.teaching.exercise_submitter.server.rest.routes.SubmissionRoute;
 import net.ssehub.teaching.exercise_submitter.server.storage.ISubmissionStorage;
 import net.ssehub.teaching.exercise_submitter.server.storage.filesystem.FilesystemStorage;
+import net.ssehub.teaching.exercise_submitter.server.stu_mgmt.StuMgmtView;
 import net.ssehub.teaching.exercise_submitter.server.submission.SubmissionManager;
 
 /**
@@ -56,6 +61,36 @@ public class ExerciseSubmissionServer {
     }
     
     /**
+     * Creates an authenticated {@link ApiClient} for the student management system.
+     * 
+     * @param authUrl The URL to the auth system (sparky-service).
+     * @param mgmtUrl The URL to the student management system.
+     * @param user The username to authenticate as.
+     * @param password The password to authenticate with.
+     * 
+     * @return An authenticated {@link ApiClient}.
+     * 
+     * @throws net.ssehub.studentmgmt.sparkyservice_api.ApiException If authentication fails.
+     */
+    private static ApiClient createAuthenticatedMgmtApiClient(String authUrl, String mgmtUrl,
+            String user, String password)
+            throws net.ssehub.studentmgmt.sparkyservice_api.ApiException {
+        ApiClient mgmtClient = new ApiClient();
+        mgmtClient.setBasePath(mgmtUrl);
+        
+        net.ssehub.studentmgmt.sparkyservice_api.ApiClient authClient
+                = new net.ssehub.studentmgmt.sparkyservice_api.ApiClient();
+        authClient.setBasePath(authUrl);
+        
+        CredentialsDto credentials = new CredentialsDto().username(user).password(password);
+        
+        String token = new AuthControllerApi(authClient).authenticate(credentials).getToken().getToken();
+        
+        mgmtClient.setAccessToken(token);
+        return mgmtClient;
+    }
+    
+    /**
      * Calls {@link #startServer()}, waits for user input on {@link System#in} and then shuts down the server.
      * 
      * @param args Command line arguments. Content:
@@ -63,14 +98,22 @@ public class ExerciseSubmissionServer {
      *          <li>Port to listen on</li>
      *          <li>Path to storage directory</li>
      *          <li>URL to auth system (Sparky) API</li>
+     *          <li>URL to student management system API</li>
+     *          <li>The username to authenticate as</li>
+     *          <li>The password to authenticate with</li>
      *      </ol>
      * 
      * @throws IOException If reading user input fails.
+     * @throws ApiException If reading from the student management system fails.
+     * @throws net.ssehub.studentmgmt.sparkyservice_api.ApiException If authenticating fails.
      */
-    public static void main(String[] args) throws IOException {
+    public static void main(String[] args)
+            throws IOException, ApiException, net.ssehub.studentmgmt.sparkyservice_api.ApiException {
+        
+        StuMgmtView stuMgmtView = new StuMgmtView(createAuthenticatedMgmtApiClient(args[2], args[3], args[4], args[5]));
         ISubmissionStorage storage = new FilesystemStorage(Path.of(args[1]));
         SubmissionManager submissionManager = new SubmissionManager(storage);
-        AuthManager authManager = new AuthManager(args[2]);
+        AuthManager authManager = new AuthManager(args[2], stuMgmtView);
         
         HttpServer server = startServer("http://localhost:" + args[0] + "/", submissionManager, storage, authManager);
         System.out.println("Server listens at http://localhost:" + args[0] + "/");
