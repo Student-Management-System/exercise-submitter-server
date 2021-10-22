@@ -25,11 +25,11 @@ import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.Response.Status;
-import net.ssehub.teaching.exercise_submitter.server.storage.NoSuchAssignmentException;
-import net.ssehub.teaching.exercise_submitter.server.storage.NoSuchGroupException;
+import net.ssehub.teaching.exercise_submitter.server.storage.NoSuchTargetException;
 import net.ssehub.teaching.exercise_submitter.server.storage.StorageException;
 import net.ssehub.teaching.exercise_submitter.server.storage.Submission;
 import net.ssehub.teaching.exercise_submitter.server.storage.SubmissionBuilder;
+import net.ssehub.teaching.exercise_submitter.server.storage.SubmissionTarget;
 import net.ssehub.teaching.exercise_submitter.server.storage.Version;
 import net.ssehub.teaching.exercise_submitter.server.submission.SubmissionManager;
 import net.ssehub.teaching.exercise_submitter.server.submission.UnauthorizedException;
@@ -64,6 +64,7 @@ public class SubmissionRoute {
     /**
      * Adds a new submission.
      * 
+     * @param course The identifier of the course of the assignment.
      * @param assignmentName The name of the assignment to submit to.
      * @param groupName The name of the group to submit for.
      * @param files The files of the submission. Key are relative file paths, values are file content.
@@ -82,8 +83,9 @@ public class SubmissionRoute {
     )
     @POST
     @Consumes(MediaType.APPLICATION_JSON)
-    @Path("/{assignment}/{group}")
+    @Path("/{course}/{assignment}/{group}")
     public Response submit(
+            @PathParam("course") String course,
             @PathParam("assignment") String assignmentName,
             @PathParam("group") String groupName,
             @RequestBody(description = "Map of relative file paths (keys) and file content (values)", content = {
@@ -97,12 +99,12 @@ public class SubmissionRoute {
         // TODO: authentication
         
         try {
-            SubmissionBuilder builder = new SubmissionBuilder();
+            SubmissionBuilder builder = new SubmissionBuilder("user"); // TODO: authenticate user
             for (Map.Entry<String, String> file : files.entrySet()) {
                 builder.addFile(java.nio.file.Path.of(file.getKey()), file.getValue());
             }
             
-            submissionManager.submit(assignmentName, groupName, "user", builder.build()); // TODO
+            submissionManager.submit(new SubmissionTarget(course, assignmentName, groupName), builder.build());
             
             response = Response
                     .status(Status.CREATED)
@@ -118,15 +120,9 @@ public class SubmissionRoute {
                     .status(Status.FORBIDDEN.getStatusCode(), "Unauthorized")
                     .build();
             
-        } catch (NoSuchAssignmentException e) {
+        } catch (NoSuchTargetException e) {
             response = Response
-                    .status(Status.NOT_FOUND.getStatusCode(), "Assignment " + e.getAssignmentName() + " not found")
-                    .build();
-            
-        } catch (NoSuchGroupException e) {
-            response = Response
-                    .status(Status.NOT_FOUND.getStatusCode(), "Group " + e.getGroupName()
-                            + " not found in assignment " + e.getAssignmentName())
+                    .status(Status.NOT_FOUND.getStatusCode(), e.getMessage())
                     .build();
             
         } catch (StorageException e) {
@@ -142,6 +138,7 @@ public class SubmissionRoute {
     /**
      * Retrieves a list of submitted versions.
      * 
+     * @param course The identifier of the course of the assignment.
      * @param assignmentName The name of the assignment to get.
      * @param groupName The name of the group to get the versions list of.
      * 
@@ -159,8 +156,9 @@ public class SubmissionRoute {
         }
     )
     @GET
-    @Path("/{assignment}/{group}/versions")
+    @Path("/{course}/{assignment}/{group}/versions")
     public Response listVersions(
+            @PathParam("course") String course,
             @PathParam("assignment") String assignmentName,
             @PathParam("group") String groupName) {
 
@@ -169,7 +167,8 @@ public class SubmissionRoute {
         // TODO authentication
         
         try {
-            List<Version> versions = submissionManager.getVersions(assignmentName, groupName, "user"); // TODO
+            List<Version> versions = submissionManager.getVersions(
+                    new SubmissionTarget(course, assignmentName, groupName), "user"); // TODO: authenticate user
             
             List<VersionDto> dtos = versions.stream()
                 .map(version -> {
@@ -189,15 +188,9 @@ public class SubmissionRoute {
                     .status(Status.FORBIDDEN.getStatusCode(), "Unauthorized")
                     .build();
             
-        } catch (NoSuchAssignmentException e) {
+        } catch (NoSuchTargetException e) {
             response = Response
-                    .status(Status.NOT_FOUND.getStatusCode(), "Assignment " + e.getAssignmentName() + " not found")
-                    .build();
-            
-        } catch (NoSuchGroupException e) {
-            response = Response
-                    .status(Status.NOT_FOUND.getStatusCode(), "Group " + e.getGroupName()
-                            + " not found in assignment " + e.getAssignmentName())
+                    .status(Status.NOT_FOUND.getStatusCode(), e.getMessage())
                     .build();
             
         } catch (StorageException e) {
@@ -213,6 +206,7 @@ public class SubmissionRoute {
     /**
      * Retrieves the latest version of a submission.
      * 
+     * @param course The identifier of the course of the assignment.
      * @param assignmentName The name of the assignment to retrieve.
      * @param groupName The name of the group to retrieve the latest submission of.
      * 
@@ -233,17 +227,19 @@ public class SubmissionRoute {
         }
     )
     @GET
-    @Path("/{assignment}/{group}/latest")
+    @Path("/{course}/{assignment}/{group}/latest")
     public Response getLatest(
+            @PathParam("course") String course,
             @PathParam("assignment") String assignmentName,
             @PathParam("group") String groupName) {
         
-        return getSubmission(assignmentName, groupName, versions -> versions.get(0));
+        return getSubmission(new SubmissionTarget(course, assignmentName, groupName), versions -> versions.get(0));
     }
     
     /**
      * Retrieves the latest version of a submission.
      * 
+     * @param course The identifier of the course of the assignment.
      * @param assignmentName The name of the assignment to retrieve.
      * @param groupName The name of the group to retrieve the submission of.
      * @param timestamp The Unix timestamp identifying the version.
@@ -265,15 +261,16 @@ public class SubmissionRoute {
         }
     )
     @GET
-    @Path("/{assignment}/{group}/{version}")
+    @Path("/{course}/{assignment}/{group}/{version}")
     public Response getVersion(
+            @PathParam("course") String course,
             @PathParam("assignment") String assignmentName,
             @PathParam("group") String groupName,
             @PathParam("version")
                 @Parameter(description = "Identifies the version as a unix timestamp (seconds since epoch)")
                 long timestamp) {
         
-        return getSubmission(assignmentName, groupName, versions -> {
+        return getSubmission(new SubmissionTarget(course, assignmentName, groupName), versions -> {
             Version match = null;
             for (Version version : versions) {
                 if (version.getUnixTimestamp() == timestamp) {
@@ -288,28 +285,26 @@ public class SubmissionRoute {
     /**
      * Retrieves a submission. A callback is used to let the caller decide which version to retrieve.
      * 
-     * @param assignmentName The name of the assignment to retrieve.
-     * @param groupName The name of the group to retrieve the submission of.
+     * @param target The course, assignment, and group identifier to retrieve the submission of.
      * @param versionSelector A callback function to decide which version to use. The given list always has at least one
      *      item. Return <code>null</code> to indicate that the wanted version is not available.
      *      
      * @return A HTTP response with a {@link SubmissionDto} as data.
      */
-    private Response getSubmission(String assignmentName, String groupName,
-            Function<List<Version>, Version> versionSelector) {
+    private Response getSubmission(SubmissionTarget target, Function<List<Version>, Version> versionSelector) {
         
         Response response;
         
         // TODO authentication
         
         try {
-            List<Version> versions = submissionManager.getVersions(assignmentName, groupName, "user"); // TODO
+            List<Version> versions = submissionManager.getVersions(target, "user"); // TODO: authentictae user
             if (!versions.isEmpty()) {
                 
                 Version selectedVersion = versionSelector.apply(versions);
                 if (selectedVersion != null) {
                     Submission submission = submissionManager
-                            .getSubmission(assignmentName, groupName, selectedVersion, "user"); // TODO
+                            .getSubmission(target, selectedVersion, "user"); // TODO; authenticate user
                     
                     Map<String, String> files = new HashMap<>(submission.getNumFiles());
                     for (java.nio.file.Path file : submission.getFilepaths()) {
@@ -321,7 +316,8 @@ public class SubmissionRoute {
                 } else {
                     response = Response
                             .status(Status.NOT_FOUND.getStatusCode(), "Selected version not found for group "
-                                    + groupName + " in assignment " + assignmentName)
+                                    + target.getGroupName() + " in assignment " + target.getAssignmentName()
+                                    + " in course " + target.getCourse())
                             .build();
                 }
                 
@@ -329,7 +325,8 @@ public class SubmissionRoute {
             } else {
                 response = Response
                         .status(Status.NOT_FOUND.getStatusCode(), "No versions have been submitted for group "
-                                + groupName + " in assignment " + assignmentName)
+                                + target.getGroupName() + " in assignment " + target.getAssignmentName()
+                                + " in course " + target.getCourse())
                         .build();
             }
             
@@ -338,15 +335,9 @@ public class SubmissionRoute {
                     .status(Status.FORBIDDEN.getStatusCode(), "Unauthorized")
                     .build();
             
-        } catch (NoSuchAssignmentException e) {
+        } catch (NoSuchTargetException e) {
             response = Response
-                    .status(Status.NOT_FOUND.getStatusCode(), "Assignment " + e.getAssignmentName() + " not found")
-                    .build();
-            
-        } catch (NoSuchGroupException e) {
-            response = Response
-                    .status(Status.NOT_FOUND.getStatusCode(), "Group " + e.getGroupName()
-                            + " not found in assignment " + e.getAssignmentName())
+                    .status(Status.NOT_FOUND.getStatusCode(), e.getMessage())
                     .build();
             
         } catch (StorageException e) {

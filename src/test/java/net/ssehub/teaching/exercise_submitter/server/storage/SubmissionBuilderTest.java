@@ -11,10 +11,16 @@ import java.util.HashSet;
 import org.junit.jupiter.api.Test;
 
 public class SubmissionBuilderTest {
+    
+    @Test
+    public void author() {
+        SubmissionBuilder builder = new SubmissionBuilder("some author");
+        assertEquals("some author", builder.build().getAuthor());
+    }
 
     @Test
     public void addAbsolutePathThrows() {
-        SubmissionBuilder builder = new SubmissionBuilder();
+        SubmissionBuilder builder = new SubmissionBuilder("author");
         
         Path absolutePath = Path.of("somethig").toAbsolutePath();
         
@@ -26,7 +32,7 @@ public class SubmissionBuilderTest {
     
     @Test
     public void doubleBuildThrows() {
-        SubmissionBuilder builder = new SubmissionBuilder();
+        SubmissionBuilder builder = new SubmissionBuilder("author");
         builder.build();
         
         IllegalStateException e = assertThrows(IllegalStateException.class, () -> builder.build());
@@ -35,7 +41,7 @@ public class SubmissionBuilderTest {
     
     @Test
     public void addFileAfterBuildThrows() {
-        SubmissionBuilder builder = new SubmissionBuilder();
+        SubmissionBuilder builder = new SubmissionBuilder("author");
         builder.build();
         
         IllegalStateException e = assertThrows(IllegalStateException.class,
@@ -45,7 +51,7 @@ public class SubmissionBuilderTest {
     
     @Test
     public void addFileAddsFiles() {
-        SubmissionBuilder builder = new SubmissionBuilder();
+        SubmissionBuilder builder = new SubmissionBuilder("author");
         
         builder.addFile(Path.of("test.txt"), "first content\n");
         builder.addFile(Path.of("dir/other.txt"), "second content\n");
@@ -62,7 +68,7 @@ public class SubmissionBuilderTest {
     
     @Test
     public void filepathContainsDotDot() {
-        SubmissionBuilder builder = new SubmissionBuilder();
+        SubmissionBuilder builder = new SubmissionBuilder("author");
         
         IllegalArgumentException e = assertThrows(IllegalArgumentException.class,
             () -> builder.addFile(Path.of("../test.txt"), "something\n"));

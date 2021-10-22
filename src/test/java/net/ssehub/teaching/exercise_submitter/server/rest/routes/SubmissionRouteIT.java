@@ -20,21 +20,20 @@ import jakarta.ws.rs.client.Entity;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import net.ssehub.teaching.exercise_submitter.server.storage.EmptyStorage;
-import net.ssehub.teaching.exercise_submitter.server.storage.NoSuchAssignmentException;
-import net.ssehub.teaching.exercise_submitter.server.storage.NoSuchGroupException;
-import net.ssehub.teaching.exercise_submitter.server.storage.NoSuchVersionException;
+import net.ssehub.teaching.exercise_submitter.server.storage.NoSuchTargetException;
 import net.ssehub.teaching.exercise_submitter.server.storage.StorageException;
 import net.ssehub.teaching.exercise_submitter.server.storage.Submission;
 import net.ssehub.teaching.exercise_submitter.server.storage.SubmissionBuilder;
+import net.ssehub.teaching.exercise_submitter.server.storage.SubmissionTarget;
 import net.ssehub.teaching.exercise_submitter.server.storage.Version;
 import net.ssehub.teaching.exercise_submitter.server.submission.SubmissionManagerMock;
 import net.ssehub.teaching.exercise_submitter.server.submission.UnauthorizedException;
 
-public class SubmissionRouteTest extends AbstractRestTest {
+public class SubmissionRouteIT extends AbstractRestTest {
 
     @Test
     public void submitInvalidFilepathBadRequest() {
-        Response response = target.path("/submission/Homework01/Group01").request()
+        Response response = target.path("/submission/foo-wise2122/Homework01/Group01").request()
                 .post(Entity.entity(Map.of("../test.txt", "some content\n"), MediaType.APPLICATION_JSON));
         
         assertAll(
@@ -48,13 +47,13 @@ public class SubmissionRouteTest extends AbstractRestTest {
     public void submitForbidden() {
         setManager(new SubmissionManagerMock(new EmptyStorage()) {
             @Override
-            public void submit(String assignmentName, String groupName, String author, Submission submission)
-                    throws NoSuchAssignmentException, NoSuchGroupException, StorageException, UnauthorizedException {
+            public void submit(SubmissionTarget target, Submission submission)
+                    throws NoSuchTargetException, StorageException, UnauthorizedException {
                 throw new UnauthorizedException();
             }
         });
         
-        Response response = target.path("/submission/Homework01/Group01").request()
+        Response response = target.path("/submission/foo-wise2122/Homework01/Group01").request()
                 .post(Entity.entity(Map.of("test.txt", "some content\n"), MediaType.APPLICATION_JSON));
         
         assertAll(
@@ -64,40 +63,21 @@ public class SubmissionRouteTest extends AbstractRestTest {
     }
     
     @Test
-    public void submitNonExistingAssignmentNotFound() {
+    public void submitNonExistingTargetNotFound() {
         setStorage(new EmptyStorage() {
             @Override
-            public void submitNewVersion(String assignmentName, String groupName, String author, Submission submission)
-                    throws NoSuchAssignmentException, NoSuchGroupException, StorageException {
-                throw new NoSuchAssignmentException(assignmentName);
+            public void submitNewVersion(SubmissionTarget target, Submission submission)
+                    throws NoSuchTargetException, StorageException {
+                throw new NoSuchTargetException(target);
             }
         });
         
-        Response response = target.path("/submission/Homework01/Group01").request()
+        Response response = target.path("/submission/foo-wise2122/Homework01/Group01").request()
                 .post(Entity.entity(Map.of("test.txt", "some content\n"), MediaType.APPLICATION_JSON));
         
         assertAll(
             () -> assertEquals(404, response.getStatus()),
-            () -> assertEquals("Assignment Homework01 not found", response.getStatusInfo().getReasonPhrase())
-        );
-    }
-    
-    @Test
-    public void submitNonExistingGroupNotFound() {
-        setStorage(new EmptyStorage() {
-            @Override
-            public void submitNewVersion(String assignmentName, String groupName, String author, Submission submission)
-                    throws NoSuchAssignmentException, NoSuchGroupException, StorageException {
-                throw new NoSuchGroupException(assignmentName, groupName);
-            }
-        });
-        
-        Response response = target.path("/submission/Homework01/Group01").request()
-                .post(Entity.entity(Map.of("test.txt", "some content\n"), MediaType.APPLICATION_JSON));
-        
-        assertAll(
-            () -> assertEquals(404, response.getStatus()),
-            () -> assertEquals("Group Group01 not found in assignment Homework01",
+            () -> assertEquals("The group Group01 for assignment Homework01 in course foo-wise2122 does not exist",
                     response.getStatusInfo().getReasonPhrase())
         );
     }
@@ -106,13 +86,13 @@ public class SubmissionRouteTest extends AbstractRestTest {
     public void submitStorageExceptionInternalServerError() {
         setStorage(new EmptyStorage() {
             @Override
-            public void submitNewVersion(String assignmentName, String groupName, String author, Submission submission)
-                    throws NoSuchAssignmentException, NoSuchGroupException, StorageException {
+            public void submitNewVersion(SubmissionTarget target, Submission submission)
+                    throws NoSuchTargetException, StorageException {
                 throw new StorageException("mock");
             }
         });
         
-        Response response = target.path("/submission/Homework01/Group01").request()
+        Response response = target.path("/submission/foo-wise2122/Homework01/Group01").request()
                 .post(Entity.entity(Map.of("test.txt", "some content\n"), MediaType.APPLICATION_JSON));
         
         assertAll(
@@ -127,13 +107,13 @@ public class SubmissionRouteTest extends AbstractRestTest {
         
         setStorage(new EmptyStorage() {
             @Override
-            public void submitNewVersion(String assignmentName, String groupName, String author, Submission submission)
-                    throws NoSuchAssignmentException, NoSuchGroupException, StorageException {
+            public void submitNewVersion(SubmissionTarget target, Submission submission)
+                    throws NoSuchTargetException, StorageException {
                 result.set(submission);
             }
         });
         
-        Response response = target.path("/submission/Homework01/Group01").request()
+        Response response = target.path("/submission/foo-wise2122/Homework01/Group01").request()
                 .post(Entity.entity(Map.of("test.txt", "some content\n"), MediaType.APPLICATION_JSON));
         
         assertAll(
@@ -147,13 +127,13 @@ public class SubmissionRouteTest extends AbstractRestTest {
     public void listVersionsForbidden() {
         setManager(new SubmissionManagerMock(new EmptyStorage()) {
             @Override
-            public List<Version> getVersions(String assignmentName, String groupName, String author)
-                    throws NoSuchAssignmentException, NoSuchGroupException, StorageException, UnauthorizedException {
+            public List<Version> getVersions(SubmissionTarget target, String author)
+                    throws NoSuchTargetException, StorageException, UnauthorizedException {
                 throw new UnauthorizedException();
             }
         });
         
-        Response response = target.path("/submission/Homework01/Group01/versions").request().get();
+        Response response = target.path("/submission/foo-wise2122/Homework01/Group01/versions").request().get();
         
         assertAll(
             () -> assertEquals(403, response.getStatus()),
@@ -162,39 +142,21 @@ public class SubmissionRouteTest extends AbstractRestTest {
     }
     
     @Test
-    public void listVersionsNonExistingAssignmentNotFound() {
+    public void listVersionsNonExistingTargetNotFound() {
         setStorage(new EmptyStorage() {
             
             @Override
-            public List<Version> getVersions(String assignmentName, String groupName)
-                    throws NoSuchAssignmentException, NoSuchGroupException, StorageException {
-                throw new NoSuchAssignmentException(assignmentName);
+            public List<Version> getVersions(SubmissionTarget target)
+                    throws NoSuchTargetException, StorageException {
+                throw new NoSuchTargetException(target);
             }
         });
         
-        Response response = target.path("/submission/Homework01/Group01/versions").request().get();
+        Response response = target.path("/submission/foo-wise2122/Homework01/Group01/versions").request().get();
         
         assertAll(
             () -> assertEquals(404, response.getStatus()),
-            () -> assertEquals("Assignment Homework01 not found", response.getStatusInfo().getReasonPhrase())
-        );
-    }
-    
-    @Test
-    public void listVersionsNonExistingGroupNotFound() {
-        setStorage(new EmptyStorage() {
-            @Override
-            public List<Version> getVersions(String assignmentName, String groupName)
-                    throws NoSuchAssignmentException, NoSuchGroupException, StorageException {
-                throw new NoSuchGroupException(assignmentName, groupName);
-            }
-        });
-        
-        Response response = target.path("/submission/Homework01/Group01/versions").request().get();
-        
-        assertAll(
-            () -> assertEquals(404, response.getStatus()),
-            () -> assertEquals("Group Group01 not found in assignment Homework01",
+            () -> assertEquals("The group Group01 for assignment Homework01 in course foo-wise2122 does not exist",
                     response.getStatusInfo().getReasonPhrase())
         );
     }
@@ -203,13 +165,13 @@ public class SubmissionRouteTest extends AbstractRestTest {
     public void listVersionsStorageExceptionInternalServerError() {
         setStorage(new EmptyStorage() {
             @Override
-            public List<Version> getVersions(String assignmentName, String groupName)
-                    throws NoSuchAssignmentException, NoSuchGroupException, StorageException {
+            public List<Version> getVersions(SubmissionTarget target)
+                    throws NoSuchTargetException, StorageException {
                 throw new StorageException("mock");
             }
         });
 
-        Response response = target.path("/submission/Homework01/Group01/versions").request().get();
+        Response response = target.path("/submission/foo-wise2122/Homework01/Group01/versions").request().get();
         
         assertAll(
             () -> assertEquals(500, response.getStatus()),
@@ -221,13 +183,13 @@ public class SubmissionRouteTest extends AbstractRestTest {
     public void listVersionsNoversion() {
         setStorage(new EmptyStorage() {
             @Override
-            public List<Version> getVersions(String assignmentName, String groupName)
-                    throws NoSuchAssignmentException, NoSuchGroupException, StorageException {
+            public List<Version> getVersions(SubmissionTarget target)
+                    throws NoSuchTargetException, StorageException {
                 return Arrays.asList();
             }
         });
         
-        Response response = target.path("/submission/Homework01/Group01/versions").request().get();
+        Response response = target.path("/submission/foo-wise2122/Homework01/Group01/versions").request().get();
         
         assertAll(
             () -> assertEquals(200, response.getStatus()),
@@ -244,8 +206,8 @@ public class SubmissionRouteTest extends AbstractRestTest {
         
         setStorage(new EmptyStorage() {
             @Override
-            public List<Version> getVersions(String assignmentName, String groupName)
-                    throws NoSuchAssignmentException, NoSuchGroupException, StorageException {
+            public List<Version> getVersions(SubmissionTarget target)
+                    throws NoSuchTargetException, StorageException {
                 return Arrays.asList(
                     new Version("tommy", t1),
                     new Version("max", t2)
@@ -253,7 +215,7 @@ public class SubmissionRouteTest extends AbstractRestTest {
             }
         });
         
-        Response response = target.path("/submission/Homework01/Group01/versions").request().get();
+        Response response = target.path("/submission/foo-wise2122/Homework01/Group01/versions").request().get();
         
         List<?> result = response.readEntity(List.class);
         
@@ -270,13 +232,13 @@ public class SubmissionRouteTest extends AbstractRestTest {
     public void getLatestForbidden() {
         setManager(new SubmissionManagerMock(new EmptyStorage()) {
             @Override
-            public List<Version> getVersions(String assignmentName, String groupName, String author)
-                    throws NoSuchAssignmentException, NoSuchGroupException, StorageException, UnauthorizedException {
+            public List<Version> getVersions(SubmissionTarget target, String user)
+                    throws NoSuchTargetException, StorageException, UnauthorizedException {
                 throw new UnauthorizedException();
             }
         });
         
-        Response response = target.path("/submission/Homework01/Group01/latest").request().get();
+        Response response = target.path("/submission/foo-wise2122/Homework01/Group01/latest").request().get();
         
         assertAll(
             () -> assertEquals(403, response.getStatus()),
@@ -285,39 +247,21 @@ public class SubmissionRouteTest extends AbstractRestTest {
     }
     
     @Test
-    public void getLatestNonExistingAssignmentNotFound() {
+    public void getLatestNonExistingTargetNotFound() {
         setStorage(new EmptyStorage() {
             
             @Override
-            public List<Version> getVersions(String assignmentName, String groupName)
-                    throws NoSuchAssignmentException, NoSuchGroupException, StorageException {
-                throw new NoSuchAssignmentException(assignmentName);
+            public List<Version> getVersions(SubmissionTarget target)
+                    throws NoSuchTargetException, StorageException {
+                throw new NoSuchTargetException(target);
             }
         });
         
-        Response response = target.path("/submission/Homework01/Group01/latest").request().get();
+        Response response = target.path("/submission/foo-wise2122/Homework01/Group01/latest").request().get();
         
         assertAll(
             () -> assertEquals(404, response.getStatus()),
-            () -> assertEquals("Assignment Homework01 not found", response.getStatusInfo().getReasonPhrase())
-        );
-    }
-    
-    @Test
-    public void getLatestNonExistingGroupNotFound() {
-        setStorage(new EmptyStorage() {
-            @Override
-            public List<Version> getVersions(String assignmentName, String groupName)
-                    throws NoSuchAssignmentException, NoSuchGroupException, StorageException {
-                throw new NoSuchGroupException(assignmentName, groupName);
-            }
-        });
-        
-        Response response = target.path("/submission/Homework01/Group01/latest").request().get();
-        
-        assertAll(
-            () -> assertEquals(404, response.getStatus()),
-            () -> assertEquals("Group Group01 not found in assignment Homework01",
+            () -> assertEquals("The group Group01 for assignment Homework01 in course foo-wise2122 does not exist",
                     response.getStatusInfo().getReasonPhrase())
         );
     }
@@ -326,13 +270,13 @@ public class SubmissionRouteTest extends AbstractRestTest {
     public void getLatestStorageExceptionInternalServerError() {
         setStorage(new EmptyStorage() {
             @Override
-            public List<Version> getVersions(String assignmentName, String groupName)
-                    throws NoSuchAssignmentException, NoSuchGroupException, StorageException {
+            public List<Version> getVersions(SubmissionTarget target)
+                    throws NoSuchTargetException, StorageException {
                 throw new StorageException("mock");
             }
         });
 
-        Response response = target.path("/submission/Homework01/Group01/latest").request().get();
+        Response response = target.path("/submission/foo-wise2122/Homework01/Group01/latest").request().get();
         
         assertAll(
             () -> assertEquals(500, response.getStatus()),
@@ -342,11 +286,12 @@ public class SubmissionRouteTest extends AbstractRestTest {
     
     @Test
     public void getLatestNoVersions() {
-        Response response = target.path("/submission/Homework01/Group01/latest").request().get();
+        Response response = target.path("/submission/foo-wise2122/Homework01/Group01/latest").request().get();
         
         assertAll(
             () -> assertEquals(404, response.getStatus()),
-            () -> assertEquals("No versions have been submitted for group Group01 in assignment Homework01",
+            () -> assertEquals(
+                    "No versions have been submitted for group Group01 in assignment Homework01 in course foo-wise2122",
                     response.getStatusInfo().getReasonPhrase())
         );
     }
@@ -355,27 +300,27 @@ public class SubmissionRouteTest extends AbstractRestTest {
     public void getLatestSingleVersionWithDirectory() {
         setStorage(new EmptyStorage() {
             @Override
-            public List<Version> getVersions(String assignmentName, String groupName)
-                    throws NoSuchAssignmentException, NoSuchGroupException, StorageException {
+            public List<Version> getVersions(SubmissionTarget target)
+                    throws NoSuchTargetException, StorageException {
                 return Arrays.asList(new Version("student123", LocalDateTime.now()));
             }
             
             @Override
-            public Submission getSubmission(String assignmentName, String groupName, Version version)
-                    throws NoSuchAssignmentException, NoSuchGroupException, NoSuchVersionException, StorageException {
+            public Submission getSubmission(SubmissionTarget target, Version version)
+                    throws NoSuchTargetException, StorageException {
                 
                 if (!version.getAuthor().equals("student123")) {
                     throw new StorageException();
                 }
                 
-                SubmissionBuilder builder = new SubmissionBuilder();
+                SubmissionBuilder builder = new SubmissionBuilder(version.getAuthor());
                 builder.addFile(Path.of("dir/test.txt"), "Some content.\n");
                 
                 return builder.build();
             }
         });
         
-        Response response = target.path("/submission/Homework01/Group01/latest").request().get();
+        Response response = target.path("/submission/foo-wise2122/Homework01/Group01/latest").request().get();
         Map<?, ?> result = response.readEntity(Map.class);
         
         assertAll(
@@ -388,8 +333,8 @@ public class SubmissionRouteTest extends AbstractRestTest {
     public void getLatestMultipleVersions() {
         setStorage(new EmptyStorage() {
             @Override
-            public List<Version> getVersions(String assignmentName, String groupName)
-                    throws NoSuchAssignmentException, NoSuchGroupException, StorageException {
+            public List<Version> getVersions(SubmissionTarget target)
+                    throws NoSuchTargetException, StorageException {
                 return Arrays.asList(
                         new Version("student123", LocalDateTime.now()),
                         new Version("student321", LocalDateTime.now())
@@ -397,16 +342,16 @@ public class SubmissionRouteTest extends AbstractRestTest {
             }
             
             @Override
-            public Submission getSubmission(String assignmentName, String groupName, Version version)
-                    throws NoSuchAssignmentException, NoSuchGroupException, NoSuchVersionException, StorageException {
+            public Submission getSubmission(SubmissionTarget target, Version version)
+                    throws NoSuchTargetException, StorageException {
                 
-                SubmissionBuilder builder = new SubmissionBuilder();
+                SubmissionBuilder builder = new SubmissionBuilder(version.getAuthor());
                 builder.addFile(Path.of("author.txt"), version.getAuthor());
                 return builder.build();
             }
         });
         
-        Response response = target.path("/submission/Homework01/Group01/latest").request().get();
+        Response response = target.path("/submission/foo-wise2122/Homework01/Group01/latest").request().get();
         Map<?, ?> result = response.readEntity(Map.class);
         
         assertAll(
@@ -424,8 +369,8 @@ public class SubmissionRouteTest extends AbstractRestTest {
         
         setStorage(new EmptyStorage() {
             @Override
-            public List<Version> getVersions(String assignmentName, String groupName)
-                    throws NoSuchAssignmentException, NoSuchGroupException, StorageException {
+            public List<Version> getVersions(SubmissionTarget target)
+                    throws NoSuchTargetException, StorageException {
                 return Arrays.asList(
                     new Version("tommy", t1),
                     new Version("max", t2)
@@ -433,11 +378,12 @@ public class SubmissionRouteTest extends AbstractRestTest {
             }
         });
         
-        Response response = target.path("/submission/Homework01/Group01/123456").request().get();
+        Response response = target.path("/submission/foo-wise2122/Homework01/Group01/123456").request().get();
         
         assertAll(
             () -> assertEquals(404, response.getStatus()),
-            () -> assertEquals("Selected version not found for group Group01 in assignment Homework01",
+            () -> assertEquals(
+                    "Selected version not found for group Group01 in assignment Homework01 in course foo-wise2122",
                     response.getStatusInfo().getReasonPhrase())
         );
     }
@@ -451,8 +397,8 @@ public class SubmissionRouteTest extends AbstractRestTest {
         
         setStorage(new EmptyStorage() {
             @Override
-            public List<Version> getVersions(String assignmentName, String groupName)
-                    throws NoSuchAssignmentException, NoSuchGroupException, StorageException {
+            public List<Version> getVersions(SubmissionTarget target)
+                    throws NoSuchTargetException, StorageException {
                 return Arrays.asList(
                         new Version("tommy", t1),
                         new Version("max", t2)
@@ -460,15 +406,15 @@ public class SubmissionRouteTest extends AbstractRestTest {
             }
             
             @Override
-            public Submission getSubmission(String assignmentName, String groupName, Version version)
-                    throws NoSuchAssignmentException, NoSuchGroupException, NoSuchVersionException, StorageException {
-                SubmissionBuilder builder = new SubmissionBuilder();
+            public Submission getSubmission(SubmissionTarget target, Version version)
+                    throws NoSuchTargetException, StorageException {
+                SubmissionBuilder builder = new SubmissionBuilder(version.getAuthor());
                 builder.addFile(Path.of("author.txt"), version.getAuthor());
                 return builder.build();
             }
         });
         
-        Response response = target.path("/submission/Homework01/Group01/1634831371").request().get();
+        Response response = target.path("/submission/foo-wise2122/Homework01/Group01/1634831371").request().get();
         Map<?, ?> result = response.readEntity(Map.class);
         
         assertAll(
@@ -486,8 +432,8 @@ public class SubmissionRouteTest extends AbstractRestTest {
         
         setStorage(new EmptyStorage() {
             @Override
-            public List<Version> getVersions(String assignmentName, String groupName)
-                    throws NoSuchAssignmentException, NoSuchGroupException, StorageException {
+            public List<Version> getVersions(SubmissionTarget target)
+                    throws NoSuchTargetException, StorageException {
                 return Arrays.asList(
                         new Version("tommy", t1),
                         new Version("max", t2)
@@ -495,15 +441,15 @@ public class SubmissionRouteTest extends AbstractRestTest {
             }
             
             @Override
-            public Submission getSubmission(String assignmentName, String groupName, Version version)
-                    throws NoSuchAssignmentException, NoSuchGroupException, NoSuchVersionException, StorageException {
-                SubmissionBuilder builder = new SubmissionBuilder();
+            public Submission getSubmission(SubmissionTarget target, Version version)
+                    throws NoSuchTargetException, StorageException {
+                SubmissionBuilder builder = new SubmissionBuilder(version.getAuthor());
                 builder.addFile(Path.of("author.txt"), version.getAuthor());
                 return builder.build();
             }
         });
         
-        Response response = target.path("/submission/Homework01/Group01/1634606632").request().get();
+        Response response = target.path("/submission/foo-wise2122/Homework01/Group01/1634606632").request().get();
         Map<?, ?> result = response.readEntity(Map.class);
         
         assertAll(

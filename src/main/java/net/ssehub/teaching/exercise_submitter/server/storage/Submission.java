@@ -16,15 +16,28 @@ import java.util.Set;
  */
 public class Submission {
 
+    private String author;
+    
     private Map<Path, String> files;
     
     /**
-     * Creates a submission. Calledy by {@link SubmissionBuilder}.
+     * Creates a submission. Called by {@link SubmissionBuilder}.
      * 
+     * @param author The author of the submission.
      * @param files The files.
      */
-    Submission(Map<Path, String> files) {
+    Submission(String author, Map<Path, String> files) {
+        this.author = author;
         this.files = files;
+    }
+    
+    /**
+     * Returns the name of the author that creates this submission.
+     * 
+     * @return The author of this submission.
+     */
+    public String getAuthor() {
+        return author;
     }
     
     /**

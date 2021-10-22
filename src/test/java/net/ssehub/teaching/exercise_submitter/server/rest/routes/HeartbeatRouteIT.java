@@ -6,7 +6,7 @@ import org.junit.jupiter.api.Test;
 
 import jakarta.ws.rs.core.Response;
 
-public class HeartbeatRouteTest extends AbstractRestTest {
+public class HeartbeatRouteIT extends AbstractRestTest {
 
     @Test
     public void heartbeat() {

@@ -30,7 +30,7 @@ public class SubmissionTest {
     
     @Test
     public void emptySubmission() {
-        Submission submission = new Submission(Collections.emptyMap());
+        Submission submission = new Submission("author", Collections.emptyMap());
         
         assertAll(
             () -> assertEquals(0, submission.getNumFiles()),
@@ -40,10 +40,16 @@ public class SubmissionTest {
     }
     
     @Test
+    public void author() {
+        Submission submission = new Submission("some-student", Collections.emptyMap());
+        assertEquals("some-student", submission.getAuthor());
+    }
+    
+    @Test
     public void singleFile() {
         Map<Path, String> files = new HashMap<>();
         files.put(Path.of("test.txt"), "some content\n");
-        Submission submission = new Submission(files);
+        Submission submission = new Submission("author", files);
         
         assertAll(
             () -> assertEquals(1, submission.getNumFiles()),
@@ -58,7 +64,7 @@ public class SubmissionTest {
         Map<Path, String> files = new HashMap<>();
         files.put(Path.of("test.txt"), "some content\n");
         files.put(Path.of("dir/other.txt"), "other content\n");
-        Submission submission = new Submission(files);
+        Submission submission = new Submission("author", files);
         
         assertAll(
             () -> assertEquals(2, submission.getNumFiles()),
@@ -74,7 +80,7 @@ public class SubmissionTest {
     
     @Test
     public void getFileContentOnNonExistingFileThrows() {
-        Submission submission = new Submission(Collections.emptyMap());
+        Submission submission = new Submission("author", Collections.emptyMap());
         
         NoSuchElementException e = assertThrows(NoSuchElementException.class,
             () -> submission.getFileContent(Path.of("test.txt")));
@@ -83,7 +89,7 @@ public class SubmissionTest {
     
     @Test
     public void writeToNonExistingDirectoryThrows() {
-        Submission submission = new Submission(Collections.emptyMap());
+        Submission submission = new Submission("author", Collections.emptyMap());
         
         IOException e = assertThrows(IOException.class, () -> submission.writeToDirectory(Path.of("doesnt_exist")));
         assertEquals("doesnt_exist is not a directory", e.getMessage());
@@ -91,7 +97,7 @@ public class SubmissionTest {
     
     @Test
     public void writeEmptySubmission() throws IOException {
-        Submission submission = new Submission(Collections.emptyMap());
+        Submission submission = new Submission("author", Collections.emptyMap());
         
         temporaryDirectory = Files.createTempDirectory("SubmissionTest.writeEmptySubmission");
         
@@ -104,7 +110,7 @@ public class SubmissionTest {
     public void writeSingleFileSubmission() throws IOException {
         Map<Path, String> files = new HashMap<>();
         files.put(Path.of("test.txt"), "some content\n");
-        Submission submission = new Submission(files);
+        Submission submission = new Submission("author", files);
         
         temporaryDirectory = Files.createTempDirectory("SubmissionTest.writeSingleFileSubmission");
         
@@ -125,7 +131,7 @@ public class SubmissionTest {
         Map<Path, String> files = new HashMap<>();
         files.put(Path.of("test.txt"), "some content\n");
         files.put(Path.of("other.txt"), "other content\n");
-        Submission submission = new Submission(files);
+        Submission submission = new Submission("author", files);
         
         temporaryDirectory = Files.createTempDirectory("SubmissionTest.writeMultipleFileSubmission");
         
@@ -149,7 +155,7 @@ public class SubmissionTest {
         files.put(Path.of("dir1/test.txt"), "some content\n");
         files.put(Path.of("dir1/other.txt"), "other content\n");
         files.put(Path.of("dir2/subdir/other.txt"), "even different content\n");
-        Submission submission = new Submission(files);
+        Submission submission = new Submission("author", files);
         
         temporaryDirectory = Files.createTempDirectory("SubmissionTest.writeMultipleFilesInDirectories");
         
@@ -177,7 +183,7 @@ public class SubmissionTest {
     public void writeOverwritesExistingFile() throws IOException {
         Map<Path, String> files = new HashMap<>();
         files.put(Path.of("test.txt"), "some content\n");
-        Submission submission = new Submission(files);
+        Submission submission = new Submission("author", files);
         
         temporaryDirectory = Files.createTempDirectory("SubmissionTest.writeSingleFileSubmission");
         Files.writeString(temporaryDirectory.resolve("test.txt"), "previous content\n", StandardCharsets.UTF_8);

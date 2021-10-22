@@ -13,12 +13,17 @@ public class SubmissionBuilder {
 
     private boolean built;
     
+    private String author;
+    
     private Map<Path, String> files;
     
     /**
      * Creates a new builder with no files (yet).
+     * 
+     * @param author The name of the author that created this submission.
      */
-    public SubmissionBuilder() {
+    public SubmissionBuilder(String author) {
+        this.author = author;
         this.files = new HashMap<>();
         this.built = false;
     }
@@ -58,7 +63,7 @@ public class SubmissionBuilder {
     public Submission build() throws IllegalStateException {
         checkNotBuilt();
         this.built = true;
-        return new Submission(files);
+        return new Submission(author, files);
     }
     
     /**

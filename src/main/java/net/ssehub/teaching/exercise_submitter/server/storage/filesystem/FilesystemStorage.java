@@ -8,17 +8,14 @@ import java.nio.file.Path;
 import java.time.LocalDateTime;
 import java.util.Comparator;
 import java.util.List;
-import java.util.Set;
 import java.util.stream.Collectors;
 
-import net.ssehub.teaching.exercise_submitter.server.storage.AssignmentAlreadyExistsException;
 import net.ssehub.teaching.exercise_submitter.server.storage.ISubmissionStorage;
-import net.ssehub.teaching.exercise_submitter.server.storage.NoSuchAssignmentException;
-import net.ssehub.teaching.exercise_submitter.server.storage.NoSuchGroupException;
-import net.ssehub.teaching.exercise_submitter.server.storage.NoSuchVersionException;
+import net.ssehub.teaching.exercise_submitter.server.storage.NoSuchTargetException;
 import net.ssehub.teaching.exercise_submitter.server.storage.StorageException;
 import net.ssehub.teaching.exercise_submitter.server.storage.Submission;
 import net.ssehub.teaching.exercise_submitter.server.storage.SubmissionBuilder;
+import net.ssehub.teaching.exercise_submitter.server.storage.SubmissionTarget;
 import net.ssehub.teaching.exercise_submitter.server.storage.Version;
 
 /**
@@ -50,114 +47,63 @@ public class FilesystemStorage implements ISubmissionStorage {
     /**
      * Creates the path to the given assignment. Does no checks whether this exists.
      * 
+     * @param course The course identifier that the assignment belongs to.
      * @param assignmentName The name of the assignment.
      * 
      * @return The path to the assignment in the {@link #baseDirectory}.
      */
-    private Path getAssignmentPath(String assignmentName) {
-        return baseDirectory.resolve(assignmentName);
+    private Path getAssignmentPath(String course, String assignmentName) {
+        return baseDirectory.resolve(Path.of(course, assignmentName));
     }
     
     /**
-     * Creates the path to the given assignment. Also checks that the assignment directory exists.
+     * Creates the path to a group directory inside an assignment. Also checks that the directory exists.
      * 
-     * @param assignmentName The name of the assignment.
+     * @param target The target that specifies course, assignment, and group.
      * 
-     * @return The path to the assigment in the {@link #baseDirectory}.
+     * @return The path to the group directory inside the given assignment.
      * 
-     * @throws NoSuchAssignmentException If the assignment does not exist.
+     * @throws NoSuchTargetException If the target directory does not exist.
      */
-    private Path getExistingAssignmentPath(String assignmentName) throws NoSuchAssignmentException {
-        Path assignmentDir = getAssignmentPath(assignmentName);
-        if (!Files.isDirectory(assignmentDir)) {
-            throw new NoSuchAssignmentException(assignmentName);
+    private Path getExistingGroupPath(SubmissionTarget target) throws NoSuchTargetException {
+        Path path = baseDirectory.resolve(
+                Path.of(target.getCourse(), target.getAssignmentName(), target.getGroupName()));
+        if (!Files.isDirectory(path)) {
+            throw new NoSuchTargetException(target);
         }
-        return assignmentDir;
-    }
-    
-    /**
-     * Creates the path to the given group directory in the given assignment. Also checks that the assignment and group
-     * directories exist.
-     * 
-     * @param assignmentName The name of the assignment.
-     * @param groupName The name of the group.
-     * 
-     * @return The path to the group folder in the given assignment.
-     * 
-     * @throws NoSuchAssignmentException If the assignment does not exist.
-     * @throws NoSuchGroupException If the group does not exist.
-     */
-    private Path getExistingGroupPath(String assignmentName, String groupName)
-            throws NoSuchAssignmentException, NoSuchGroupException {
-
-        Path groupDir = getExistingAssignmentPath(assignmentName).resolve(groupName);
-        if (!Files.isDirectory(groupDir)) {
-            throw new NoSuchGroupException(assignmentName, groupName);
-        }
-        return groupDir;
-    }
-    
-    /**
-     * Returns the set of all filenames in the given directory. Includes file and directory names. Does not recurse.
-     * 
-     * @param directory The directory to get the filenames for.
-     * 
-     * @return A set of all filenames immediately in that directory.
-     * 
-     * @throws StorageException If getting the directory content fails.
-     */
-    private Set<String> getFilenames(Path directory) throws StorageException {
-        try {
-            return Files.list(directory)
-                    .map(Path::getFileName)
-                    .map(Path::toString)
-                    .collect(Collectors.toSet());
-        } catch (IOException e) {
-            throw new StorageException(e);
-        }
+        return path;
     }
     
     @Override
-    public void createAssignment(String assignmentName) throws AssignmentAlreadyExistsException, StorageException {
+    public void createOrUpdateAssignment(String course, String assignmentName, String... newGroupNames)
+            throws StorageException {
+        
         try {
-            Path assignmentDir = getAssignmentPath(assignmentName);
-            
-            if (Files.exists(assignmentDir)) {
-                throw new AssignmentAlreadyExistsException(assignmentName);
+            Path assignmentPath = getAssignmentPath(course, assignmentName);
+            if (!Files.isDirectory(assignmentPath)) {
+                Files.createDirectories(assignmentPath);
             }
             
-            Files.createDirectory(assignmentDir);
-            
-        } catch (IOException e) {
-            throw new StorageException(e);
-        }
-    }
-
-    @Override
-    public void addGroupsToAssignment(String assignmentName, String... groupNames)
-            throws NoSuchAssignmentException, StorageException {
-        
-        Path assignmentDir = getExistingAssignmentPath(assignmentName);
-        
-        for (String group : groupNames) {
-            Path groupDir = assignmentDir.resolve(group);
-            try {
-                if (!Files.exists(groupDir)) {
+            for (String groupName : newGroupNames) {
+                Path groupDir = assignmentPath.resolve(groupName);
+                if (!Files.isDirectory(groupDir)) {
                     Files.createDirectory(groupDir);
                 }
-            } catch (IOException e) {
-                throw new StorageException(e);
             }
+            
+        } catch (IOException e) {
+            throw new StorageException(e);
         }
     }
+    
 
     @Override
-    public void submitNewVersion(String assignmentName, String groupName, String author, Submission submission)
-            throws NoSuchAssignmentException, NoSuchGroupException, StorageException {
+    public void submitNewVersion(SubmissionTarget target, Submission submission)
+            throws NoSuchTargetException, StorageException {
         
-        Path groupDir = getExistingGroupPath(assignmentName, groupName);
+        Path groupDir = getExistingGroupPath(target);
         
-        Version newVersion = new Version(author, LocalDateTime.now());
+        Version newVersion = new Version(submission.getAuthor(), LocalDateTime.now());
         
         Path versionDir = groupDir.resolve(versionToFilename(newVersion));
         if (Files.isDirectory(versionDir)) {
@@ -171,31 +117,19 @@ public class FilesystemStorage implements ISubmissionStorage {
         } catch (IOException e) {
             throw new StorageException(e);
         }
-    }
-
-    @Override
-    public Set<String> getAssignments() throws StorageException {
-        return getFilenames(baseDirectory);
-    }
-
-    @Override
-    public Set<String> getGroups(String assignmentName) throws NoSuchAssignmentException, StorageException {
-        Path assignmentDir = getExistingAssignmentPath(assignmentName);
-        return getFilenames(assignmentDir);
-    }
-
-    @Override
-    public List<Version> getVersions(String assignmentName, String groupName)
-            throws NoSuchAssignmentException, NoSuchGroupException, StorageException {
         
-        Path groupDir = getExistingGroupPath(assignmentName, groupName);
+    }
+    
+    @Override
+    public List<Version> getVersions(SubmissionTarget target) throws NoSuchTargetException, StorageException {
+        Path groupDir = getExistingGroupPath(target);
         
         try {
             return Files.list(groupDir)
-                .map(p -> p.getFileName().toString())
-                .map(FilesystemStorage::filenameToVersion)
-                .sorted(Comparator.comparing(Version::getTimestamp).reversed())
-                .collect(Collectors.toList());
+                    .map(p -> p.getFileName().toString())
+                    .map(FilesystemStorage::filenameToVersion)
+                    .sorted(Comparator.comparing(Version::getTimestamp).reversed())
+                    .collect(Collectors.toList());
             
         } catch (IllegalArgumentException | IOException e) {
             throw new StorageException(e);
@@ -242,17 +176,17 @@ public class FilesystemStorage implements ISubmissionStorage {
     }
     
     @Override
-    public Submission getSubmission(String assignmentName, String groupName, Version version)
-            throws NoSuchAssignmentException, NoSuchGroupException, NoSuchVersionException, StorageException {
+    public Submission getSubmission(SubmissionTarget target, Version version)
+            throws NoSuchTargetException, StorageException {
         
-        Path groupDir = getExistingGroupPath(assignmentName, groupName);
+        Path groupDir = getExistingGroupPath(target);
         
         Path versionDir = groupDir.resolve(versionToFilename(version));
         if (!Files.isDirectory(versionDir)) {
-            throw new NoSuchVersionException(assignmentName, groupName, version);
+            throw new NoSuchTargetException(target, version);
         }
         
-        SubmissionBuilder builder = new SubmissionBuilder();
+        SubmissionBuilder builder = new SubmissionBuilder(version.getAuthor());
         
         try {
             Files.walk(versionDir)
