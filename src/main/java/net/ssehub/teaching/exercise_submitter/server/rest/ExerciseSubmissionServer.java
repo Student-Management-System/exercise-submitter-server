@@ -13,6 +13,7 @@ import io.swagger.v3.oas.annotations.enums.SecuritySchemeType;
 import io.swagger.v3.oas.annotations.info.Info;
 import io.swagger.v3.oas.annotations.security.SecurityScheme;
 import net.ssehub.teaching.exercise_submitter.server.rest.routes.HeartbeatRoute;
+import net.ssehub.teaching.exercise_submitter.server.rest.routes.NotificationRoute;
 import net.ssehub.teaching.exercise_submitter.server.rest.routes.SubmissionRoute;
 import net.ssehub.teaching.exercise_submitter.server.storage.filesystem.FilesystemStorage;
 import net.ssehub.teaching.exercise_submitter.server.submission.SubmissionManager;
@@ -44,6 +45,7 @@ public class ExerciseSubmissionServer {
         ResourceConfig config = new ResourceConfig()
                 .register(HeartbeatRoute.class)
                 .register(new SubmissionRoute(submissionManager))
+                .register(NotificationRoute.class)
                 .packages("net.ssehub.teaching.exercise_submitter.server.rest.exceptions");
         return GrizzlyHttpServerFactory.createHttpServer(URI.create(baseUri), config);
     }

@@ -186,6 +186,17 @@
 		</dependency>
 
 		<dependency>
+			<groupId>net.ssehub.studentmgmt</groupId>
+			<artifactId>sparkyservice_api</artifactId>
+			<version>1.1.1</version>
+		</dependency>
+		<dependency>
+			<groupId>net.ssehub.studentmgmt</groupId>
+			<artifactId>backend_api</artifactId>
+			<version>1.1.1</version>
+		</dependency>
+
+		<dependency>
 			<groupId>com.puppycrawl.tools</groupId>
 			<artifactId>checkstyle</artifactId>
 			<version>9.0.1</version>
