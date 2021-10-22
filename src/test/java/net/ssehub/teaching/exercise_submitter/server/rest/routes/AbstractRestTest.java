@@ -16,6 +16,8 @@ import net.ssehub.teaching.exercise_submitter.server.auth.PermissiveAuthManager;
 import net.ssehub.teaching.exercise_submitter.server.rest.ExerciseSubmissionServer;
 import net.ssehub.teaching.exercise_submitter.server.storage.EmptyStorage;
 import net.ssehub.teaching.exercise_submitter.server.storage.ISubmissionStorage;
+import net.ssehub.teaching.exercise_submitter.server.stu_mgmt.EmptyStuMgmtView;
+import net.ssehub.teaching.exercise_submitter.server.stu_mgmt.StuMgmtView;
 import net.ssehub.teaching.exercise_submitter.server.submission.SubmissionManager;
 import net.ssehub.teaching.exercise_submitter.server.submission.NoChecksSubmissionManager;
 
@@ -33,6 +35,8 @@ public abstract class AbstractRestTest {
     
     private AuthManager authManager;
     
+    private StuMgmtView stuMgmtView;
+    
     @BeforeEach
     public void setupServer() throws ApiException {
         uri = "http://localhost:" + generateRandomPort() + "/";
@@ -42,22 +46,27 @@ public abstract class AbstractRestTest {
         storage = new EmptyStorage();
         submissionManager = new NoChecksSubmissionManager(storage);
         authManager = new PermissiveAuthManager();
+        stuMgmtView = new EmptyStuMgmtView();
     }
     
-    public void setSubmissionManager(SubmissionManager submissionManager) {
+    protected void setSubmissionManager(SubmissionManager submissionManager) {
         this.submissionManager = submissionManager;
     }
     
-    public void setStorage(ISubmissionStorage storage) {
+    protected void setStorage(ISubmissionStorage storage) {
         this.storage = storage;
     }
     
-    public void setAuthManager(AuthManager authManager) {
+    protected void setAuthManager(AuthManager authManager) {
         this.authManager = authManager;
     }
     
+    protected void setStuMgmtView(StuMgmtView stuMgmtView) {
+        this.stuMgmtView = stuMgmtView;
+    }
+    
     protected void startServer() {
-        server = ExerciseSubmissionServer.startServer(uri, submissionManager, storage, authManager);
+        server = ExerciseSubmissionServer.startServer(uri, submissionManager, storage, authManager, stuMgmtView);
     }
     
     @AfterEach

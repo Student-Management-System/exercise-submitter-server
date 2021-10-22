@@ -57,15 +57,16 @@ public class ExerciseSubmissionServer {
      * @param submissionManager The {@link SubmissionManager} to use for new submissions.
      * @param storage The {@link ISubmissionStorage} to use for replaying old versions.
      * @param authManager The {@link AuthManager} to use for authentication and authorization.
+     * @param stuMgmtView The view on the student management system.
      * 
      * @return The started server.
      */
     public static HttpServer startServer(String baseUri, SubmissionManager submissionManager,
-            ISubmissionStorage storage, AuthManager authManager) {
+            ISubmissionStorage storage, AuthManager authManager, StuMgmtView stuMgmtView) {
         ResourceConfig config = new ResourceConfig()
                 .register(HeartbeatRoute.class)
                 .register(new SubmissionRoute(submissionManager, storage, authManager))
-                .register(NotificationRoute.class)
+                .register(new NotificationRoute(storage, stuMgmtView))
                 .packages("net.ssehub.teaching.exercise_submitter.server.rest.exceptions");
         return GrizzlyHttpServerFactory.createHttpServer(URI.create(baseUri), config);
     }
@@ -159,7 +160,8 @@ public class ExerciseSubmissionServer {
         StuMgmtView stuMgmtView = new StuMgmtView(createAuthenticatedMgmtApiClient(args[2], args[3], args[4], args[5]));
         AuthManager authManager = new AuthManager(args[2], stuMgmtView);
         
-        HttpServer server = startServer("http://localhost:" + args[0] + "/", submissionManager, storage, authManager);
+        HttpServer server = startServer("http://localhost:" + args[0] + "/",
+                submissionManager, storage, authManager, stuMgmtView);
         
         try {
             stuMgmtView.update(null); // TODO: trigger an update after the notifications are listening
