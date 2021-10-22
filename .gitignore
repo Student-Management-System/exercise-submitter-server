@@ -1,0 +1,7 @@
+/target/
+
+# eclipse project files
+/.project
+/.classpath
+/.checkstyle
+/.settings/
