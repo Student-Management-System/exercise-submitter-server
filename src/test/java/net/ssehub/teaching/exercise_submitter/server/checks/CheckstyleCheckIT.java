@@ -30,7 +30,7 @@ import org.junit.jupiter.api.Test;
 
 import net.ssehub.teaching.exercise_submitter.server.checks.ResultMessage.MessageType;
 
-public class CheckstyleCheckTest {
+public class CheckstyleCheckIT {
 
     private static final File TESTDATA = new File("src/test/resources/CheckstyleCheckTest");
     

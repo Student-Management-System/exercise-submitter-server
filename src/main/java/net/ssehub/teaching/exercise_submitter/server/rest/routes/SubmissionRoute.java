@@ -231,7 +231,7 @@ public class SubmissionRoute {
             throws NoSuchTargetException, StorageException, UnauthorizedException  {
         
         return getSubmission(authHeader, new SubmissionTarget(course, assignmentName, groupName),
-                versions -> versions.get(0));
+            versions -> versions.get(0));
     }
     
     /**

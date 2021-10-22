@@ -34,7 +34,7 @@ import org.junit.jupiter.api.Test;
 
 import net.ssehub.teaching.exercise_submitter.server.checks.ResultMessage.MessageType;
 
-public abstract class JavacCheckTest {
+public abstract class JavacCheckIT {
     
     protected static final File TESTDATA = new File("src/test/resources/JavacCheckTest");
 

@@ -28,7 +28,7 @@ import org.junit.jupiter.api.Test;
 
 import net.ssehub.teaching.exercise_submitter.server.checks.ResultMessage.MessageType;
 
-public class CliJavacCheckTest extends JavacCheckTest {
+public class CliJavacCheckIT extends JavacCheckIT {
 
     @Override
     protected CliJavacCheck creatInstance() {

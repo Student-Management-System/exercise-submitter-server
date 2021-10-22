@@ -19,7 +19,7 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.condition.EnabledIf;
 
 @EnabledIf("net.ssehub.teaching.exercise_submitter.server.checks.InternalJavacCheck#isSupported")
-public class InternalJavacCheckTest extends JavacCheckTest {
+public class InternalJavacCheckIT extends JavacCheckIT {
 
     @Override
     protected JavacCheck creatInstance() {
