@@ -6,11 +6,8 @@ import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-import io.swagger.v3.oas.annotations.OpenAPIDefinition;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
-import io.swagger.v3.oas.annotations.enums.SecuritySchemeType;
-import io.swagger.v3.oas.annotations.info.Info;
 import io.swagger.v3.oas.annotations.media.ArraySchema;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.ExampleObject;
@@ -18,7 +15,6 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.parameters.RequestBody;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
-import io.swagger.v3.oas.annotations.security.SecurityScheme;
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.HeaderParam;
@@ -44,14 +40,6 @@ import net.ssehub.teaching.exercise_submitter.server.submission.UnauthorizedExce
  * 
  * @author Adam
  */
-@OpenAPIDefinition(
-    info = @Info(
-        title = "Exercise Submitter Server",
-        description = "A sever for storing and retrieving exercise submissions.",
-        version = "1"
-    )
-)
-@SecurityScheme(name = "bearerAuth", type = SecuritySchemeType.HTTP, scheme = "bearer", bearerFormat = "JWT")
 @Path("/submission")
 @Produces(MediaType.APPLICATION_JSON)
 public class SubmissionRoute {
@@ -109,7 +97,8 @@ public class SubmissionRoute {
         },
         security = {
             @SecurityRequirement(name = "bearerAuth")
-        }
+        },
+        tags = {"submission"} 
     )
     @POST
     @Consumes(MediaType.APPLICATION_JSON)
@@ -175,7 +164,8 @@ public class SubmissionRoute {
         },
         security = {
             @SecurityRequirement(name = "bearerAuth")
-        }
+        },
+        tags = {"submission"} 
     )
     @GET
     @Path("/{course}/{assignment}/{group}/versions")
@@ -231,7 +221,8 @@ public class SubmissionRoute {
         },
         security = {
             @SecurityRequirement(name = "bearerAuth")
-        }
+        },
+        tags = {"submission"} 
     )
     @GET
     @Path("/{course}/{assignment}/{group}/latest")
@@ -273,7 +264,8 @@ public class SubmissionRoute {
         },
         security = {
             @SecurityRequirement(name = "bearerAuth")
-        }
+        },
+        tags = {"submission"} 
     )
     @GET
     @Path("/{course}/{assignment}/{group}/{version}")

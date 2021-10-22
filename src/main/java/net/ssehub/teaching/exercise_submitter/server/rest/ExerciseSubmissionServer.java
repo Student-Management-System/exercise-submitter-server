@@ -8,6 +8,10 @@ import org.glassfish.grizzly.http.server.HttpServer;
 import org.glassfish.jersey.grizzly2.httpserver.GrizzlyHttpServerFactory;
 import org.glassfish.jersey.server.ResourceConfig;
 
+import io.swagger.v3.oas.annotations.OpenAPIDefinition;
+import io.swagger.v3.oas.annotations.enums.SecuritySchemeType;
+import io.swagger.v3.oas.annotations.info.Info;
+import io.swagger.v3.oas.annotations.security.SecurityScheme;
 import net.ssehub.teaching.exercise_submitter.server.rest.routes.HeartbeatRoute;
 import net.ssehub.teaching.exercise_submitter.server.rest.routes.SubmissionRoute;
 import net.ssehub.teaching.exercise_submitter.server.storage.filesystem.FilesystemStorage;
@@ -18,6 +22,14 @@ import net.ssehub.teaching.exercise_submitter.server.submission.SubmissionManage
  * 
  * @author Adam
  */
+@OpenAPIDefinition(
+    info = @Info(
+        title = "Exercise Submitter Server",
+        description = "A sever for storing and retrieving exercise submissions.",
+        version = "1"
+    )
+)
+@SecurityScheme(name = "bearerAuth", type = SecuritySchemeType.HTTP, scheme = "bearer", bearerFormat = "JWT")
 public class ExerciseSubmissionServer {
 
     /**

@@ -145,6 +145,7 @@
 					<outputPath>${project.build.directory}</outputPath>
 					<outputFormat>JSON</outputFormat>
 					<resourcePackages>
+						<resourcePackage>net.ssehub.teaching.exercise_submitter.server.rest</resourcePackage>
 						<resourcePackage>net.ssehub.teaching.exercise_submitter.server.rest.routes</resourcePackage>
 					</resourcePackages>
 					<prettyPrint>true</prettyPrint>
