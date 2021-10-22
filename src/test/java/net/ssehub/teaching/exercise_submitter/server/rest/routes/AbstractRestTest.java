@@ -10,41 +10,60 @@ import org.junit.jupiter.api.BeforeEach;
 import jakarta.ws.rs.client.Client;
 import jakarta.ws.rs.client.ClientBuilder;
 import jakarta.ws.rs.client.WebTarget;
+import net.ssehub.teaching.exercise_submitter.server.auth.AuthManager;
+import net.ssehub.teaching.exercise_submitter.server.auth.PermissiveAuthManager;
 import net.ssehub.teaching.exercise_submitter.server.rest.ExerciseSubmissionServer;
 import net.ssehub.teaching.exercise_submitter.server.storage.EmptyStorage;
 import net.ssehub.teaching.exercise_submitter.server.storage.ISubmissionStorage;
 import net.ssehub.teaching.exercise_submitter.server.submission.SubmissionManager;
-import net.ssehub.teaching.exercise_submitter.server.submission.SubmissionManagerMock;
+import net.ssehub.teaching.exercise_submitter.server.submission.NoChecksSubmissionManager;
 
 public abstract class AbstractRestTest {
 
+    private HttpServer server;
+    
     protected WebTarget target;
     
     private String uri;
     
-    private HttpServer server;
+    private SubmissionManager submissionManager;
     
-    protected void setStorage(ISubmissionStorage storage) {
-        setManager(new SubmissionManagerMock(storage));
-    }
+    private ISubmissionStorage storage;
     
-    protected void setManager(SubmissionManager submissionManager) {
-        server.shutdown();
-        server = ExerciseSubmissionServer.startServer(uri, submissionManager);
-    }
+    private AuthManager authManager;
     
     @BeforeEach
     public void setupServer() {
         uri = "http://localhost:" + generateRandomPort() + "/";
-        server = ExerciseSubmissionServer.startServer(uri, new SubmissionManagerMock(new EmptyStorage()));
         Client client = ClientBuilder.newClient();
         target = client.target(uri);
         
+        storage = new EmptyStorage();
+        submissionManager = new NoChecksSubmissionManager(storage);
+        authManager = new PermissiveAuthManager();
+    }
+    
+    public void setSubmissionManager(SubmissionManager submissionManager) {
+        this.submissionManager = submissionManager;
+    }
+    
+    public void setStorage(ISubmissionStorage storage) {
+        this.storage = storage;
+    }
+    
+    public void setAuthManager(AuthManager authManager) {
+        this.authManager = authManager;
+    }
+    
+    protected void startServer() {
+        server = ExerciseSubmissionServer.startServer(uri, submissionManager, storage, authManager);
     }
     
     @AfterEach
     public void shutdownServer() {
-        server.shutdown();
+        if (server != null) {
+            server.shutdown();
+        }
     }
     
     /**

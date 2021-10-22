@@ -10,6 +10,7 @@ public class HeartbeatRouteIT extends AbstractRestTest {
 
     @Test
     public void heartbeat() {
+        startServer();
         Response response = target.path("/heartbeat").request().get();
         assertEquals(200, response.getStatus());
     }

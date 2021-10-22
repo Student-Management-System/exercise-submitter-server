@@ -25,7 +25,9 @@ import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.Response.Status;
+import net.ssehub.teaching.exercise_submitter.server.auth.AuthManager;
 import net.ssehub.teaching.exercise_submitter.server.rest.dto.VersionDto;
+import net.ssehub.teaching.exercise_submitter.server.storage.ISubmissionStorage;
 import net.ssehub.teaching.exercise_submitter.server.storage.NoSuchTargetException;
 import net.ssehub.teaching.exercise_submitter.server.storage.StorageException;
 import net.ssehub.teaching.exercise_submitter.server.storage.Submission;
@@ -46,13 +48,21 @@ public class SubmissionRoute {
     
     private SubmissionManager submissionManager;
     
+    private ISubmissionStorage storage;
+    
+    private AuthManager authManager;
+    
     /**
      * Creates a new submission route with the given storage.
      * 
-     * @param submissionManager The {@link SubmissionManager} to use.
+     * @param submissionManager The {@link SubmissionManager} to use for new submissions.
+     * @param storage The {@link ISubmissionStorage} to use for replaying old versions.
+     * @param authManager The {@link AuthManager} to use for authentication and authorization.
      */
-    public SubmissionRoute(SubmissionManager submissionManager) {
+    public SubmissionRoute(SubmissionManager submissionManager, ISubmissionStorage storage, AuthManager authManager) {
         this.submissionManager = submissionManager;
+        this.storage = storage;
+        this.authManager = authManager;
     }
     
     /**
@@ -72,7 +82,7 @@ public class SubmissionRoute {
         
         String token = authorizationHeader.substring("Bearer ".length());
         
-        return submissionManager.authenticate(token);
+        return authManager.authenticate(token);
     }
     
     /**
@@ -117,16 +127,18 @@ public class SubmissionRoute {
             throws NoSuchTargetException, StorageException, UnauthorizedException {
         
         Response response;
+        SubmissionTarget target = new SubmissionTarget(course, assignmentName, groupName);
         
         try {
             String user = authenticate(authHeader);
+            authManager.checkSubmissionAllowed(user, target);
             
             SubmissionBuilder builder = new SubmissionBuilder(user);
             for (Map.Entry<String, String> file : files.entrySet()) {
                 builder.addFile(java.nio.file.Path.of(file.getKey()), file.getValue());
             }
             
-            submissionManager.submit(new SubmissionTarget(course, assignmentName, groupName), builder.build());
+            submissionManager.submit(target, builder.build());
             
             response = Response
                     .status(Status.CREATED)
@@ -177,10 +189,12 @@ public class SubmissionRoute {
     
             throws NoSuchTargetException, StorageException, UnauthorizedException {
 
-        String user = authenticate(authHeader);
+        SubmissionTarget target = new SubmissionTarget(course, assignmentName, groupName);
         
-        List<Version> versions = submissionManager.getVersions(
-                new SubmissionTarget(course, assignmentName, groupName), user);
+        String user = authenticate(authHeader);
+        authManager.checkReplayAllowed(user, target);
+        
+        List<Version> versions = storage.getVersions(target);
         
         List<VersionDto> dtos = versions.stream()
             .map(version -> {
@@ -308,15 +322,15 @@ public class SubmissionRoute {
             throws NoSuchTargetException, StorageException, UnauthorizedException {
         
         String user = authenticate(authHeader);
+        authManager.checkReplayAllowed(user, target);
         
         Response response;
-        List<Version> versions = submissionManager.getVersions(target, user);
+        List<Version> versions = storage.getVersions(target);
         if (!versions.isEmpty()) {
             
             Version selectedVersion = versionSelector.apply(versions);
             if (selectedVersion != null) {
-                Submission submission = submissionManager
-                        .getSubmission(target, selectedVersion, user);
+                Submission submission = storage.getSubmission(target, selectedVersion);
                 
                 Map<String, String> files = new HashMap<>(submission.getNumFiles());
                 for (java.nio.file.Path file : submission.getFilepaths()) {

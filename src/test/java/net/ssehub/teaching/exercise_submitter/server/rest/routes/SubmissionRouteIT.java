@@ -20,6 +20,7 @@ import org.junit.jupiter.api.Test;
 import jakarta.ws.rs.client.Entity;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
+import net.ssehub.teaching.exercise_submitter.server.auth.PermissiveAuthManager;
 import net.ssehub.teaching.exercise_submitter.server.storage.EmptyStorage;
 import net.ssehub.teaching.exercise_submitter.server.storage.NoSuchTargetException;
 import net.ssehub.teaching.exercise_submitter.server.storage.StorageException;
@@ -27,18 +28,21 @@ import net.ssehub.teaching.exercise_submitter.server.storage.Submission;
 import net.ssehub.teaching.exercise_submitter.server.storage.SubmissionBuilder;
 import net.ssehub.teaching.exercise_submitter.server.storage.SubmissionTarget;
 import net.ssehub.teaching.exercise_submitter.server.storage.Version;
-import net.ssehub.teaching.exercise_submitter.server.submission.SubmissionManagerMock;
+import net.ssehub.teaching.exercise_submitter.server.submission.NoChecksSubmissionManager;
 import net.ssehub.teaching.exercise_submitter.server.submission.UnauthorizedException;
 
 public class SubmissionRouteIT extends AbstractRestTest {
 
     private static final String JWT_TOKEN = "Bearer 123";
     
+    private static final String GENERATED_USERNAME = PermissiveAuthManager.generateUsername("123");
+    
     @Nested
     public class Submit {
         
         @Test
         public void noTokenUnauthorized() {
+            startServer();
             Response response = target.path("/submission/foo-wise2122/Homework01/Group01")
                     .request()
                     .post(Entity.entity(Map.of(), MediaType.APPLICATION_JSON));
@@ -51,6 +55,7 @@ public class SubmissionRouteIT extends AbstractRestTest {
         
         @Test
         public void invalidFilepathBadRequest() {
+            startServer();
             Response response = target.path("/submission/foo-wise2122/Homework01/Group01")
                     .request()
                     .header("Authorization", JWT_TOKEN)
@@ -64,14 +69,37 @@ public class SubmissionRouteIT extends AbstractRestTest {
         }
         
         @Test
-        public void forbidden() {
-            setManager(new SubmissionManagerMock(new EmptyStorage()) {
+        public void notAuthenticated() {
+            setAuthManager(new PermissiveAuthManager() {
                 @Override
-                public void submit(SubmissionTarget target, Submission submission)
-                        throws NoSuchTargetException, StorageException, UnauthorizedException {
+                public String authenticate(String token) throws UnauthorizedException {
                     throw new UnauthorizedException();
                 }
             });
+            startServer();
+            
+            Response response = target.path("/submission/foo-wise2122/Homework01/Group01")
+                    .request()
+                    .header("Authorization", JWT_TOKEN)
+                    .post(Entity.entity(Map.of("test.txt", "some content\n"), MediaType.APPLICATION_JSON));
+            
+            assertAll(
+                () -> assertEquals(403, response.getStatus()),
+                () -> assertEquals("Unauthorized", response.getStatusInfo().getReasonPhrase())
+            );
+        }
+        
+        @Test
+        public void notAuthorized() {
+            setAuthManager(new PermissiveAuthManager() {
+                @Override
+                public void checkSubmissionAllowed(String user, SubmissionTarget target) throws UnauthorizedException {
+                    if (user.equals(GENERATED_USERNAME)) {
+                        throw new UnauthorizedException();
+                    }
+                }
+            });
+            startServer();
             
             Response response = target.path("/submission/foo-wise2122/Homework01/Group01")
                     .request()
@@ -86,13 +114,14 @@ public class SubmissionRouteIT extends AbstractRestTest {
         
         @Test
         public void nonExistingTargetNotFound() {
-            setStorage(new EmptyStorage() {
+            setSubmissionManager(new NoChecksSubmissionManager(new EmptyStorage() {
                 @Override
                 public void submitNewVersion(SubmissionTarget target, Submission submission)
                         throws NoSuchTargetException, StorageException {
                     throw new NoSuchTargetException(target);
                 }
-            });
+            }));
+            startServer();
             
             Response response = target.path("/submission/foo-wise2122/Homework01/Group01")
                     .request()
@@ -108,13 +137,14 @@ public class SubmissionRouteIT extends AbstractRestTest {
         
         @Test
         public void storageExceptionInternalServerError() {
-            setStorage(new EmptyStorage() {
+            setSubmissionManager(new NoChecksSubmissionManager(new EmptyStorage() {
                 @Override
                 public void submitNewVersion(SubmissionTarget target, Submission submission)
                         throws NoSuchTargetException, StorageException {
                     throw new StorageException("mock");
                 }
-            });
+            }));
+            startServer();
             
             Response response = target.path("/submission/foo-wise2122/Homework01/Group01")
                     .request()
@@ -131,13 +161,14 @@ public class SubmissionRouteIT extends AbstractRestTest {
         public void validSubmissionStored() {
             AtomicReference<Submission> result = new AtomicReference<>();
             
-            setStorage(new EmptyStorage() {
+            setSubmissionManager(new NoChecksSubmissionManager(new EmptyStorage() {
                 @Override
                 public void submitNewVersion(SubmissionTarget target, Submission submission)
                         throws NoSuchTargetException, StorageException {
                     result.set(submission);
                 }
-            });
+            }));
+            startServer();
             
             Response response = target.path("/submission/foo-wise2122/Homework01/Group01")
                     .request()
@@ -157,6 +188,7 @@ public class SubmissionRouteIT extends AbstractRestTest {
         
         @Test
         public void noTokenUnauthorized() {
+            startServer();
             Response response = target.path("/submission/foo-wise2122/Homework01/Group01/versions")
                     .request()
                     .get();
@@ -168,14 +200,37 @@ public class SubmissionRouteIT extends AbstractRestTest {
         }
     
         @Test
-        public void forbidden() {
-            setManager(new SubmissionManagerMock(new EmptyStorage()) {
+        public void notAuthenticated() {
+            setAuthManager(new PermissiveAuthManager() {
                 @Override
-                public List<Version> getVersions(SubmissionTarget target, String author)
-                        throws NoSuchTargetException, StorageException, UnauthorizedException {
+                public String authenticate(String token) throws UnauthorizedException {
                     throw new UnauthorizedException();
                 }
             });
+            startServer();
+            
+            Response response = target.path("/submission/foo-wise2122/Homework01/Group01/versions")
+                    .request()
+                    .header("Authorization", JWT_TOKEN)
+                    .get();
+            
+            assertAll(
+                () -> assertEquals(403, response.getStatus()),
+                () -> assertEquals("Unauthorized", response.getStatusInfo().getReasonPhrase())
+            );
+        }
+        
+        @Test
+        public void notAuthorized() {
+            setAuthManager(new PermissiveAuthManager() {
+                @Override
+                public void checkReplayAllowed(String user, SubmissionTarget target) throws UnauthorizedException {
+                    if (user.equals(GENERATED_USERNAME)) {
+                        throw new UnauthorizedException();
+                    }
+                }
+            });
+            startServer();
             
             Response response = target.path("/submission/foo-wise2122/Homework01/Group01/versions")
                     .request()
@@ -191,13 +246,13 @@ public class SubmissionRouteIT extends AbstractRestTest {
         @Test
         public void nonExistingTargetNotFound() {
             setStorage(new EmptyStorage() {
-                
                 @Override
                 public List<Version> getVersions(SubmissionTarget target)
                         throws NoSuchTargetException, StorageException {
                     throw new NoSuchTargetException(target);
                 }
             });
+            startServer();
             
             Response response = target.path("/submission/foo-wise2122/Homework01/Group01/versions")
                     .request()
@@ -220,6 +275,7 @@ public class SubmissionRouteIT extends AbstractRestTest {
                     throw new StorageException("mock");
                 }
             });
+            startServer();
     
             Response response = target.path("/submission/foo-wise2122/Homework01/Group01/versions")
                     .request()
@@ -241,6 +297,7 @@ public class SubmissionRouteIT extends AbstractRestTest {
                     return Arrays.asList();
                 }
             });
+            startServer();
             
             Response response = target.path("/submission/foo-wise2122/Homework01/Group01/versions")
                     .request()
@@ -270,6 +327,7 @@ public class SubmissionRouteIT extends AbstractRestTest {
                     );
                 }
             });
+            startServer();
             
             Response response = target.path("/submission/foo-wise2122/Homework01/Group01/versions")
                     .request()
@@ -294,6 +352,7 @@ public class SubmissionRouteIT extends AbstractRestTest {
         
         @Test
         public void noTokenUnauthorized() {
+            startServer();
             Response response = target.path("/submission/foo-wise2122/Homework01/Group01/latest")
                     .request()
                     .get();
@@ -305,14 +364,37 @@ public class SubmissionRouteIT extends AbstractRestTest {
         }
         
         @Test
-        public void forbidden() {
-            setManager(new SubmissionManagerMock(new EmptyStorage()) {
+        public void notAuthenticated() {
+            setAuthManager(new PermissiveAuthManager() {
                 @Override
-                public List<Version> getVersions(SubmissionTarget target, String user)
-                        throws NoSuchTargetException, StorageException, UnauthorizedException {
+                public String authenticate(String token) throws UnauthorizedException {
                     throw new UnauthorizedException();
                 }
             });
+            startServer();
+            
+            Response response = target.path("/submission/foo-wise2122/Homework01/Group01/latest")
+                    .request()
+                    .header("Authorization", JWT_TOKEN)
+                    .get();
+            
+            assertAll(
+                () -> assertEquals(403, response.getStatus()),
+                () -> assertEquals("Unauthorized", response.getStatusInfo().getReasonPhrase())
+            );
+        }
+        
+        @Test
+        public void notAuthorized() {
+            setAuthManager(new PermissiveAuthManager() {
+                @Override
+                public void checkReplayAllowed(String user, SubmissionTarget target) throws UnauthorizedException {
+                    if (user.equals(GENERATED_USERNAME)) {
+                        throw new UnauthorizedException();
+                    }
+                }
+            });
+            startServer();
             
             Response response = target.path("/submission/foo-wise2122/Homework01/Group01/latest")
                     .request()
@@ -335,6 +417,7 @@ public class SubmissionRouteIT extends AbstractRestTest {
                     throw new NoSuchTargetException(target);
                 }
             });
+            startServer();
             
             Response response = target.path("/submission/foo-wise2122/Homework01/Group01/latest")
                     .request()
@@ -357,6 +440,7 @@ public class SubmissionRouteIT extends AbstractRestTest {
                     throw new StorageException("mock");
                 }
             });
+            startServer();
     
             Response response = target.path("/submission/foo-wise2122/Homework01/Group01/latest")
                     .request()
@@ -371,6 +455,7 @@ public class SubmissionRouteIT extends AbstractRestTest {
         
         @Test
         public void noVersions() {
+            startServer();
             Response response = target.path("/submission/foo-wise2122/Homework01/Group01/latest")
                     .request()
                     .header("Authorization", JWT_TOKEN)
@@ -407,6 +492,7 @@ public class SubmissionRouteIT extends AbstractRestTest {
                     return builder.build();
                 }
             });
+            startServer();
             
             Response response = target.path("/submission/foo-wise2122/Homework01/Group01/latest")
                     .request()
@@ -441,6 +527,7 @@ public class SubmissionRouteIT extends AbstractRestTest {
                     return builder.build();
                 }
             });
+            startServer();
             
             Response response = target.path("/submission/foo-wise2122/Homework01/Group01/latest")
                     .request()
@@ -476,6 +563,7 @@ public class SubmissionRouteIT extends AbstractRestTest {
                     );
                 }
             });
+            startServer();
             
             Response response = target.path("/submission/foo-wise2122/Homework01/Group01/123456")
                     .request()
@@ -515,6 +603,7 @@ public class SubmissionRouteIT extends AbstractRestTest {
                     return builder.build();
                 }
             });
+            startServer();
             
             Response response = target.path("/submission/foo-wise2122/Homework01/Group01/1634831371")
                     .request()
@@ -553,6 +642,7 @@ public class SubmissionRouteIT extends AbstractRestTest {
                     return builder.build();
                 }
             });
+            startServer();
             
             Response response = target.path("/submission/foo-wise2122/Homework01/Group01/1634606632")
                     .request()

@@ -12,9 +12,11 @@ import io.swagger.v3.oas.annotations.OpenAPIDefinition;
 import io.swagger.v3.oas.annotations.enums.SecuritySchemeType;
 import io.swagger.v3.oas.annotations.info.Info;
 import io.swagger.v3.oas.annotations.security.SecurityScheme;
+import net.ssehub.teaching.exercise_submitter.server.auth.AuthManager;
 import net.ssehub.teaching.exercise_submitter.server.rest.routes.HeartbeatRoute;
 import net.ssehub.teaching.exercise_submitter.server.rest.routes.NotificationRoute;
 import net.ssehub.teaching.exercise_submitter.server.rest.routes.SubmissionRoute;
+import net.ssehub.teaching.exercise_submitter.server.storage.ISubmissionStorage;
 import net.ssehub.teaching.exercise_submitter.server.storage.filesystem.FilesystemStorage;
 import net.ssehub.teaching.exercise_submitter.server.submission.SubmissionManager;
 
@@ -37,14 +39,17 @@ public class ExerciseSubmissionServer {
      * Creates and starts the server.
      * 
      * @param baseUri The base URI to use.
-     * @param submissionManager The submission manager to use.
+     * @param submissionManager The {@link SubmissionManager} to use for new submissions.
+     * @param storage The {@link ISubmissionStorage} to use for replaying old versions.
+     * @param authManager The {@link AuthManager} to use for authentication and authorization.
      * 
      * @return The started server.
      */
-    public static HttpServer startServer(String baseUri, SubmissionManager submissionManager) {
+    public static HttpServer startServer(String baseUri, SubmissionManager submissionManager,
+            ISubmissionStorage storage, AuthManager authManager) {
         ResourceConfig config = new ResourceConfig()
                 .register(HeartbeatRoute.class)
-                .register(new SubmissionRoute(submissionManager))
+                .register(new SubmissionRoute(submissionManager, storage, authManager))
                 .register(NotificationRoute.class)
                 .packages("net.ssehub.teaching.exercise_submitter.server.rest.exceptions");
         return GrizzlyHttpServerFactory.createHttpServer(URI.create(baseUri), config);
@@ -58,8 +63,11 @@ public class ExerciseSubmissionServer {
      * @throws IOException If reading user input fails.
      */
     public static void main(String[] args) throws IOException {
-        SubmissionManager submissionManager = new SubmissionManager(new FilesystemStorage(Path.of("teststorage")));
-        HttpServer server = startServer("http://localhost:4444/", submissionManager);
+        ISubmissionStorage storage = new FilesystemStorage(Path.of("teststorage"));
+        SubmissionManager submissionManager = new SubmissionManager(storage);
+        AuthManager authManager = new AuthManager();
+        
+        HttpServer server = startServer("http://localhost:4444/", submissionManager, storage, authManager);
         System.out.println("Server listens at http://localhost:4444/");
         System.out.println("Press enter to stop the server");
         System.in.read();
