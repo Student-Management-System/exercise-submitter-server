@@ -18,6 +18,7 @@ import io.swagger.v3.oas.annotations.parameters.RequestBody;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.GET;
+import jakarta.ws.rs.HeaderParam;
 import jakarta.ws.rs.POST;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.PathParam;
@@ -25,6 +26,7 @@ import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.Response.Status;
+import net.ssehub.teaching.exercise_submitter.server.rest.dto.VersionDto;
 import net.ssehub.teaching.exercise_submitter.server.storage.NoSuchTargetException;
 import net.ssehub.teaching.exercise_submitter.server.storage.StorageException;
 import net.ssehub.teaching.exercise_submitter.server.storage.Submission;
@@ -62,12 +64,33 @@ public class SubmissionRoute {
     }
     
     /**
+     * Authenticates the user using the given value of the <code>Authorization</code> HTTP header.
+     * 
+     * @param authorizationHeader The value of the <code>Authorization</code> HTTP header. Must start with
+     *      <code>Bearer</code>.
+     *      
+     * @return The username of the authenticated user.
+     * 
+     * @throws UnauthorizedException If the user could not be authenticated.
+     */
+    private String authenticate(String authorizationHeader) throws UnauthorizedException {
+        if (authorizationHeader == null || !authorizationHeader.startsWith("Bearer ")) {
+            throw new UnauthorizedException();
+        }
+        
+        String token = authorizationHeader.substring("Bearer ".length());
+        
+        return submissionManager.authenticate(token);
+    }
+    
+    /**
      * Adds a new submission.
      * 
      * @param course The identifier of the course of the assignment.
      * @param assignmentName The name of the assignment to submit to.
      * @param groupName The name of the group to submit for.
      * @param files The files of the submission. Key are relative file paths, values are file content.
+     * @param authHeader The JWT token to authenticate the user.
      * 
      * @return A fitting HTTP response.
      */
@@ -92,14 +115,17 @@ public class SubmissionRoute {
                 @Content(schema = @Schema(type = "object"), examples = {
                     @ExampleObject(value = "{\"Main.java\": \"file content...\", \"dir/Util.java\": \"content\"}")
                 })
-            }) Map<String, String> files) {
+            }) Map<String, String> files,
+            @HeaderParam("Authorization") String authHeader)
+    
+            throws NoSuchTargetException, StorageException, UnauthorizedException {
         
         Response response;
         
-        // TODO: authentication
-        
         try {
-            SubmissionBuilder builder = new SubmissionBuilder("user"); // TODO: authenticate user
+            String user = authenticate(authHeader);
+            
+            SubmissionBuilder builder = new SubmissionBuilder(user);
             for (Map.Entry<String, String> file : files.entrySet()) {
                 builder.addFile(java.nio.file.Path.of(file.getKey()), file.getValue());
             }
@@ -115,21 +141,6 @@ public class SubmissionRoute {
                     .status(Status.BAD_REQUEST.getStatusCode(), "Invalid filepath: " + e.getMessage())
                     .build();
             
-        } catch (UnauthorizedException e) {
-            response = Response
-                    .status(Status.FORBIDDEN.getStatusCode(), "Unauthorized")
-                    .build();
-            
-        } catch (NoSuchTargetException e) {
-            response = Response
-                    .status(Status.NOT_FOUND.getStatusCode(), e.getMessage())
-                    .build();
-            
-        } catch (StorageException e) {
-            response = Response
-                    .status(Status.INTERNAL_SERVER_ERROR.getStatusCode(), "Unexpected storage exception: "
-                            + e.getMessage())
-                    .build();
         }
         
         return response;
@@ -141,6 +152,7 @@ public class SubmissionRoute {
      * @param course The identifier of the course of the assignment.
      * @param assignmentName The name of the assignment to get.
      * @param groupName The name of the group to get the versions list of.
+     * @param authHeader The JWT token to authenticate the user.
      * 
      * @return A HTTP response with a list of {@link VersionDto}s.
      */
@@ -160,47 +172,28 @@ public class SubmissionRoute {
     public Response listVersions(
             @PathParam("course") String course,
             @PathParam("assignment") String assignmentName,
-            @PathParam("group") String groupName) {
+            @PathParam("group") String groupName,
+            @HeaderParam("Authorization") String authHeader)
+    
+            throws NoSuchTargetException, StorageException, UnauthorizedException {
 
-        Response response;
+        String user = authenticate(authHeader);
         
-        // TODO authentication
+        List<Version> versions = submissionManager.getVersions(
+                new SubmissionTarget(course, assignmentName, groupName), user);
         
-        try {
-            List<Version> versions = submissionManager.getVersions(
-                    new SubmissionTarget(course, assignmentName, groupName), "user"); // TODO: authenticate user
-            
-            List<VersionDto> dtos = versions.stream()
-                .map(version -> {
-                    VersionDto dto = new VersionDto();
-                    dto.setAuthor(version.getAuthor());
-                    dto.setTimestamp(version.getUnixTimestamp());
-                    return dto;
-                })
-                .collect(Collectors.toList());
-            
-            response = Response
-                    .ok(dtos)
-                    .build();
-            
-        } catch (UnauthorizedException e) {
-            response = Response
-                    .status(Status.FORBIDDEN.getStatusCode(), "Unauthorized")
-                    .build();
-            
-        } catch (NoSuchTargetException e) {
-            response = Response
-                    .status(Status.NOT_FOUND.getStatusCode(), e.getMessage())
-                    .build();
-            
-        } catch (StorageException e) {
-            response = Response
-                    .status(Status.INTERNAL_SERVER_ERROR.getStatusCode(), "Unexpected storage exception: "
-                            + e.getMessage())
-                    .build();
-        }
+        List<VersionDto> dtos = versions.stream()
+            .map(version -> {
+                VersionDto dto = new VersionDto();
+                dto.setAuthor(version.getAuthor());
+                dto.setTimestamp(version.getUnixTimestamp());
+                return dto;
+            })
+            .collect(Collectors.toList());
         
-        return response;
+        return Response
+                .ok(dtos)
+                .build();
     }
     
     /**
@@ -209,6 +202,7 @@ public class SubmissionRoute {
      * @param course The identifier of the course of the assignment.
      * @param assignmentName The name of the assignment to retrieve.
      * @param groupName The name of the group to retrieve the latest submission of.
+     * @param authHeader The JWT token to authenticate the user.
      * 
      * @return A HTTP response with a {@link SubmissionDto} as data.
      */
@@ -231,9 +225,13 @@ public class SubmissionRoute {
     public Response getLatest(
             @PathParam("course") String course,
             @PathParam("assignment") String assignmentName,
-            @PathParam("group") String groupName) {
+            @PathParam("group") String groupName,
+            @HeaderParam("Authorization") String authHeader)
+    
+            throws NoSuchTargetException, StorageException, UnauthorizedException  {
         
-        return getSubmission(new SubmissionTarget(course, assignmentName, groupName), versions -> versions.get(0));
+        return getSubmission(authHeader, new SubmissionTarget(course, assignmentName, groupName),
+                versions -> versions.get(0));
     }
     
     /**
@@ -243,6 +241,7 @@ public class SubmissionRoute {
      * @param assignmentName The name of the assignment to retrieve.
      * @param groupName The name of the group to retrieve the submission of.
      * @param timestamp The Unix timestamp identifying the version.
+     * @param authHeader The JWT token to authenticate the user.
      * 
      * @return A HTTP response with a {@link SubmissionDto} as data.
      */
@@ -268,9 +267,12 @@ public class SubmissionRoute {
             @PathParam("group") String groupName,
             @PathParam("version")
                 @Parameter(description = "Identifies the version as a unix timestamp (seconds since epoch)")
-                long timestamp) {
+                long timestamp,
+            @HeaderParam("Authorization") String authHeader)
+    
+            throws NoSuchTargetException, StorageException, UnauthorizedException  {
         
-        return getSubmission(new SubmissionTarget(course, assignmentName, groupName), versions -> {
+        return getSubmission(authHeader, new SubmissionTarget(course, assignmentName, groupName), versions -> {
             Version match = null;
             for (Version version : versions) {
                 if (version.getUnixTimestamp() == timestamp) {
@@ -285,67 +287,52 @@ public class SubmissionRoute {
     /**
      * Retrieves a submission. A callback is used to let the caller decide which version to retrieve.
      * 
+     * @param authHeader The JWT token to authentiate the user.
      * @param target The course, assignment, and group identifier to retrieve the submission of.
      * @param versionSelector A callback function to decide which version to use. The given list always has at least one
      *      item. Return <code>null</code> to indicate that the wanted version is not available.
      *      
      * @return A HTTP response with a {@link SubmissionDto} as data.
      */
-    private Response getSubmission(SubmissionTarget target, Function<List<Version>, Version> versionSelector) {
+    private Response getSubmission(String authHeader, SubmissionTarget target,
+            Function<List<Version>, Version> versionSelector)
+    
+            throws NoSuchTargetException, StorageException, UnauthorizedException {
+        
+        String user = authenticate(authHeader);
         
         Response response;
-        
-        // TODO authentication
-        
-        try {
-            List<Version> versions = submissionManager.getVersions(target, "user"); // TODO: authentictae user
-            if (!versions.isEmpty()) {
+        List<Version> versions = submissionManager.getVersions(target, user);
+        if (!versions.isEmpty()) {
+            
+            Version selectedVersion = versionSelector.apply(versions);
+            if (selectedVersion != null) {
+                Submission submission = submissionManager
+                        .getSubmission(target, selectedVersion, user);
                 
-                Version selectedVersion = versionSelector.apply(versions);
-                if (selectedVersion != null) {
-                    Submission submission = submissionManager
-                            .getSubmission(target, selectedVersion, "user"); // TODO; authenticate user
-                    
-                    Map<String, String> files = new HashMap<>(submission.getNumFiles());
-                    for (java.nio.file.Path file : submission.getFilepaths()) {
-                        files.put(file.toString().replace('\\', '/'), submission.getFileContent(file));
-                    }
-                    
-                    response = Response.ok(files).build();
-                    
-                } else {
-                    response = Response
-                            .status(Status.NOT_FOUND.getStatusCode(), "Selected version not found for group "
-                                    + target.getGroupName() + " in assignment " + target.getAssignmentName()
-                                    + " in course " + target.getCourse())
-                            .build();
+                Map<String, String> files = new HashMap<>(submission.getNumFiles());
+                for (java.nio.file.Path file : submission.getFilepaths()) {
+                    files.put(file.toString().replace('\\', '/'), submission.getFileContent(file));
                 }
                 
+                response = Response.ok(files).build();
                 
             } else {
                 response = Response
-                        .status(Status.NOT_FOUND.getStatusCode(), "No versions have been submitted for group "
+                        .status(Status.NOT_FOUND.getStatusCode(), "Selected version not found for group "
                                 + target.getGroupName() + " in assignment " + target.getAssignmentName()
                                 + " in course " + target.getCourse())
                         .build();
             }
             
-        } catch (UnauthorizedException e) {
+        } else {
             response = Response
-                    .status(Status.FORBIDDEN.getStatusCode(), "Unauthorized")
-                    .build();
-            
-        } catch (NoSuchTargetException e) {
-            response = Response
-                    .status(Status.NOT_FOUND.getStatusCode(), e.getMessage())
-                    .build();
-            
-        } catch (StorageException e) {
-            response = Response
-                    .status(Status.INTERNAL_SERVER_ERROR.getStatusCode(), "Unexpected storage exception: "
-                            + e.getMessage())
+                    .status(Status.NOT_FOUND.getStatusCode(), "No versions have been submitted for group "
+                            + target.getGroupName() + " in assignment " + target.getAssignmentName()
+                            + " in course " + target.getCourse())
                     .build();
         }
+            
         
         return response;
     }

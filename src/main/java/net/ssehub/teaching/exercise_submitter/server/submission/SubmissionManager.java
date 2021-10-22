@@ -88,5 +88,18 @@ public class SubmissionManager {
         
         return storage.getSubmission(target, version);
     }
+
+    /**
+     * Authenticates the given user based on the given token.
+     * 
+     * @param token The JWT token.
+     * 
+     * @return The name of the authenticated user.
+     * 
+     * @throws UnauthorizedException If the user could not be authenticated.
+     */
+    public String authenticate(String token) throws UnauthorizedException {
+        return "user"; //TODO: acutually authenticate
+    }
     
 }

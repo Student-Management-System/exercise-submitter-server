@@ -31,7 +31,8 @@ public class ExerciseSubmissionServer {
     public static HttpServer startServer(String baseUri, SubmissionManager submissionManager) {
         ResourceConfig config = new ResourceConfig()
                 .register(HeartbeatRoute.class)
-                .register(new SubmissionRoute(submissionManager));
+                .register(new SubmissionRoute(submissionManager))
+                .packages("net.ssehub.teaching.exercise_submitter.server.rest.exceptions");
         return GrizzlyHttpServerFactory.createHttpServer(URI.create(baseUri), config);
     }
     

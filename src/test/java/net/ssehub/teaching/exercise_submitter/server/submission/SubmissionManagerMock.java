@@ -36,4 +36,9 @@ public class SubmissionManagerMock extends SubmissionManager {
         return storage.getSubmission(target, version);
     }
     
+    @Override
+    public String authenticate(String token) throws UnauthorizedException {
+        return "user";
+    }
+    
 }

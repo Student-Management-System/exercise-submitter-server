@@ -1,4 +1,4 @@
-package net.ssehub.teaching.exercise_submitter.server.rest.routes;
+package net.ssehub.teaching.exercise_submitter.server.rest.dto;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 
