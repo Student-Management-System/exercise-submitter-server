@@ -58,17 +58,22 @@ public class ExerciseSubmissionServer {
     /**
      * Calls {@link #startServer()}, waits for user input on {@link System#in} and then shuts down the server.
      * 
-     * @param args Ignored.
+     * @param args Command line arguments. Content:
+     *      <ol>
+     *          <li>Port to listen on</li>
+     *          <li>Path to storage directory</li>
+     *          <li>URL to auth system (Sparky) API</li>
+     *      </ol>
      * 
      * @throws IOException If reading user input fails.
      */
     public static void main(String[] args) throws IOException {
-        ISubmissionStorage storage = new FilesystemStorage(Path.of("teststorage"));
+        ISubmissionStorage storage = new FilesystemStorage(Path.of(args[1]));
         SubmissionManager submissionManager = new SubmissionManager(storage);
-        AuthManager authManager = new AuthManager();
+        AuthManager authManager = new AuthManager(args[2]);
         
-        HttpServer server = startServer("http://localhost:4444/", submissionManager, storage, authManager);
-        System.out.println("Server listens at http://localhost:4444/");
+        HttpServer server = startServer("http://localhost:" + args[0] + "/", submissionManager, storage, authManager);
+        System.out.println("Server listens at http://localhost:" + args[0] + "/");
         System.out.println("Press enter to stop the server");
         System.in.read();
         server.shutdown();

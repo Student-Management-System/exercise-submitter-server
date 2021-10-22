@@ -1,5 +1,9 @@
 package net.ssehub.teaching.exercise_submitter.server.auth;
 
+import net.ssehub.studentmgmt.sparkyservice_api.ApiClient;
+import net.ssehub.studentmgmt.sparkyservice_api.ApiException;
+import net.ssehub.studentmgmt.sparkyservice_api.api.AuthControllerApi;
+import net.ssehub.studentmgmt.sparkyservice_api.model.AuthenticationInfoDto;
 import net.ssehub.teaching.exercise_submitter.server.storage.SubmissionTarget;
 import net.ssehub.teaching.exercise_submitter.server.submission.UnauthorizedException;
 
@@ -10,6 +14,17 @@ import net.ssehub.teaching.exercise_submitter.server.submission.UnauthorizedExce
  */
 public class AuthManager {
 
+    private String authApiUrl;
+    
+    /**
+     * Creates a new authentication manager.
+     * 
+     * @param authApiUrl The URL to the authentication system (Sparky-Service) to check tokens.
+     */
+    public AuthManager(String authApiUrl) {
+        this.authApiUrl = authApiUrl;
+    }
+    
     /**
      * Authenticates a user based on a JWT token.
      * 
@@ -20,7 +35,19 @@ public class AuthManager {
      * @throws UnauthorizedException If the user cannot be authorized.
      */
     public String authenticate(String token) throws UnauthorizedException {
-        return "user"; // TODO 
+        ApiClient client = new ApiClient();
+        client.setBasePath(authApiUrl);
+        client.setAccessToken(token);
+        
+        AuthControllerApi api = new AuthControllerApi(client);
+        AuthenticationInfoDto dto;
+        try {
+            dto = api.checkTokenAuthenticationStatus();
+        } catch (ApiException e) {
+            throw new UnauthorizedException(e);
+        }
+        
+        return dto.getUser().getUsername(); 
     }
     
     /**

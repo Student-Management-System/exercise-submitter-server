@@ -5,6 +5,10 @@ import net.ssehub.teaching.exercise_submitter.server.submission.UnauthorizedExce
 
 public class PermissiveAuthManager extends AuthManager {
 
+    public PermissiveAuthManager() {
+        super("");
+    }
+
     public static String generateUsername(String token) {
         return "user_" + token;
     }
