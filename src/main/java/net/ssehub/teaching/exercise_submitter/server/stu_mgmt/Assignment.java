@@ -87,6 +87,15 @@ public class Assignment {
     }
     
     /**
+     * Returns the state of this assignment.
+     * 
+     * @return The state of this assignment.
+     */
+    StateEnum getState() {
+        return state;
+    }
+    
+    /**
      * Checks whether the given participant can submit to this assignment. This is based on the state of this assignment
      * and the role of the participant. 
      * 
