@@ -1,5 +1,6 @@
 package net.ssehub.teaching.exercise_submitter.server.auth;
 
+import net.ssehub.studentmgmt.backend_api.model.ParticipantDto.RoleEnum;
 import net.ssehub.studentmgmt.sparkyservice_api.ApiClient;
 import net.ssehub.studentmgmt.sparkyservice_api.ApiException;
 import net.ssehub.studentmgmt.sparkyservice_api.api.AuthControllerApi;
@@ -59,6 +60,49 @@ public class AuthManager {
     }
     
     /**
+     * Checks if the given participant is allowed to submit to the given group name for the given assignment.
+     * 
+     * @param assignment The assignment that the user tries to submit to.
+     * @param participant The participant that tries to submit.
+     * @param targetGroupName The name of the group diretory that the user tries to submit to.
+     * 
+     * @throws UnauthorizedException If the user is not allowed to submit there.
+     */
+    private void checkIfParticipantCanSubmitToGroup(
+            Assignment assignment, Participant participant, String targetGroupName) throws UnauthorizedException {
+        
+        if (participant.getRole() == RoleEnum.STUDENT) {
+            boolean groupAllowed;
+            switch (assignment.getCollaboration()) {
+            case SINGLE:
+                groupAllowed = targetGroupName.equals(participant.getName());
+                break;
+                
+            case GROUP:
+                groupAllowed = assignment.getGroup(targetGroupName)
+                        .orElseThrow(() -> new UnauthorizedException())
+                        .hasParticipant(participant);
+                break;
+            
+            case GROUP_OR_SINGLE:
+                groupAllowed = targetGroupName.equals(participant.getName())
+                        || assignment.getGroup(targetGroupName)
+                            .orElseThrow(() -> new UnauthorizedException())
+                            .hasParticipant(participant);
+                break;
+                
+            default:
+                groupAllowed = false;
+                break;            
+            }
+            
+            if (!groupAllowed) {
+                throw new UnauthorizedException();
+            }
+        }
+    }
+    
+    /**
      * Checks if the given user is allowed to add a new submission to the given target.
      * 
      * @param user The name of the user that tries to add a new submission version.
@@ -79,6 +123,8 @@ public class AuthManager {
         if (!assignment.canSubmit(participant)) {
             throw new UnauthorizedException();
         }
+        
+        checkIfParticipantCanSubmitToGroup(assignment, participant, target.getGroupName());
     }
     
     /**
@@ -102,6 +148,8 @@ public class AuthManager {
         if (!assignment.canReplay(participant)) {
             throw new UnauthorizedException();
         }
+        
+        checkIfParticipantCanSubmitToGroup(assignment, participant, target.getGroupName());
     }
     
 }

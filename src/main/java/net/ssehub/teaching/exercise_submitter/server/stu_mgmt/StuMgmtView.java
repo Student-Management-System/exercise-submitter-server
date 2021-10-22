@@ -1,5 +1,7 @@
 package net.ssehub.teaching.exercise_submitter.server.stu_mgmt;
 
+import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -7,11 +9,14 @@ import java.util.Optional;
 import net.ssehub.studentmgmt.backend_api.ApiClient;
 import net.ssehub.studentmgmt.backend_api.ApiException;
 import net.ssehub.studentmgmt.backend_api.api.AssignmentApi;
+import net.ssehub.studentmgmt.backend_api.api.AssignmentRegistrationApi;
 import net.ssehub.studentmgmt.backend_api.api.CourseApi;
 import net.ssehub.studentmgmt.backend_api.api.CourseParticipantsApi;
 import net.ssehub.studentmgmt.backend_api.model.AssignmentDto;
+import net.ssehub.studentmgmt.backend_api.model.AssignmentDto.CollaborationEnum;
 import net.ssehub.studentmgmt.backend_api.model.AssignmentDto.StateEnum;
 import net.ssehub.studentmgmt.backend_api.model.CourseDto;
+import net.ssehub.studentmgmt.backend_api.model.GroupDto;
 import net.ssehub.studentmgmt.backend_api.model.NotificationDto;
 import net.ssehub.studentmgmt.backend_api.model.ParticipantDto;
 import net.ssehub.studentmgmt.backend_api.model.ParticipantDto.RoleEnum;
@@ -80,13 +85,35 @@ public class StuMgmtView {
      * @param course The course to add the assignment to.
      * @param name The name of the assignment.
      * @param state The state of the assignment.
+     * @param collaboration The collaboration type of this assignment.
      * 
      * @return The new assignment.
      */
-    protected Assignment createAssignment(Course course, String name, StateEnum state) {
-        Assignment assignment = new Assignment(name, state);
+    protected Assignment createAssignment(
+            Course course, String name, StateEnum state, CollaborationEnum collaboration) {
+        Assignment assignment = new Assignment(name, state, collaboration);
         course.addAssignment(assignment);
         return assignment;
+    }
+    
+    /**
+     * Creates an adds a group to the given assignment.
+     * <p>
+     * Convenience method for test cases.
+     * 
+     * @param assignment The assignment to add the group to.
+     * @param name The name of the group.
+     * @param participants The participants of this group.
+     * 
+     * @return The new group. 
+     */
+    protected Group createGroup(Assignment assignment, String name, Participant... participants) {
+        Group group = new Group(name);
+        assignment.addGroup(group);
+        for (Participant participant : participants) {
+            group.addParticipant(participant);
+        }
+        return group;
     }
     
     /**
@@ -96,6 +123,7 @@ public class StuMgmtView {
         CourseApi courseApi = new CourseApi(mgmtClient);
         CourseParticipantsApi participantsApi = new CourseParticipantsApi(mgmtClient);
         AssignmentApi assignmentApi = new AssignmentApi(mgmtClient);
+        AssignmentRegistrationApi groupApi = new AssignmentRegistrationApi(mgmtClient);
         
         for (CourseDto cDto : courseApi.getCourses(null, null, null, null, null)) {
             Course course = createCourse(cDto.getId());
@@ -107,7 +135,17 @@ public class StuMgmtView {
             }
             
             for (AssignmentDto aDto : assignmentApi.getAssignmentsOfCourse(course.getId())) {
-                createAssignment(course, aDto.getName(), aDto.getState());
+                Assignment assignment = createAssignment(
+                        course, aDto.getName(), aDto.getState(), aDto.getCollaboration());
+                
+                for (GroupDto gDto : groupApi.getRegisteredGroups(course.getId(), aDto.getId(), null, null, null)) {
+                    createGroup(assignment, gDto.getName(), gDto.getMembers().stream()
+                            .map(ParticipantDto::getUsername)
+                            .map(course::getParticipant)
+                            .filter(Optional::isPresent)
+                            .map(Optional::get)
+                            .toArray(s -> new Participant[s]));
+                }
             }
         }
     }
@@ -121,6 +159,15 @@ public class StuMgmtView {
         // TODO: for now, just fully re-initialize
         courses.clear();
         init();
+    }
+    
+    /**
+     * Returns all courses in this view.
+     * 
+     * @return All courses as an unmodifiable collection.
+     */
+    public Collection<Course> getCourses() {
+        return Collections.unmodifiableCollection(this.courses.values());
     }
     
     /**

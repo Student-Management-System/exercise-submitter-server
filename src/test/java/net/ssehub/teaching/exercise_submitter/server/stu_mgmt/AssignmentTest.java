@@ -6,6 +6,7 @@ import java.util.Map;
 
 import org.junit.jupiter.api.Test;
 
+import net.ssehub.studentmgmt.backend_api.model.AssignmentDto.CollaborationEnum;
 import net.ssehub.studentmgmt.backend_api.model.AssignmentDto.StateEnum;
 import net.ssehub.studentmgmt.backend_api.model.ParticipantDto.RoleEnum;
 
@@ -42,7 +43,7 @@ public class AssignmentTest {
         for (RoleEnum role : RoleEnum.values()) {
             Participant participant = new Participant("participant", role);
             for (StateEnum  state : StateEnum.values()) {
-                Assignment assignment = new Assignment("Homework01", state);
+                Assignment assignment = new Assignment("Homework01", state, CollaborationEnum.SINGLE);
                 
                 boolean expected = SUBMISSIONS[ROLE_INDEX.get(role)][STATE_INDEX.get(state)];
                 assertEquals(
@@ -58,7 +59,7 @@ public class AssignmentTest {
         for (RoleEnum role : RoleEnum.values()) {
             Participant participant = new Participant("participant", role);
             for (StateEnum  state : StateEnum.values()) {
-                Assignment assignment = new Assignment("Homework01", state);
+                Assignment assignment = new Assignment("Homework01", state, CollaborationEnum.SINGLE);
                 
                 boolean expected = REPLAY[ROLE_INDEX.get(role)][STATE_INDEX.get(state)];
                 assertEquals(

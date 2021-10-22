@@ -2,6 +2,13 @@ package net.ssehub.teaching.exercise_submitter.server.storage;
 
 import java.util.List;
 
+import net.ssehub.studentmgmt.backend_api.model.AssignmentDto.CollaborationEnum;
+import net.ssehub.teaching.exercise_submitter.server.stu_mgmt.Assignment;
+import net.ssehub.teaching.exercise_submitter.server.stu_mgmt.Course;
+import net.ssehub.teaching.exercise_submitter.server.stu_mgmt.Group;
+import net.ssehub.teaching.exercise_submitter.server.stu_mgmt.Participant;
+import net.ssehub.teaching.exercise_submitter.server.stu_mgmt.StuMgmtView;
+
 /**
  * Interface for the storage of submissions.
  * 
@@ -66,5 +73,35 @@ public interface ISubmissionStorage {
     public Submission getSubmission(SubmissionTarget target, Version version)
             throws NoSuchTargetException, StorageException;
     
+    /**
+     * Calls {@link #createOrUpdateAssignment(String, String, String...)} as necessary to create all assignments and
+     * groups.
+     * 
+     * @param view The student management system view to create everything for.
+     * 
+     * @throws StorageException If an exception occurred in the storage backend.
+     */
+    public default void createOrUpdateAssignmentsFromView(StuMgmtView view) throws StorageException {
+        
+        for (Course course : view.getCourses()) {
+            for (Assignment assignment : course.getAssignments()) {
+                if (assignment.getCollaboration() == CollaborationEnum.SINGLE
+                        || assignment.getCollaboration() == CollaborationEnum.GROUP_OR_SINGLE) {
+                    
+                    createOrUpdateAssignment(course.getId(), assignment.getName(), course.getParticipants().stream()
+                            .map(Participant::getName)
+                            .toArray(s -> new String[s]));
+                }
+                
+                if (assignment.getCollaboration() == CollaborationEnum.GROUP
+                        || assignment.getCollaboration() == CollaborationEnum.GROUP_OR_SINGLE) {
+                    
+                    createOrUpdateAssignment(course.getId(), assignment.getName(), assignment.getGroups().stream()
+                            .map(Group::getName)
+                            .toArray(s -> new String[s]));
+                }
+            }
+        }
+    }
     
 }

@@ -30,6 +30,7 @@ import net.ssehub.teaching.exercise_submitter.server.rest.routes.HeartbeatRoute;
 import net.ssehub.teaching.exercise_submitter.server.rest.routes.NotificationRoute;
 import net.ssehub.teaching.exercise_submitter.server.rest.routes.SubmissionRoute;
 import net.ssehub.teaching.exercise_submitter.server.storage.ISubmissionStorage;
+import net.ssehub.teaching.exercise_submitter.server.storage.StorageException;
 import net.ssehub.teaching.exercise_submitter.server.storage.filesystem.FilesystemStorage;
 import net.ssehub.teaching.exercise_submitter.server.stu_mgmt.StuMgmtView;
 import net.ssehub.teaching.exercise_submitter.server.submission.SubmissionManager;
@@ -159,6 +160,14 @@ public class ExerciseSubmissionServer {
         AuthManager authManager = new AuthManager(args[2], stuMgmtView);
         
         HttpServer server = startServer("http://localhost:" + args[0] + "/", submissionManager, storage, authManager);
+        
+        try {
+            stuMgmtView.update(null); // TODO: trigger an update after the notifications are listening
+            storage.createOrUpdateAssignmentsFromView(stuMgmtView);
+        } catch (StorageException | ApiException e) {
+            e.printStackTrace();
+        }
+        
         System.out.println("Server listens at http://localhost:" + args[0] + "/");
         System.out.println("Press enter to stop the server");
         System.in.read();

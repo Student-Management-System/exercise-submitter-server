@@ -7,6 +7,7 @@ import jakarta.ws.rs.Path;
 import net.ssehub.studentmgmt.backend_api.ApiException;
 import net.ssehub.studentmgmt.backend_api.model.NotificationDto;
 import net.ssehub.teaching.exercise_submitter.server.storage.ISubmissionStorage;
+import net.ssehub.teaching.exercise_submitter.server.storage.StorageException;
 import net.ssehub.teaching.exercise_submitter.server.stu_mgmt.StuMgmtView;
 
 /**
@@ -41,17 +42,17 @@ public class NotificationRoute {
         tags = {"notification"}
     )
     @POST
-    public void notification(
-            @RequestBody NotificationDto notification) {
+    public void notification(@RequestBody NotificationDto notification) {
         
         System.out.println("Received notification: " + notification);
         try {
             stuMgmtView.update(notification);
+            storage.createOrUpdateAssignmentsFromView(stuMgmtView);
         } catch (ApiException e) {
             e.printStackTrace();
+        } catch (StorageException e) {
+            e.printStackTrace(); // TODO: handle exceptions?
         }
-        
-        // TODO: sync storage
     }
     
 }

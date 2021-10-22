@@ -38,7 +38,7 @@ public class Participant {
      * 
      * @return The role of the user.
      */
-    RoleEnum getRole() {
+    public RoleEnum getRole() {
         return role;
     }
     

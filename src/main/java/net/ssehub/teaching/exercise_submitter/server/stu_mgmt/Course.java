@@ -1,5 +1,7 @@
 package net.ssehub.teaching.exercise_submitter.server.stu_mgmt;
 
+import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -49,6 +51,15 @@ public class Course {
     }
     
     /**
+     * Returns all participants in this course.
+     * 
+     * @return All participants as an unmodifiable collection.
+     */
+    public Collection<Participant> getParticipants() {
+        return Collections.unmodifiableCollection(this.participantsByName.values());
+    }
+    
+    /**
      * Retrieves an assignment by its name.
      * 
      * @param name The name of the assignment.
@@ -57,6 +68,15 @@ public class Course {
      */
     public Optional<Assignment> getAssignment(String name) {
         return Optional.ofNullable(assignmentsByName.get(name));
+    }
+    
+    /**
+     * Returns all assignments in this course.
+     * 
+     * @return All assignments as an unmodifiable collection.
+     */
+    public Collection<Assignment> getAssignments() {
+        return Collections.unmodifiableCollection(this.assignmentsByName.values());
     }
 
     /**
