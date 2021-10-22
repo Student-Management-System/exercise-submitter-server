@@ -1,5 +1,7 @@
 /target/
 
+/stu-mgmt-docker-rootPath.txt
+
 # eclipse project files
 /.project
 /.classpath
