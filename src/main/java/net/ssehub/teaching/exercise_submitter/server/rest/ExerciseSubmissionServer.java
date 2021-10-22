@@ -1,5 +1,6 @@
 package net.ssehub.teaching.exercise_submitter.server.rest;
 
+import java.io.File;
 import java.io.IOException;
 import java.net.URI;
 import java.nio.file.Path;
@@ -17,6 +18,14 @@ import net.ssehub.studentmgmt.backend_api.ApiException;
 import net.ssehub.studentmgmt.sparkyservice_api.api.AuthControllerApi;
 import net.ssehub.studentmgmt.sparkyservice_api.model.CredentialsDto;
 import net.ssehub.teaching.exercise_submitter.server.auth.AuthManager;
+import net.ssehub.teaching.exercise_submitter.server.checks.Check;
+import net.ssehub.teaching.exercise_submitter.server.checks.CheckstyleCheck;
+import net.ssehub.teaching.exercise_submitter.server.checks.CliJavacCheck;
+import net.ssehub.teaching.exercise_submitter.server.checks.EclipseConfigCheck;
+import net.ssehub.teaching.exercise_submitter.server.checks.EncodingCheck;
+import net.ssehub.teaching.exercise_submitter.server.checks.FileSizeCheck;
+import net.ssehub.teaching.exercise_submitter.server.checks.InternalJavacCheck;
+import net.ssehub.teaching.exercise_submitter.server.checks.JavacCheck;
 import net.ssehub.teaching.exercise_submitter.server.rest.routes.HeartbeatRoute;
 import net.ssehub.teaching.exercise_submitter.server.rest.routes.NotificationRoute;
 import net.ssehub.teaching.exercise_submitter.server.rest.routes.SubmissionRoute;
@@ -91,6 +100,38 @@ public class ExerciseSubmissionServer {
     }
     
     /**
+     * Creates the standard {@link Check}s. TODO: make this configurable.
+     * 
+     * @param submissionManager The manager to add the {@link Check}s to.
+     */
+    private static void createChecks(SubmissionManager submissionManager) {
+        FileSizeCheck fsCheck = new FileSizeCheck();
+        fsCheck.setMaxFileSize(1024 * 1024); // 1 KiB
+        fsCheck.setMaxSubmissionSize(1024 * 1024); // 1 KiB
+        
+        EncodingCheck encCheck = new EncodingCheck();
+        
+        EclipseConfigCheck eclCheckRejecting = new EclipseConfigCheck();
+        
+        EclipseConfigCheck eclCheckNonRejecting = new EclipseConfigCheck();
+        eclCheckNonRejecting.setRequireJavaProject(true);
+        eclCheckNonRejecting.setRequireCheckstyleProject(true);
+        
+        JavacCheck javacCheck = InternalJavacCheck.isSupported() ? new InternalJavacCheck() : new CliJavacCheck();
+        javacCheck.setJavaVersion(11);
+        
+        CheckstyleCheck csCheck = new CheckstyleCheck(new File("checkstyle.xml"));
+        
+        submissionManager.addRejectingCheck(fsCheck);
+        submissionManager.addRejectingCheck(encCheck);
+        submissionManager.addRejectingCheck(eclCheckRejecting);
+        
+        submissionManager.addNonRejectingCheck(eclCheckNonRejecting);
+        submissionManager.addNonRejectingCheck(javacCheck);
+        submissionManager.addNonRejectingCheck(csCheck);
+    }
+    
+    /**
      * Calls {@link #startServer()}, waits for user input on {@link System#in} and then shuts down the server.
      * 
      * @param args Command line arguments. Content:
@@ -110,9 +151,11 @@ public class ExerciseSubmissionServer {
     public static void main(String[] args)
             throws IOException, ApiException, net.ssehub.studentmgmt.sparkyservice_api.ApiException {
         
-        StuMgmtView stuMgmtView = new StuMgmtView(createAuthenticatedMgmtApiClient(args[2], args[3], args[4], args[5]));
         ISubmissionStorage storage = new FilesystemStorage(Path.of(args[1]));
         SubmissionManager submissionManager = new SubmissionManager(storage);
+        createChecks(submissionManager);
+        
+        StuMgmtView stuMgmtView = new StuMgmtView(createAuthenticatedMgmtApiClient(args[2], args[3], args[4], args[5]));
         AuthManager authManager = new AuthManager(args[2], stuMgmtView);
         
         HttpServer server = startServer("http://localhost:" + args[0] + "/", submissionManager, storage, authManager);
