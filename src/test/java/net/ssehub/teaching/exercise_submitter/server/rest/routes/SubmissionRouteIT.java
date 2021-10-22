@@ -24,6 +24,8 @@ import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import net.ssehub.studentmgmt.backend_api.ApiException;
 import net.ssehub.teaching.exercise_submitter.server.auth.PermissiveAuthManager;
+import net.ssehub.teaching.exercise_submitter.server.checks.ResultMessage.MessageType;
+import net.ssehub.teaching.exercise_submitter.server.rest.dto.CheckMessageDto;
 import net.ssehub.teaching.exercise_submitter.server.rest.dto.SubmissionResultDto;
 import net.ssehub.teaching.exercise_submitter.server.storage.EmptyStorage;
 import net.ssehub.teaching.exercise_submitter.server.storage.NoSuchTargetException;
@@ -213,6 +215,36 @@ public class SubmissionRouteIT extends AbstractRestTest {
             assertAll(
                 () -> assertEquals(200, response.getStatus()),
                 () -> assertFalse(result.getAccepted())
+            );
+        }
+        
+        @Test
+        public void submissionReturnsCheckMessages() {
+            setSubmissionManager(new NoChecksSubmissionManager(new EmptyStorage()) {
+                @Override
+                public SubmissionResultDto submit(SubmissionTarget target, Submission submission)
+                        throws NoSuchTargetException, StorageException {
+                    
+                    SubmissionResultDto result = new SubmissionResultDto();
+                    result.setAccepted(true);
+                    result.setMessages(Arrays.asList(new CheckMessageDto("some-tool", MessageType.ERROR, "foo")));
+                    return result;
+                }
+            });
+            startServer();
+            
+            Response response = target.path("/submission/foo-wise2122/Homework01/Group01")
+                    .request()
+                    .header("Authorization", JWT_TOKEN)
+                    .post(Entity.entity(Map.of("test.txt", "some content\n"), MediaType.APPLICATION_JSON));
+            
+            SubmissionResultDto dto = response.readEntity(SubmissionResultDto.class);
+            
+            assertAll(
+                () -> assertEquals(201, response.getStatus()),
+                () -> assertTrue(dto.getAccepted()),
+                () -> assertEquals(
+                        Arrays.asList(new CheckMessageDto("some-tool", MessageType.ERROR, "foo")), dto.getMessages())
             );
         }
         

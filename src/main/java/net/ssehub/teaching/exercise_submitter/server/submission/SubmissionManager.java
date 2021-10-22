@@ -1,6 +1,16 @@
 package net.ssehub.teaching.exercise_submitter.server.submission;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.stream.Collectors;
+
 import net.ssehub.teaching.exercise_submitter.server.checks.Check;
+import net.ssehub.teaching.exercise_submitter.server.checks.ResultMessage;
+import net.ssehub.teaching.exercise_submitter.server.checks.ResultMessage.MessageType;
+import net.ssehub.teaching.exercise_submitter.server.rest.dto.CheckMessageDto;
 import net.ssehub.teaching.exercise_submitter.server.rest.dto.SubmissionResultDto;
 import net.ssehub.teaching.exercise_submitter.server.storage.ISubmissionStorage;
 import net.ssehub.teaching.exercise_submitter.server.storage.NoSuchTargetException;
@@ -18,6 +28,10 @@ public class SubmissionManager {
     
     private ISubmissionStorage storage;
     
+    private List<Check> rejectingChecks;
+    
+    private List<Check> nonRejectingChecks;
+    
     /**
      * Creates a new {@link SubmissionManager}.
      * 
@@ -25,6 +39,28 @@ public class SubmissionManager {
      */
     public SubmissionManager(ISubmissionStorage storage) {
         this.storage = storage;
+        
+        this.rejectingChecks = new LinkedList<>();
+        this.nonRejectingChecks = new LinkedList<>();
+    }
+    
+    /**
+     * Adds a {@link Check} that will reject submissions if it fails.
+     * 
+     * @param check The check to perform on submissions.
+     */
+    public void addRejectingCheck(Check check) {
+        this.rejectingChecks.add(check);
+    }
+    
+    /**
+     * Adds a {@link Check} that will <b>not</b> reject submissions if it fails. It's {@link ResultMessage}s will
+     * appear in the response, though.
+     * 
+     * @param check The check to perform on submissions.
+     */
+    public void addNonRejectingCheck(Check check) {
+        this.nonRejectingChecks.add(check);
     }
     
     /**
@@ -43,12 +79,44 @@ public class SubmissionManager {
     public SubmissionResultDto submit(SubmissionTarget target, Submission submission)
             throws NoSuchTargetException, StorageException {
     
-        // TODO: actually run checks before storing
+        List<ResultMessage> checkMessages = new LinkedList<>();
+        boolean reject = false;
         
-        storage.submitNewVersion(target, submission);
+        try {
+            Path temporaryDirectory = Files.createTempDirectory("submission-check");
+            submission.writeToDirectory(temporaryDirectory);
+            
+            for (Check check : rejectingChecks) {
+                boolean passed = check.run(temporaryDirectory.toFile());
+                checkMessages.addAll(check.getResultMessages());
+                
+                if (!passed) {
+                    reject = true;
+                    break;
+                }
+            }
+            
+            if (!reject) {
+                for (Check check : nonRejectingChecks) {
+                    check.run(temporaryDirectory.toFile());
+                    checkMessages.addAll(check.getResultMessages());
+                }
+                
+                storage.submitNewVersion(target, submission);
+            }
+            
+            
+        } catch (IOException e) {
+            reject = true;
+            checkMessages.add(new ResultMessage("hook", MessageType.ERROR, "An internal error occurred"));
+        }
         
         SubmissionResultDto result = new SubmissionResultDto();
-        result.setAccepted(true);
+        result.setAccepted(!reject);
+        result.setMessages(checkMessages.stream()
+                .sorted()
+                .map(CheckMessageDto::new)
+                .collect(Collectors.toList()));
         return result;
     }
     

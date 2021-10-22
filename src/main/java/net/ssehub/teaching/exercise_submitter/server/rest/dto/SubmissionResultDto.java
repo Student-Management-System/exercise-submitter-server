@@ -1,5 +1,7 @@
 package net.ssehub.teaching.exercise_submitter.server.rest.dto;
 
+import java.util.List;
+
 import net.ssehub.teaching.exercise_submitter.server.checks.Check;
 
 /**
@@ -10,6 +12,8 @@ import net.ssehub.teaching.exercise_submitter.server.checks.Check;
 public class SubmissionResultDto {
 
     private boolean accepted;
+    
+    private List<CheckMessageDto> messages;
     
     /**
      * Sets whether the submission was accepted or rejected based on {@link Check}s.
@@ -27,6 +31,25 @@ public class SubmissionResultDto {
      */
     public boolean getAccepted() {
         return accepted;
+    }
+    
+    
+    /**
+     * Sets the messages from he automated checks.
+     * 
+     * @param messages The messages.
+     */
+    public void setMessages(List<CheckMessageDto> messages) {
+        this.messages = messages;
+    }
+    
+    /**
+     * Gets the messages from the automated checks.
+     * 
+     * @return The messages.
+     */
+    public List<CheckMessageDto> getMessages() {
+        return messages;
     }
     
 }
