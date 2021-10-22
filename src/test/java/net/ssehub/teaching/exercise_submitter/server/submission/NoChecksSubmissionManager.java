@@ -1,5 +1,6 @@
 package net.ssehub.teaching.exercise_submitter.server.submission;
 
+import net.ssehub.teaching.exercise_submitter.server.rest.dto.SubmissionResultDto;
 import net.ssehub.teaching.exercise_submitter.server.storage.ISubmissionStorage;
 import net.ssehub.teaching.exercise_submitter.server.storage.NoSuchTargetException;
 import net.ssehub.teaching.exercise_submitter.server.storage.StorageException;
@@ -16,9 +17,13 @@ public class NoChecksSubmissionManager extends SubmissionManager {
     }
 
     @Override
-    public void submit(SubmissionTarget target, Submission submission)
+    public SubmissionResultDto submit(SubmissionTarget target, Submission submission)
             throws NoSuchTargetException, StorageException {
         storage.submitNewVersion(target, submission);
+        
+        SubmissionResultDto result = new SubmissionResultDto();
+        result.setAccepted(true);
+        return result;
     }
     
 }

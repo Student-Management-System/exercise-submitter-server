@@ -2,6 +2,8 @@ package net.ssehub.teaching.exercise_submitter.server.rest.routes;
 
 import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.math.BigDecimal;
 import java.nio.file.Path;
@@ -21,6 +23,7 @@ import jakarta.ws.rs.client.Entity;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import net.ssehub.teaching.exercise_submitter.server.auth.PermissiveAuthManager;
+import net.ssehub.teaching.exercise_submitter.server.rest.dto.SubmissionResultDto;
 import net.ssehub.teaching.exercise_submitter.server.storage.EmptyStorage;
 import net.ssehub.teaching.exercise_submitter.server.storage.NoSuchTargetException;
 import net.ssehub.teaching.exercise_submitter.server.storage.StorageException;
@@ -158,7 +161,7 @@ public class SubmissionRouteIT extends AbstractRestTest {
         }
         
         @Test
-        public void validSubmissionStored() {
+        public void submissionAccepted() {
             AtomicReference<Submission> result = new AtomicReference<>();
             
             setSubmissionManager(new NoChecksSubmissionManager(new EmptyStorage() {
@@ -175,12 +178,43 @@ public class SubmissionRouteIT extends AbstractRestTest {
                     .header("Authorization", JWT_TOKEN)
                     .post(Entity.entity(Map.of("test.txt", "some content\n"), MediaType.APPLICATION_JSON));
             
+            SubmissionResultDto dto = response.readEntity(SubmissionResultDto.class);
+            
             assertAll(
                 () -> assertEquals(201, response.getStatus()),
                 () -> assertEquals(1, result.get().getNumFiles()),
-                () -> assertEquals("some content\n", result.get().getFileContent(Path.of("test.txt")))
+                () -> assertEquals("some content\n", result.get().getFileContent(Path.of("test.txt"))),
+                () -> assertTrue(dto.getAccepted())
             );
         }
+        
+        @Test
+        public void submissionNotAccepted() {
+            setSubmissionManager(new NoChecksSubmissionManager(new EmptyStorage()) {
+                @Override
+                public SubmissionResultDto submit(SubmissionTarget target, Submission submission)
+                        throws NoSuchTargetException, StorageException {
+                    SubmissionResultDto result = new SubmissionResultDto();
+                    result.setAccepted(false);
+                    return result;
+                }
+            });
+            startServer();
+            
+            Response response = target.path("/submission/foo-wise2122/Homework01/Group01")
+                    .request()
+                    .header("Authorization", JWT_TOKEN)
+                    .post(Entity.entity(Map.of("test.txt", "some content\n"), MediaType.APPLICATION_JSON));
+            
+
+            SubmissionResultDto result = response.readEntity(SubmissionResultDto.class);
+            
+            assertAll(
+                () -> assertEquals(200, response.getStatus()),
+                () -> assertFalse(result.getAccepted())
+            );
+        }
+        
     }
     
     @Nested

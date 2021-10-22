@@ -1,6 +1,7 @@
 package net.ssehub.teaching.exercise_submitter.server.submission;
 
 import net.ssehub.teaching.exercise_submitter.server.checks.Check;
+import net.ssehub.teaching.exercise_submitter.server.rest.dto.SubmissionResultDto;
 import net.ssehub.teaching.exercise_submitter.server.storage.ISubmissionStorage;
 import net.ssehub.teaching.exercise_submitter.server.storage.NoSuchTargetException;
 import net.ssehub.teaching.exercise_submitter.server.storage.StorageException;
@@ -34,14 +35,19 @@ public class SubmissionManager {
      * @param target The assignment and group to submit to.
      * @param submission The submission to add.
      * 
-     * @throws NoSuchAssignmentException If no assignment with the given name exists.
-     * @throws NoSuchGroupException If no group with the given name exists.
+     * @return The result of the submission, including the messages created by the {@link Check}s.
+     * 
+     * @throws NoSuchTargetException If the given target does not exist.
      * @throws StorageException If an exception occurred in the storage backend.
      */
-    public void submit(SubmissionTarget target, Submission submission)
+    public SubmissionResultDto submit(SubmissionTarget target, Submission submission)
             throws NoSuchTargetException, StorageException {
     
         storage.submitNewVersion(target, submission);
+        
+        SubmissionResultDto result = new SubmissionResultDto();
+        result.setAccepted(true); // TODO
+        return result;
     }
     
 }

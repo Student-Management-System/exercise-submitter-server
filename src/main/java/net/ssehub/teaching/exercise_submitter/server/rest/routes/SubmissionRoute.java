@@ -26,6 +26,7 @@ import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.Response.Status;
 import net.ssehub.teaching.exercise_submitter.server.auth.AuthManager;
+import net.ssehub.teaching.exercise_submitter.server.rest.dto.SubmissionResultDto;
 import net.ssehub.teaching.exercise_submitter.server.rest.dto.VersionDto;
 import net.ssehub.teaching.exercise_submitter.server.storage.ISubmissionStorage;
 import net.ssehub.teaching.exercise_submitter.server.storage.NoSuchTargetException;
@@ -99,7 +100,26 @@ public class SubmissionRoute {
     @Operation(
         description = "Adds a new submission for the given assignment and group",
         responses = {
-            @ApiResponse(responseCode = "201", description = "Submission successfully stored"),
+            @ApiResponse(
+                responseCode = "201",
+                description = "Submission accepted",
+                content = {
+                    @Content(
+                        schema = @Schema(implementation = SubmissionResultDto.class),
+                        examples = {
+                            @ExampleObject(value = "{\"accepted\": true}")
+                        })
+                }),
+            @ApiResponse(
+                responseCode = "200",
+                description = "Submission rejected based on submission checks",
+                content = {
+                    @Content(
+                        schema = @Schema(implementation = SubmissionResultDto.class),
+                        examples = {
+                            @ExampleObject(value = "{\"accepted\": false}")
+                        })
+                }),
             @ApiResponse(responseCode = "400", description = "Input data malformed or invalid"),
             @ApiResponse(responseCode = "403", description = "User is not authorized to add a new submission"),
             @ApiResponse(responseCode = "404", description = "Assignment or group does not exist"),
@@ -138,10 +158,11 @@ public class SubmissionRoute {
                 builder.addFile(java.nio.file.Path.of(file.getKey()), file.getValue());
             }
             
-            submissionManager.submit(target, builder.build());
+            SubmissionResultDto result = submissionManager.submit(target, builder.build());
             
             response = Response
-                    .status(Status.CREATED)
+                    .status(result.getAccepted() ? Status.CREATED : Status.OK)
+                    .entity(result)
                     .build();
             
         } catch (IllegalArgumentException e) {
