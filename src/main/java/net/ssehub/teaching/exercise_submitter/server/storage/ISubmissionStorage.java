@@ -3,6 +3,7 @@ package net.ssehub.teaching.exercise_submitter.server.storage;
 import java.util.List;
 
 import net.ssehub.studentmgmt.backend_api.model.AssignmentDto.CollaborationEnum;
+import net.ssehub.studentmgmt.backend_api.model.ParticipantDto.RoleEnum;
 import net.ssehub.teaching.exercise_submitter.server.stu_mgmt.Assignment;
 import net.ssehub.teaching.exercise_submitter.server.stu_mgmt.Course;
 import net.ssehub.teaching.exercise_submitter.server.stu_mgmt.Group;
@@ -89,6 +90,7 @@ public interface ISubmissionStorage {
                         || assignment.getCollaboration() == CollaborationEnum.GROUP_OR_SINGLE) {
                     
                     createOrUpdateAssignment(course.getId(), assignment.getName(), course.getParticipants().stream()
+                            .filter(p -> p.getRole() == RoleEnum.STUDENT)
                             .map(Participant::getName)
                             .toArray(s -> new String[s]));
                 }

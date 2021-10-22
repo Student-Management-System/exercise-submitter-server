@@ -28,6 +28,7 @@ public class ISubmissionStorageTest {
                 createAssignment(course, "Test02", StateEnum.IN_PROGRESS, CollaborationEnum.SINGLE);
                 createParticipant(course, "student1", RoleEnum.STUDENT);
                 createParticipant(course, "student2", RoleEnum.STUDENT);
+                createParticipant(course, "teacher", RoleEnum.LECTURER);
             }
         };
         
@@ -49,6 +50,7 @@ public class ISubmissionStorageTest {
                 "foo-123/Test01/student2",
                 "foo-123/Test02/student1",
                 "foo-123/Test02/student2"
+                // no folders for teacher
                 ), addedFolders);
     }
     
@@ -94,6 +96,7 @@ public class ISubmissionStorageTest {
                 Course course = createCourse("foo-123");
                 createParticipant(course, "student1", RoleEnum.STUDENT);
                 createParticipant(course, "student2", RoleEnum.STUDENT);
+                createParticipant(course, "teacher", RoleEnum.LECTURER);
                 
                 Assignment a1 = createAssignment(course, "Test01",
                         StateEnum.IN_PROGRESS, CollaborationEnum.GROUP_OR_SINGLE);
@@ -127,6 +130,8 @@ public class ISubmissionStorageTest {
                 "foo-123/Test02/Bar",
                 "foo-123/Test02/student1",
                 "foo-123/Test02/student2"
+                
+                // no folders for teacher
                 ), addedFolders);
     }
     
