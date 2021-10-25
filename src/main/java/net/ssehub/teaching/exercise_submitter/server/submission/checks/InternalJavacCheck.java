@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.ssehub.teaching.exercise_submitter.server.checks;
+package net.ssehub.teaching.exercise_submitter.server.submission.checks;
 
 import java.io.File;
 import java.io.Writer;
@@ -29,11 +29,12 @@ import javax.tools.Diagnostic;
 import javax.tools.DiagnosticCollector;
 import javax.tools.JavaCompiler;
 import javax.tools.JavaCompiler.CompilationTask;
+
+import net.ssehub.teaching.exercise_submitter.server.submission.checks.ResultMessage.MessageType;
+
 import javax.tools.JavaFileObject;
 import javax.tools.StandardJavaFileManager;
 import javax.tools.ToolProvider;
-
-import net.ssehub.teaching.exercise_submitter.server.checks.ResultMessage.MessageType;
 
 /**
  * A {@link JavacCheck} that uses the internal {@link JavaCompiler} interface. Use {@link #isSupported()} to check

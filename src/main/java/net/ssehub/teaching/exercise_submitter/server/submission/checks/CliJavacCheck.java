@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.ssehub.teaching.exercise_submitter.server.checks;
+package net.ssehub.teaching.exercise_submitter.server.submission.checks;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -29,7 +29,7 @@ import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import net.ssehub.teaching.exercise_submitter.server.checks.ResultMessage.MessageType;
+import net.ssehub.teaching.exercise_submitter.server.submission.checks.ResultMessage.MessageType;
 
 /**
  * Implements a {@link JavacCheck} that uses standard command-line process <code>javac</code> to run the Java compiler.

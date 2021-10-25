@@ -2,9 +2,9 @@ package net.ssehub.teaching.exercise_submitter.server.rest.dto;
 
 import java.util.Objects;
 
-import net.ssehub.teaching.exercise_submitter.server.checks.Check;
-import net.ssehub.teaching.exercise_submitter.server.checks.ResultMessage;
-import net.ssehub.teaching.exercise_submitter.server.checks.ResultMessage.MessageType;
+import net.ssehub.teaching.exercise_submitter.server.submission.checks.Check;
+import net.ssehub.teaching.exercise_submitter.server.submission.checks.ResultMessage;
+import net.ssehub.teaching.exercise_submitter.server.submission.checks.ResultMessage.MessageType;
 
 /**
  * A message from a {@link Check}.

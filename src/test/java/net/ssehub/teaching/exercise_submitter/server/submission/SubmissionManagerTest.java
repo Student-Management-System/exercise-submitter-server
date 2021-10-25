@@ -11,14 +11,14 @@ import java.util.Arrays;
 
 import org.junit.jupiter.api.Test;
 
-import net.ssehub.teaching.exercise_submitter.server.checks.Check;
-import net.ssehub.teaching.exercise_submitter.server.checks.ResultMessage;
-import net.ssehub.teaching.exercise_submitter.server.checks.ResultMessage.MessageType;
 import net.ssehub.teaching.exercise_submitter.server.rest.dto.CheckMessageDto;
 import net.ssehub.teaching.exercise_submitter.server.rest.dto.SubmissionResultDto;
 import net.ssehub.teaching.exercise_submitter.server.storage.EmptyStorage;
 import net.ssehub.teaching.exercise_submitter.server.storage.SubmissionBuilder;
 import net.ssehub.teaching.exercise_submitter.server.storage.SubmissionTarget;
+import net.ssehub.teaching.exercise_submitter.server.submission.checks.Check;
+import net.ssehub.teaching.exercise_submitter.server.submission.checks.ResultMessage;
+import net.ssehub.teaching.exercise_submitter.server.submission.checks.ResultMessage.MessageType;
 
 public class SubmissionManagerTest {
 

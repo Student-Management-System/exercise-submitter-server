@@ -2,7 +2,7 @@ package net.ssehub.teaching.exercise_submitter.server.rest.dto;
 
 import java.util.List;
 
-import net.ssehub.teaching.exercise_submitter.server.checks.Check;
+import net.ssehub.teaching.exercise_submitter.server.submission.checks.Check;
 
 /**
  * Represents the result of a submission.

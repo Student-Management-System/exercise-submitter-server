@@ -13,14 +13,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.ssehub.teaching.exercise_submitter.server.checks;
+package net.ssehub.teaching.exercise_submitter.server.submission.checks;
 
 import java.io.File;
 import java.io.IOException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import net.ssehub.teaching.exercise_submitter.server.checks.ResultMessage.MessageType;
+import net.ssehub.teaching.exercise_submitter.server.submission.checks.ResultMessage.MessageType;
 
 /**
  * Checks that file-size restrictions are not violated. Fails if any file is larger than {@link #setMaxFileSize(long)}

@@ -7,9 +7,6 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import net.ssehub.teaching.exercise_submitter.server.checks.Check;
-import net.ssehub.teaching.exercise_submitter.server.checks.ResultMessage;
-import net.ssehub.teaching.exercise_submitter.server.checks.ResultMessage.MessageType;
 import net.ssehub.teaching.exercise_submitter.server.rest.dto.CheckMessageDto;
 import net.ssehub.teaching.exercise_submitter.server.rest.dto.SubmissionResultDto;
 import net.ssehub.teaching.exercise_submitter.server.storage.ISubmissionStorage;
@@ -17,6 +14,9 @@ import net.ssehub.teaching.exercise_submitter.server.storage.NoSuchTargetExcepti
 import net.ssehub.teaching.exercise_submitter.server.storage.StorageException;
 import net.ssehub.teaching.exercise_submitter.server.storage.Submission;
 import net.ssehub.teaching.exercise_submitter.server.storage.SubmissionTarget;
+import net.ssehub.teaching.exercise_submitter.server.submission.checks.Check;
+import net.ssehub.teaching.exercise_submitter.server.submission.checks.ResultMessage;
+import net.ssehub.teaching.exercise_submitter.server.submission.checks.ResultMessage.MessageType;
 
 /**
  * This class orchestrates a complete submission process. This should be the entry point for starting a submission.

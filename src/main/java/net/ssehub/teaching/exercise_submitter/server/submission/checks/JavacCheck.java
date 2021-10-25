@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.ssehub.teaching.exercise_submitter.server.checks;
+package net.ssehub.teaching.exercise_submitter.server.submission.checks;
 
 import java.io.File;
 import java.nio.charset.Charset;
@@ -25,7 +25,7 @@ import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import net.ssehub.teaching.exercise_submitter.server.checks.ResultMessage.MessageType;
+import net.ssehub.teaching.exercise_submitter.server.submission.checks.ResultMessage.MessageType;
 
 /**
  * Compiles all Java source files. Fails if any file does not compile. Creates {@link ResultMessage}s for all

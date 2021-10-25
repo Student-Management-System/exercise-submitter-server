@@ -18,13 +18,6 @@ import net.ssehub.studentmgmt.backend_api.ApiException;
 import net.ssehub.studentmgmt.sparkyservice_api.api.AuthControllerApi;
 import net.ssehub.studentmgmt.sparkyservice_api.model.CredentialsDto;
 import net.ssehub.teaching.exercise_submitter.server.auth.AuthManager;
-import net.ssehub.teaching.exercise_submitter.server.checks.Check;
-import net.ssehub.teaching.exercise_submitter.server.checks.CheckstyleCheck;
-import net.ssehub.teaching.exercise_submitter.server.checks.CliJavacCheck;
-import net.ssehub.teaching.exercise_submitter.server.checks.EncodingCheck;
-import net.ssehub.teaching.exercise_submitter.server.checks.FileSizeCheck;
-import net.ssehub.teaching.exercise_submitter.server.checks.InternalJavacCheck;
-import net.ssehub.teaching.exercise_submitter.server.checks.JavacCheck;
 import net.ssehub.teaching.exercise_submitter.server.rest.routes.HeartbeatRoute;
 import net.ssehub.teaching.exercise_submitter.server.rest.routes.NotificationRoute;
 import net.ssehub.teaching.exercise_submitter.server.rest.routes.SubmissionRoute;
@@ -33,6 +26,13 @@ import net.ssehub.teaching.exercise_submitter.server.storage.StorageException;
 import net.ssehub.teaching.exercise_submitter.server.storage.filesystem.FilesystemStorage;
 import net.ssehub.teaching.exercise_submitter.server.stu_mgmt.StuMgmtView;
 import net.ssehub.teaching.exercise_submitter.server.submission.SubmissionManager;
+import net.ssehub.teaching.exercise_submitter.server.submission.checks.Check;
+import net.ssehub.teaching.exercise_submitter.server.submission.checks.CheckstyleCheck;
+import net.ssehub.teaching.exercise_submitter.server.submission.checks.CliJavacCheck;
+import net.ssehub.teaching.exercise_submitter.server.submission.checks.EncodingCheck;
+import net.ssehub.teaching.exercise_submitter.server.submission.checks.FileSizeCheck;
+import net.ssehub.teaching.exercise_submitter.server.submission.checks.InternalJavacCheck;
+import net.ssehub.teaching.exercise_submitter.server.submission.checks.JavacCheck;
 
 /**
  * Main class to start the rest server.

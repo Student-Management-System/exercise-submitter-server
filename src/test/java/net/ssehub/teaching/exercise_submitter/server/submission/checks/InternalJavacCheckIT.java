@@ -13,12 +13,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.ssehub.teaching.exercise_submitter.server.checks;
+package net.ssehub.teaching.exercise_submitter.server.submission.checks;
 
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.condition.EnabledIf;
 
-@EnabledIf("net.ssehub.teaching.exercise_submitter.server.checks.InternalJavacCheck#isSupported")
+@EnabledIf("net.ssehub.teaching.exercise_submitter.server.submission.checks.InternalJavacCheck#isSupported")
 public class InternalJavacCheckIT extends JavacCheckIT {
 
     @Override

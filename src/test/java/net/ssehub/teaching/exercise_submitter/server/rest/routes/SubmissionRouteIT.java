@@ -22,7 +22,6 @@ import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import net.ssehub.studentmgmt.backend_api.ApiException;
 import net.ssehub.teaching.exercise_submitter.server.auth.PermissiveAuthManager;
-import net.ssehub.teaching.exercise_submitter.server.checks.ResultMessage.MessageType;
 import net.ssehub.teaching.exercise_submitter.server.rest.dto.CheckMessageDto;
 import net.ssehub.teaching.exercise_submitter.server.rest.dto.SubmissionResultDto;
 import net.ssehub.teaching.exercise_submitter.server.storage.EmptyStorage;
@@ -34,6 +33,7 @@ import net.ssehub.teaching.exercise_submitter.server.storage.SubmissionTarget;
 import net.ssehub.teaching.exercise_submitter.server.storage.Version;
 import net.ssehub.teaching.exercise_submitter.server.submission.NoChecksSubmissionManager;
 import net.ssehub.teaching.exercise_submitter.server.submission.UnauthorizedException;
+import net.ssehub.teaching.exercise_submitter.server.submission.checks.ResultMessage.MessageType;
 
 public class SubmissionRouteIT extends AbstractRestTest {
 
