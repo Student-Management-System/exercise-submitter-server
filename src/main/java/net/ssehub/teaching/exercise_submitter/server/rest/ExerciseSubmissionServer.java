@@ -191,7 +191,8 @@ public class ExerciseSubmissionServer {
     public static void main(String[] args)
             throws IOException, ApiException, net.ssehub.studentmgmt.sparkyservice_api.ApiException {
         
-        HttpServer server = startDefaultServer(Integer.parseInt(args[0]), args[1], args[2], args[3], args[4], args[5]);
+        HttpServer server = startDefaultServer(Integer.parseInt(args[0]), args[1], args[2], args[3], 
+                System.getenv("SUBMISSION_SERVER_MGMT_USER"), System.getenv("SUBMISSION_SERVER_MGMT_PW"));
         System.out.println("Press enter to stop the server");
         System.in.read();
         server.shutdown();
