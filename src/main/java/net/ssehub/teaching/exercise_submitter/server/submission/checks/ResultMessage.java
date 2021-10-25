@@ -30,24 +30,8 @@ public class ResultMessage implements Comparable<ResultMessage> {
      * The type of a message.
      */
     public enum MessageType {
-        WARNING("warning"),
-        ERROR("error");
-        
-        private String name;
-        
-        /**
-         * Constructor.
-         * 
-         * @param name A user-friendly name.
-         */
-        private MessageType(String name) {
-            this.name = name;
-        }
-        
-        @Override
-        public String toString() {
-            return name;
-        }
+        WARNING,
+        ERROR;
     }
     
     private String checkName;
@@ -188,7 +172,7 @@ public class ResultMessage implements Comparable<ResultMessage> {
     public String toString() {
         StringBuilder builder = new StringBuilder();
         
-        builder.append(checkName).append(' ').append(type);
+        builder.append(checkName).append(' ').append(type.name().toLowerCase());
         
         if (file != null) {
             builder.append(" in ").append(file.getPath());
