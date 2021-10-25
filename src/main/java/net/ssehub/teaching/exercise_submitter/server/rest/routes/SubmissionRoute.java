@@ -221,7 +221,7 @@ public class SubmissionRoute {
             .map(version -> {
                 VersionDto dto = new VersionDto();
                 dto.setAuthor(version.getAuthor());
-                dto.setTimestamp(version.getUnixTimestamp());
+                dto.setTimestamp(version.getCreationTime().getEpochSecond());
                 return dto;
             })
             .collect(Collectors.toList());
@@ -318,7 +318,7 @@ public class SubmissionRoute {
         return getSubmission(authHeader, new SubmissionTarget(course, assignmentName, groupName), versions -> {
             Version match = null;
             for (Version version : versions) {
-                if (version.getUnixTimestamp() == timestamp) {
+                if (version.getCreationTime().getEpochSecond() == timestamp) {
                     match = version;
                     break;
                 }
@@ -375,7 +375,6 @@ public class SubmissionRoute {
                             + " in course " + target.getCourse())
                     .build();
         }
-            
         
         return response;
     }

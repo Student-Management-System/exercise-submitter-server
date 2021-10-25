@@ -8,8 +8,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.math.BigDecimal;
 import java.nio.file.Path;
 import java.time.Instant;
-import java.time.LocalDateTime;
-import java.time.ZoneId;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -379,10 +377,8 @@ public class SubmissionRouteIT extends AbstractRestTest {
         
         @Test
         public void multipleVersions() {
-            // unix timestamp 1634831371
-            LocalDateTime t1 =  LocalDateTime.ofInstant(Instant.parse("2021-10-21T15:49:31Z"), ZoneId.systemDefault());
-            // unix timestamp 1634606632
-            LocalDateTime t2 =  LocalDateTime.ofInstant(Instant.parse("2021-10-19T01:23:52Z"), ZoneId.systemDefault());
+            Instant t1 = Instant.ofEpochSecond(1634831371L);
+            Instant t2 = Instant.ofEpochSecond(1634606632L);
             
             setStorage(new EmptyStorage() {
                 @Override
@@ -542,7 +538,7 @@ public class SubmissionRouteIT extends AbstractRestTest {
                 @Override
                 public List<Version> getVersions(SubmissionTarget target)
                         throws NoSuchTargetException, StorageException {
-                    return Arrays.asList(new Version("student123", LocalDateTime.now()));
+                    return Arrays.asList(new Version("student123", Instant.now()));
                 }
                 
                 @Override
@@ -580,8 +576,8 @@ public class SubmissionRouteIT extends AbstractRestTest {
                 public List<Version> getVersions(SubmissionTarget target)
                         throws NoSuchTargetException, StorageException {
                     return Arrays.asList(
-                            new Version("student123", LocalDateTime.now()),
-                            new Version("student321", LocalDateTime.now())
+                            new Version("student123", Instant.now()),
+                            new Version("student321", Instant.now())
                     );
                 }
                 
@@ -615,10 +611,8 @@ public class SubmissionRouteIT extends AbstractRestTest {
         
         @Test
         public void nonExistingVersionNotFound() {
-            // unix timestamp 1634831371
-            LocalDateTime t1 =  LocalDateTime.ofInstant(Instant.parse("2021-10-21T15:49:31Z"), ZoneId.systemDefault());
-            // unix timestamp 1634606632
-            LocalDateTime t2 =  LocalDateTime.ofInstant(Instant.parse("2021-10-19T01:23:52Z"), ZoneId.systemDefault());
+            Instant t1 = Instant.ofEpochSecond(1634831371L);
+            Instant t2 = Instant.ofEpochSecond(1634606632L);
             
             setStorage(new EmptyStorage() {
                 @Override
@@ -647,10 +641,8 @@ public class SubmissionRouteIT extends AbstractRestTest {
         
         @Test
         public void selectFirst() {
-            // unix timestamp 1634831371
-            LocalDateTime t1 =  LocalDateTime.ofInstant(Instant.parse("2021-10-21T15:49:31Z"), ZoneId.systemDefault());
-            // unix timestamp 1634606632
-            LocalDateTime t2 =  LocalDateTime.ofInstant(Instant.parse("2021-10-19T01:23:52Z"), ZoneId.systemDefault());
+            Instant t1 = Instant.ofEpochSecond(1634831371L);
+            Instant t2 = Instant.ofEpochSecond(1634606632L);
             
             setStorage(new EmptyStorage() {
                 @Override
@@ -686,10 +678,8 @@ public class SubmissionRouteIT extends AbstractRestTest {
         
         @Test
         public void selectSecond() {
-            // unix timestamp 1634831371
-            LocalDateTime t1 =  LocalDateTime.ofInstant(Instant.parse("2021-10-21T15:49:31Z"), ZoneId.systemDefault());
-            // unix timestamp 1634606632
-            LocalDateTime t2 =  LocalDateTime.ofInstant(Instant.parse("2021-10-19T01:23:52Z"), ZoneId.systemDefault());
+            Instant t1 = Instant.ofEpochSecond(1634831371L);
+            Instant t2 = Instant.ofEpochSecond(1634606632L);
             
             setStorage(new EmptyStorage() {
                 @Override

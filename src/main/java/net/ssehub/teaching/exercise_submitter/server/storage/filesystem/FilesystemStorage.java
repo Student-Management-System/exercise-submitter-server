@@ -5,7 +5,7 @@ import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -103,14 +103,19 @@ public class FilesystemStorage implements ISubmissionStorage {
         
         Path groupDir = getExistingGroupPath(target);
         
-        Version newVersion = new Version(submission.getAuthor(), LocalDateTime.now());
-        
-        Path versionDir = groupDir.resolve(versionToFilename(newVersion));
-        if (Files.isDirectory(versionDir)) {
-            throw new StorageException("Version already exists");
-        }
+        Version newVersion = new Version(submission.getAuthor(), Instant.now());
+        long newTimestamp = newVersion.getCreationTime().getEpochSecond();
         
         try {
+            boolean versionAlreadyExists = Files.list(groupDir)
+                .map(Path::getFileName)
+                .map(Path::toString)
+                .anyMatch(filename -> filename.startsWith(Long.toString(newTimestamp) + '_'));
+            if (versionAlreadyExists) {
+                throw new StorageException("Version already exists");
+            }
+        
+            Path versionDir = groupDir.resolve(versionToFilename(newVersion));
             Files.createDirectory(versionDir);
             submission.writeToDirectory(versionDir);
             
@@ -128,7 +133,7 @@ public class FilesystemStorage implements ISubmissionStorage {
             return Files.list(groupDir)
                     .map(p -> p.getFileName().toString())
                     .map(FilesystemStorage::filenameToVersion)
-                    .sorted(Comparator.comparing(Version::getTimestamp).reversed())
+                    .sorted(Comparator.comparing(Version::getCreationTime).reversed())
                     .collect(Collectors.toList());
             
         } catch (IllegalArgumentException | IOException e) {
@@ -161,7 +166,7 @@ public class FilesystemStorage implements ISubmissionStorage {
         long unixtimestamp = Long.parseLong(filename.substring(0, underscore));
         String author = filename.substring(underscore + 1);
         
-        return new Version(author, unixtimestamp);
+        return new Version(author, Instant.ofEpochSecond(unixtimestamp));
     }
     
     /**
@@ -172,7 +177,7 @@ public class FilesystemStorage implements ISubmissionStorage {
      * @return A filename representing the given version.
      */
     static String versionToFilename(Version version) {
-        return version.getUnixTimestamp() + "_" + version.getAuthor();
+        return version.getCreationTime().getEpochSecond() + "_" + version.getAuthor();
     }
     
     @Override

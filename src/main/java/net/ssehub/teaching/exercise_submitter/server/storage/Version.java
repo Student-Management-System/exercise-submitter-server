@@ -1,8 +1,6 @@
 package net.ssehub.teaching.exercise_submitter.server.storage;
 
 import java.time.Instant;
-import java.time.LocalDateTime;
-import java.time.ZoneId;
 import java.util.Objects;
 
 /**
@@ -14,28 +12,17 @@ public class Version {
 
     private String author;
     
-    private LocalDateTime timestamp;
+    private Instant creationTime;
     
     /**
      * Creates a pointer to a version.
      * 
      * @param author The name of the author of this version.
-     * @param timestamp The timestamp when this version was created.
+     * @param creationTime The timestamp when this version was created.
      */
-    public Version(String author, LocalDateTime timestamp) {
+    public Version(String author, Instant creationTime) {
         this.author = author;
-        this.timestamp = timestamp;
-    }
-    
-    /**
-     * Creates a pointer to a version.
-     * 
-     * @param author The name of the author of this version.
-     * @param unixTimestamp Seconds since unix epoch.
-     */
-    public Version(String author, long unixTimestamp) {
-        this.author = author;
-        this.timestamp = LocalDateTime.ofInstant(Instant.ofEpochSecond(unixTimestamp), ZoneId.systemDefault());
+        this.creationTime = creationTime;
     }
     
     /**
@@ -52,22 +39,13 @@ public class Version {
      * 
      * @return The timestamp.
      */
-    public LocalDateTime getTimestamp() {
-        return timestamp;
-    }
-    
-    /**
-     * Returns the timestamp as seconds since unix epoch.
-     * 
-     * @return The unix timestamp.
-     */
-    public long getUnixTimestamp() {
-        return timestamp.atZone(ZoneId.systemDefault()).toEpochSecond();
+    public Instant getCreationTime() {
+        return creationTime;
     }
     
     @Override
     public int hashCode() {
-        return Objects.hash(author, timestamp);
+        return Objects.hash(author, creationTime);
     }
 
     @Override
@@ -79,7 +57,7 @@ public class Version {
             return false;
         }
         Version other = (Version) obj;
-        return Objects.equals(author, other.author) && Objects.equals(timestamp, other.timestamp);
+        return Objects.equals(author, other.author) && Objects.equals(creationTime, other.creationTime);
     }
 
     @Override
@@ -87,8 +65,8 @@ public class Version {
         StringBuilder builder = new StringBuilder();
         builder.append("Version [author=");
         builder.append(author);
-        builder.append(", timestamp=");
-        builder.append(timestamp);
+        builder.append(", creationTime=");
+        builder.append(creationTime.getEpochSecond());
         builder.append("]");
         return builder.toString();
     }

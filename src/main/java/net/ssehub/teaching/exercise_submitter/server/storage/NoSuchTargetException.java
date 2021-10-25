@@ -36,8 +36,9 @@ public class NoSuchTargetException extends StorageException {
      * @param version The version that does not exist in the target.
      */
     public NoSuchTargetException(SubmissionTarget target, Version version) {
-        super("The version " + version.getUnixTimestamp() + "does not exist for group " + target.getGroupName()
-                + " in assignment " + target.getAssignmentName() + " in course " + target.getCourse());
+        super("The version " + version.getCreationTime().getEpochSecond() + "does not exist for group "
+                + target.getGroupName() + " in assignment " + target.getAssignmentName() + " in course "
+                + target.getCourse());
     }
 
 }

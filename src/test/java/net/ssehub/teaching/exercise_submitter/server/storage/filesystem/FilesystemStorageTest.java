@@ -13,8 +13,6 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Instant;
-import java.time.LocalDateTime;
-import java.time.ZoneId;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
@@ -134,7 +132,7 @@ public class FilesystemStorageTest {
         
         FilesystemStorage storage = new FilesystemStorage(temporaryDirectory);
         
-        LocalDateTime timestamp = createFromUtc("2021-10-20T14:03:21Z"); // Unix timestamp @ UTC: 1634738601
+        Instant timestamp = Instant.ofEpochSecond(1634738601L);
         assertEquals(Arrays.asList(new Version("student1", timestamp)),
                 assertDoesNotThrow(() -> storage.getVersions(new SubmissionTarget("course", "Homework01", "Group01"))));
     }
@@ -159,9 +157,9 @@ public class FilesystemStorageTest {
         Files.createDirectories(temporaryDirectory.resolve("course/Homework01/Group01/32400_student1"));
         Files.createDirectories(temporaryDirectory.resolve("course/Homework01/Group01/1634738611_student1"));
         
-        LocalDateTime t1 = createFromUtc("2021-10-20T14:03:21Z"); // Unix timestamp @ UTC: 1634738601
-        LocalDateTime t2 = createFromUtc("1970-01-01T09:00:00Z"); // Unix timestamp @ UTC: 32400
-        LocalDateTime t3 = createFromUtc("2021-10-20T14:03:31Z"); // Unix timestamp @ UTC: 1634738611
+        Instant t1 = Instant.ofEpochSecond(1634738601L);
+        Instant t2 = Instant.ofEpochSecond(32400L);
+        Instant t3 = Instant.ofEpochSecond(1634738611L);
         
         FilesystemStorage storage = new FilesystemStorage(temporaryDirectory);
         
@@ -187,14 +185,14 @@ public class FilesystemStorageTest {
     
     @Test
     public void filenameToVersionValidFormat() {
-        LocalDateTime timestamp = createFromUtc("2021-10-20T14:03:21Z"); // Unix timestamp @ UTC: 1634738601
+        Instant timestamp = Instant.ofEpochSecond(1634738601L);
         assertEquals(new Version("some_author", timestamp),
                 FilesystemStorage.filenameToVersion("1634738601_some_author"));
     }
     
     @Test
     public void versiontoFilename() {
-        LocalDateTime timestamp = createFromUtc("2021-10-20T14:03:21Z"); // Unix timestamp @ UTC: 1634738601
+        Instant timestamp = Instant.ofEpochSecond(1634738601L);
         assertEquals("1634738601_author-name",
                 FilesystemStorage.versionToFilename(new Version("author-name", timestamp)));
     }
@@ -206,7 +204,7 @@ public class FilesystemStorageTest {
         
         FilesystemStorage storage = new FilesystemStorage(temporaryDirectory);
         
-        LocalDateTime timestamp = createFromUtc("2021-10-20T14:03:21Z"); // Unix timestamp @ UTC: 1634738601
+        Instant timestamp = Instant.ofEpochSecond(1634738601L);
         assertThrows(NoSuchTargetException.class, () -> storage.getSubmission(
                 new SubmissionTarget("course", "Homework01", "Group01"), new Version("student", timestamp)));
     }
@@ -219,7 +217,7 @@ public class FilesystemStorageTest {
         
         FilesystemStorage storage = new FilesystemStorage(temporaryDirectory);
         
-        LocalDateTime timestamp = createFromUtc("2021-10-20T14:03:21Z"); // Unix timestamp @ UTC: 1634738601
+        Instant timestamp = Instant.ofEpochSecond(1634738601L);
         assertThrows(NoSuchTargetException.class, () -> storage.getSubmission(
                 new SubmissionTarget("course", "Homework01", "Group01"), new Version("student", timestamp)));
     }
@@ -232,7 +230,7 @@ public class FilesystemStorageTest {
         
         FilesystemStorage storage = new FilesystemStorage(temporaryDirectory);
         
-        LocalDateTime timestamp = createFromUtc("2021-10-20T14:03:21Z"); // Unix timestamp @ UTC: 1634738601
+        Instant timestamp = Instant.ofEpochSecond(1634738601L);
         assertThrows(NoSuchTargetException.class, () -> storage.getSubmission(
                 new SubmissionTarget("course", "Homework01", "Group01"), new Version("student", timestamp)));
     }
@@ -245,7 +243,7 @@ public class FilesystemStorageTest {
         
         FilesystemStorage storage = new FilesystemStorage(temporaryDirectory);
         
-        LocalDateTime timestamp = createFromUtc("2021-10-20T14:03:21Z"); // Unix timestamp @ UTC: 1634738601
+        Instant timestamp = Instant.ofEpochSecond(1634738601L);
         assertThrows(NoSuchTargetException.class, () -> storage.getSubmission(
                 new SubmissionTarget("course", "Homework01", "Group01"), new Version("student", timestamp)));
     }
@@ -257,7 +255,7 @@ public class FilesystemStorageTest {
         
         FilesystemStorage storage = new FilesystemStorage(temporaryDirectory);
         
-        LocalDateTime timestamp = createFromUtc("2021-10-20T14:03:21Z"); // Unix timestamp @ UTC: 1634738601
+        Instant timestamp = Instant.ofEpochSecond(1634738601L);
         
         Submission submission = assertDoesNotThrow(() -> storage.getSubmission(
                 new SubmissionTarget("course", "Homework01", "Group01"), new Version("student", timestamp)));
@@ -277,7 +275,7 @@ public class FilesystemStorageTest {
         
         FilesystemStorage storage = new FilesystemStorage(temporaryDirectory);
         
-        LocalDateTime timestamp = createFromUtc("2021-10-20T14:03:21Z"); // Unix timestamp @ UTC: 1634738601
+        Instant timestamp = Instant.ofEpochSecond(1634738601L);
         
         Submission submission = assertDoesNotThrow(() -> storage.getSubmission(
                 new SubmissionTarget("course", "Homework01", "Group01"), new Version("student", timestamp)));
@@ -303,7 +301,7 @@ public class FilesystemStorageTest {
         
         FilesystemStorage storage = new FilesystemStorage(temporaryDirectory);
         
-        LocalDateTime timestamp = createFromUtc("2021-10-20T14:03:21Z"); // Unix timestamp @ UTC: 1634738601
+        Instant timestamp = Instant.ofEpochSecond(1634738601L);
         
         Submission submission = assertDoesNotThrow(() -> storage.getSubmission(
                 new SubmissionTarget("course", "Homework01", "Group01"), new Version("student", timestamp)));
@@ -328,8 +326,8 @@ public class FilesystemStorageTest {
         
         FilesystemStorage storage = new FilesystemStorage(temporaryDirectory);
         
-        LocalDateTime t1 = createFromUtc("2021-10-20T14:03:21Z"); // Unix timestamp @ UTC: 1634738601
-        LocalDateTime t2 = createFromUtc("2021-10-21T07:29:53Z"); // Unix timestamp @ UTC: 1634801393
+        Instant t1 = Instant.ofEpochSecond(1634738601L);
+        Instant t2 = Instant.ofEpochSecond(1634801393L);
         
         Submission s1 = assertDoesNotThrow(() -> storage.getSubmission(
                 new SubmissionTarget("course", "Homework01", "Group01"), new Version("student", t1)));
@@ -400,6 +398,25 @@ public class FilesystemStorageTest {
     }
     
     @Test
+    public void submitNewVersionVersionWithDifferentAuthorAlreadyExistsThrows() throws IOException {
+        temporaryDirectory = Files.createTempDirectory(
+                "FilesystemStorageTest.submitNewVersionVersionWithDifferentAuthorAlreadyExistsThrows");
+        Files.createDirectories(temporaryDirectory.resolve("course/Homework01/Group01"));
+        
+        // create folders for versions covering the next 100 seconds
+        long now = Instant.now().getEpochSecond();
+        for (int i = 0; i < 100; i++) {
+            Files.createDirectory(temporaryDirectory.resolve("course/Homework01/Group01/" + (now + i) + "_author1"));
+        }
+        
+        FilesystemStorage storage = new FilesystemStorage(temporaryDirectory);
+        
+        StorageException e = assertThrows(StorageException.class, () -> storage.submitNewVersion(
+                new SubmissionTarget("course", "Homework01", "Group01"), new SubmissionBuilder("author2").build()));
+        assertEquals("Version already exists", e.getMessage());
+    }
+    
+    @Test
     public void submitNewVersionEmptySubmissionCreatesDirectory() throws IOException {
         temporaryDirectory = Files.createTempDirectory(
                 "FilesystemStorageTest.submitNewVersionEmptySubmissionCreatesDirectory");
@@ -443,10 +460,6 @@ public class FilesystemStorageTest {
             () -> assertEquals("other content\n",
                     Files.readString(versionDir.get().resolve("dir/test.txt"), StandardCharsets.UTF_8))
         );
-    }
-    
-    private static LocalDateTime createFromUtc(String date) {
-        return LocalDateTime.ofInstant(Instant.parse(date), ZoneId.systemDefault());
     }
     
     @AfterEach
