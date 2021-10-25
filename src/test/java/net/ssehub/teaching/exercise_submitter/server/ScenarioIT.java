@@ -1,12 +1,12 @@
 package net.ssehub.teaching.exercise_submitter.server;
 
 import static org.junit.jupiter.api.Assertions.assertAll;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
 import java.math.BigDecimal;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Arrays;
@@ -91,8 +91,7 @@ public class ScenarioIT {
     @Test
     @SuppressWarnings("unchecked")
     public void singleFileSubmissionAndReplay() throws IOException {
-        String fileContent = Files.readString(
-                TESTDATA.resolve("singleFile/Main.java"), StandardCharsets.UTF_8);
+        byte[] fileContent = Files.readAllBytes(TESTDATA.resolve("singleFile/Main.java"));
         
         // student1 submits
         
@@ -111,8 +110,8 @@ public class ScenarioIT {
             () -> assertTrue(submissionResult.getAccepted()),
 //            () -> assertEquals(Collections.emptyList(), result1.getMessages()), // TODO: checkstyle.xml missing
             () -> assertEquals(1L, Files.list(groupDir).count()),
-            () -> assertEquals(fileContent,
-                    Files.readString(Files.list(groupDir).findFirst().get().resolve("Main.java"), StandardCharsets.UTF_8))
+            () -> assertArrayEquals(fileContent,
+                    Files.readAllBytes(Files.list(groupDir).findFirst().get().resolve("Main.java")))
         );
         
         // student3 replays
@@ -143,8 +142,7 @@ public class ScenarioIT {
             () -> assertEquals(200, replayResponse.getStatus()),
             () -> assertEquals(1, replayResult.size()),
             () -> assertEquals("Main.java", replayResult.get(0).get("path")),
-            () -> assertEquals(
-                    Base64.getEncoder().encodeToString(fileContent.getBytes(StandardCharsets.UTF_8)),
+            () -> assertEquals(Base64.getEncoder().encodeToString(fileContent),
                     replayResult.get(0).get("content"))
         );
     }
@@ -152,8 +150,7 @@ public class ScenarioIT {
     @Test
     @SuppressWarnings("unchecked")
     public void submissionWithCompilationErrorAndReplay() throws IOException {
-        String fileContent = Files.readString(
-                TESTDATA.resolve("compilationError/Main.java"), StandardCharsets.UTF_8);
+        byte[] fileContent = Files.readAllBytes(TESTDATA.resolve("compilationError/Main.java"));
         
         Response submissionResponse = target.path("/submission/java-wise2122/Testat/student1")
                 .request()
@@ -171,8 +168,8 @@ public class ScenarioIT {
 //            () -> assertEquals(Collections.emptyList(), submissionResult.getMessages()), // TODO: checkstyle.xml missing
             () -> assertEquals("javac", submissionResult.getMessages().get(1).getCheckName()),
             () -> assertEquals(1L, Files.list(groupDir).count()),
-            () -> assertEquals(fileContent,
-                        Files.readString(Files.list(groupDir).findFirst().get().resolve("Main.java"), StandardCharsets.UTF_8))
+            () -> assertArrayEquals(fileContent,
+                        Files.readAllBytes(Files.list(groupDir).findFirst().get().resolve("Main.java")))
             );
         
         // student1 replays
@@ -203,8 +200,7 @@ public class ScenarioIT {
             () -> assertEquals(200, replayResponse.getStatus()),
             () -> assertEquals(1, replayResult.size()),
             () -> assertEquals("Main.java", replayResult.get(0).get("path")),
-            () -> assertEquals(
-                    Base64.getEncoder().encodeToString(fileContent.getBytes(StandardCharsets.UTF_8)),
+            () -> assertEquals(Base64.getEncoder().encodeToString(fileContent),
                     replayResult.get(0).get("content"))
         );
     }
@@ -213,13 +209,22 @@ public class ScenarioIT {
     public void submissionWithBinaryFile() throws IOException {
         byte[] fileContent = Files.readAllBytes(TESTDATA.resolve("binaryFile/one-pixel.png"));
         
-        Response submissionResponse = target.path("/submission/java-wise2122/Homework02/TheOdds")
+        Response submissionResponse = target.path("/submission/java-wise2122/Homework02/TheEvens")
                 .request()
-                .header("Authorization", "Bearer " + docker.getAuthToken("student1"))
-                .post(Entity.entity(Arrays.asList(new FileDto("Main.java", fileContent)), MediaType.APPLICATION_JSON));
+                .header("Authorization", "Bearer " + docker.getAuthToken("student2"))
+                .post(Entity.entity(Arrays.asList(new FileDto("one-pixel.png", fileContent)), MediaType.APPLICATION_JSON));
+        
+        SubmissionResultDto submissionResult = submissionResponse.readEntity(SubmissionResultDto.class);
+
+        Path groupDir = storagePath.resolve(Path.of("java-wise2122", "Homework02", "TheEvens"));
         
         assertAll(
-            () -> assertEquals(200, submissionResponse.getStatus())
+            () -> assertEquals(201, submissionResponse.getStatus()),
+            () -> assertTrue(submissionResult.getAccepted()),
+//            () -> assertEquals(Collections.emptyList(), result1.getMessages()), // TODO: checkstyle.xml missing
+            () -> assertEquals(1L, Files.list(groupDir).count()),
+            () -> assertArrayEquals(fileContent,
+                    Files.readAllBytes(Files.list(groupDir).findFirst().get().resolve("one-pixel.png")))
         );
     }
     
