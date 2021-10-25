@@ -21,7 +21,6 @@ import net.ssehub.teaching.exercise_submitter.server.auth.AuthManager;
 import net.ssehub.teaching.exercise_submitter.server.checks.Check;
 import net.ssehub.teaching.exercise_submitter.server.checks.CheckstyleCheck;
 import net.ssehub.teaching.exercise_submitter.server.checks.CliJavacCheck;
-import net.ssehub.teaching.exercise_submitter.server.checks.EclipseConfigCheck;
 import net.ssehub.teaching.exercise_submitter.server.checks.EncodingCheck;
 import net.ssehub.teaching.exercise_submitter.server.checks.FileSizeCheck;
 import net.ssehub.teaching.exercise_submitter.server.checks.InternalJavacCheck;
@@ -107,30 +106,22 @@ public class ExerciseSubmissionServer {
      * @param submissionManager The manager to add the {@link Check}s to.
      */
     private static void createChecks(SubmissionManager submissionManager) {
-        FileSizeCheck fsCheck = new FileSizeCheck();
-        fsCheck.setMaxFileSize(1024 * 1024); // 1 KiB
-        fsCheck.setMaxSubmissionSize(1024 * 1024); // 1 KiB
+        FileSizeCheck fileSizeCheck = new FileSizeCheck();
+        fileSizeCheck.setMaxFileSize(1024 * 1024); // 1 KiB
+        fileSizeCheck.setMaxSubmissionSize(1024 * 1024); // 1 KiB
         
-        EncodingCheck encCheck = new EncodingCheck();
-        
-        EclipseConfigCheck eclCheckRejecting = new EclipseConfigCheck();
-        
-        EclipseConfigCheck eclCheckNonRejecting = new EclipseConfigCheck();
-        eclCheckNonRejecting.setRequireJavaProject(true);
-        eclCheckNonRejecting.setRequireCheckstyleProject(true);
+        EncodingCheck encodingCheck = new EncodingCheck();
         
         JavacCheck javacCheck = InternalJavacCheck.isSupported() ? new InternalJavacCheck() : new CliJavacCheck();
         javacCheck.setJavaVersion(11);
         
-        CheckstyleCheck csCheck = new CheckstyleCheck(new File("checkstyle.xml"));
+        CheckstyleCheck checkstyleCheck = new CheckstyleCheck(new File("checkstyle.xml"));
         
-        submissionManager.addRejectingCheck(fsCheck);
-        submissionManager.addRejectingCheck(encCheck);
-        submissionManager.addRejectingCheck(eclCheckRejecting);
+        submissionManager.addRejectingCheck(fileSizeCheck);
+        submissionManager.addRejectingCheck(encodingCheck);
         
-        submissionManager.addNonRejectingCheck(eclCheckNonRejecting);
         submissionManager.addNonRejectingCheck(javacCheck);
-        submissionManager.addNonRejectingCheck(csCheck);
+        submissionManager.addNonRejectingCheck(checkstyleCheck);
     }
     
     /**
