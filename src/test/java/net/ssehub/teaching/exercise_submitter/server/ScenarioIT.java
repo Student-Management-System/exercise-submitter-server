@@ -85,7 +85,7 @@ public class ScenarioIT {
     @SuppressWarnings("unchecked")
     public void singleFileSubmissionAndReplay() throws IOException {
         String fileContent = Files.readString(
-                TESTDATA.resolve("singleFileSubmission/Main.java"), StandardCharsets.UTF_8);
+                TESTDATA.resolve("singleFile/Main.java"), StandardCharsets.UTF_8);
         
         // student1 submits
         
@@ -128,6 +128,62 @@ public class ScenarioIT {
         Response replayResponse = target.path("/submission/java-wise2122/Homework01/TheOdds/" + timestamp)
                 .request()
                 .header("Authorization", "Bearer " + docker.getAuthToken("student3"))
+                .get();
+        
+        Map<?, ?> replayResult = replayResponse.readEntity(Map.class);
+        
+        assertAll(
+            () -> assertEquals(200, replayResponse.getStatus()),
+            () -> assertEquals(Map.of("Main.java", fileContent), replayResult)
+        );
+    }
+    
+    @Test
+    @SuppressWarnings("unchecked")
+    public void submissionWithCompilationErrorAndReplay() throws IOException {
+        String fileContent = Files.readString(
+                TESTDATA.resolve("compilationError/Main.java"), StandardCharsets.UTF_8);
+        
+        Response submissionResponse = target.path("/submission/java-wise2122/Testat/student1")
+                .request()
+                .header("Authorization", "Bearer " + docker.getAuthToken("student1"))
+                .post(Entity.entity(Map.of("Main.java", fileContent), MediaType.APPLICATION_JSON));
+        
+        
+        SubmissionResultDto submissionResult = submissionResponse.readEntity(SubmissionResultDto.class);
+        
+        Path groupDir = storagePath.resolve(Path.of("java-wise2122", "Testat", "student1"));
+        
+        assertAll(
+            () -> assertEquals(201, submissionResponse.getStatus()),
+            () -> assertTrue(submissionResult.getAccepted()),
+//            () -> assertEquals(Collections.emptyList(), submissionResult.getMessages()), // TODO: checkstyle.xml missing
+            () -> assertEquals("javac", submissionResult.getMessages().get(1).getCheckName()),
+            () -> assertEquals(1L, Files.list(groupDir).count()),
+            () -> assertEquals(fileContent,
+                        Files.readString(Files.list(groupDir).findFirst().get().resolve("Main.java"), StandardCharsets.UTF_8))
+            );
+        
+        // student1 replays
+        
+        Response versionsResponse = target.path("/submission/java-wise2122/Testat/student1/versions")
+                .request()
+                .header("Authorization", "Bearer " + docker.getAuthToken("student1"))
+                .get();
+        
+        List<?> versionsResult = versionsResponse.readEntity(List.class);
+        
+        assertAll(
+            () -> assertEquals(200, versionsResponse.getStatus()),
+            () -> assertEquals(1, versionsResult.size()),
+            () -> assertEquals("student1", ((Map<String, Object>) versionsResult.get(0)).get("author"))
+        );
+        
+        long timestamp = ((Map<String, BigDecimal>) versionsResult.get(0)).get("timestamp").longValue();
+        
+        Response replayResponse = target.path("/submission/java-wise2122/Testat/student1/" + timestamp)
+                .request()
+                .header("Authorization", "Bearer " + docker.getAuthToken("student1"))
                 .get();
         
         Map<?, ?> replayResult = replayResponse.readEntity(Map.class);
