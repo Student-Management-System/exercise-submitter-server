@@ -81,7 +81,7 @@ public abstract class AbstractRestTest {
      *  
      * @return A random open port.
      */
-    private static int generateRandomPort() {
+    public static int generateRandomPort() {
         int port;
         try (ServerSocket socket = new ServerSocket(0)) {
             socket.setReuseAddress(true);

@@ -19,7 +19,7 @@ import net.ssehub.studentmgmt.docker.StuMgmtDocker.Collaboration;
 
 public class StuMgmtViewIT {
 
-private static StuMgmtDocker docker;
+    private static StuMgmtDocker docker;
     
     @BeforeAll
     public static void startServer() {

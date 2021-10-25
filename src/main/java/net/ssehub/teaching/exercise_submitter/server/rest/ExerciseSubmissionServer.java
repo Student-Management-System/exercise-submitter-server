@@ -125,6 +125,53 @@ public class ExerciseSubmissionServer {
     }
     
     /**
+     * Creates and starts the server with default configuration.
+     *  
+     * @param port The port to use.
+     * @param storagePath The path to the {@link FilesystemStorage} to use.
+     * @param authSystemUrl The URL to the authentication system (sparky-service) API.
+     * @param stuMgmtUrl The URL to the student management system API.
+     * @param username The username to authenticate this service as in the auth sytem.
+     * @param password The password to authenticate this service with in the auth system.
+     * 
+     * @return The started HTTP server.
+     * 
+     * @throws IOException If creating the {@link FilesystemStorage} fails.
+     * @throws ApiException If creating the initial {@link StuMgmtView} fails.
+     * @throws net.ssehub.studentmgmt.sparkyservice_api.ApiException If authenticating with the given username and
+     *      password fails.
+     */
+    // checkstyle: stop parameter number check
+    public static HttpServer startDefaultServer(int port, String storagePath, String authSystemUrl, String stuMgmtUrl,
+            String username, String password)
+            throws IOException, ApiException, net.ssehub.studentmgmt.sparkyservice_api.ApiException {
+    // checkstyle: resume parameter number check
+        
+        String url = "http://localhost:" + port + "/";
+        
+        ISubmissionStorage storage = new FilesystemStorage(Path.of(storagePath));
+        SubmissionManager submissionManager = new SubmissionManager(storage);
+        createChecks(submissionManager);
+        
+        StuMgmtView stuMgmtView = new StuMgmtView(
+                createAuthenticatedMgmtApiClient(authSystemUrl, stuMgmtUrl, username, password));
+        AuthManager authManager = new AuthManager(authSystemUrl, stuMgmtView);
+        
+        HttpServer server = startServer(url, submissionManager, storage, authManager, stuMgmtView);
+        
+        try {
+            stuMgmtView.update(null); // TODO: trigger an update after the notifications are listening
+            storage.createOrUpdateAssignmentsFromView(stuMgmtView);
+        } catch (StorageException | ApiException e) {
+            e.printStackTrace();
+        }
+        
+        System.out.println("Server listens at " + url);
+        return server;
+        
+    }
+    
+    /**
      * Calls {@link #startServer()}, waits for user input on {@link System#in} and then shuts down the server.
      * 
      * @param args Command line arguments. Content:
@@ -144,24 +191,7 @@ public class ExerciseSubmissionServer {
     public static void main(String[] args)
             throws IOException, ApiException, net.ssehub.studentmgmt.sparkyservice_api.ApiException {
         
-        ISubmissionStorage storage = new FilesystemStorage(Path.of(args[1]));
-        SubmissionManager submissionManager = new SubmissionManager(storage);
-        createChecks(submissionManager);
-        
-        StuMgmtView stuMgmtView = new StuMgmtView(createAuthenticatedMgmtApiClient(args[2], args[3], args[4], args[5]));
-        AuthManager authManager = new AuthManager(args[2], stuMgmtView);
-        
-        HttpServer server = startServer("http://localhost:" + args[0] + "/",
-                submissionManager, storage, authManager, stuMgmtView);
-        
-        try {
-            stuMgmtView.update(null); // TODO: trigger an update after the notifications are listening
-            storage.createOrUpdateAssignmentsFromView(stuMgmtView);
-        } catch (StorageException | ApiException e) {
-            e.printStackTrace();
-        }
-        
-        System.out.println("Server listens at http://localhost:" + args[0] + "/");
+        HttpServer server = startDefaultServer(Integer.parseInt(args[0]), args[1], args[2], args[3], args[4], args[5]);
         System.out.println("Press enter to stop the server");
         System.in.read();
         server.shutdown();
