@@ -153,6 +153,7 @@ public class ExerciseSubmissionServer {
         SubmissionManager submissionManager = new SubmissionManager(storage);
         createChecks(submissionManager);
         
+        System.out.println("Logging into stu-mgmt system as " + username);
         StuMgmtView stuMgmtView = new StuMgmtView(
                 createAuthenticatedMgmtApiClient(authSystemUrl, stuMgmtUrl, username, password));
         AuthManager authManager = new AuthManager(authSystemUrl, stuMgmtView);
@@ -193,9 +194,10 @@ public class ExerciseSubmissionServer {
         
         HttpServer server = startDefaultServer(Integer.parseInt(args[0]), args[1], args[2], args[3], 
                 System.getenv("SUBMISSION_SERVER_MGMT_USER"), System.getenv("SUBMISSION_SERVER_MGMT_PW"));
-        System.out.println("Press enter to stop the server");
-        System.in.read();
-        server.shutdown();
+        
+        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+            server.shutdown();
+        }));
     }
 
 }
