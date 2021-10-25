@@ -17,8 +17,6 @@ public class FileDto {
     
     @Schema(
         description = "base64-encoded content of the file",
-        type = "string",
-        format = "byte",
         example = "cGFja2FnZSBkaXI7CgpwdWJsaWMgY2xhc3MgTWFpbiB7CgogICAgcHVibGljIHN0YXRpYyB2b2lk"
                 + "IG1haW4oU3RyaW5nW10gYXJncykgewogICAgICAgIFN5c3RlbS5vdXQucHJpbnRsbigiSGVsbG8g"
                 + "V29ybGQhIik7CiAgICB9Cgp9Cg==")
