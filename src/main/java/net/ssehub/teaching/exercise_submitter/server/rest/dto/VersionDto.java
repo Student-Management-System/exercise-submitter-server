@@ -9,9 +9,11 @@ import io.swagger.v3.oas.annotations.media.Schema;
  */
 public class VersionDto {
 
+    @Schema(example = "student1")
     private String author;
     
-    @Schema(description = "the timestamp when the version was created as seconds since unix epoch")
+    @Schema(description = "the timestamp when the version was created as seconds since unix epoch",
+            example = "1635177322")
     private long timestamp;
     
     /**
