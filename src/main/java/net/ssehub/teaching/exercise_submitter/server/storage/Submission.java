@@ -1,7 +1,6 @@
 package net.ssehub.teaching.exercise_submitter.server.storage;
 
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Map;
@@ -18,7 +17,7 @@ public class Submission {
 
     private String author;
     
-    private Map<Path, String> files;
+    private Map<Path, byte[]> files;
     
     /**
      * Creates a submission. Called by {@link SubmissionBuilder}.
@@ -26,7 +25,7 @@ public class Submission {
      * @param author The author of the submission.
      * @param files The files.
      */
-    Submission(String author, Map<Path, String> files) {
+    Submission(String author, Map<Path, byte[]> files) {
         this.author = author;
         this.files = files;
     }
@@ -80,7 +79,7 @@ public class Submission {
      * 
      * @throws NoSuchElementException If the file does not exist in this submission.
      */
-    public String getFileContent(Path filepath) throws NoSuchElementException {
+    public byte[] getFileContent(Path filepath) throws NoSuchElementException {
         if (!containsFile(filepath)) {
             throw new NoSuchElementException("File " + filepath + " does not exist in this submission");
         }
@@ -101,7 +100,7 @@ public class Submission {
             throw new IOException(directory + " is not a directory");
         }
         
-        for (Map.Entry<Path, String> file : this.files.entrySet()) {
+        for (Map.Entry<Path, byte[]> file : this.files.entrySet()) {
             writeFile(file.getKey(), file.getValue(), directory);
         }
     }
@@ -115,10 +114,10 @@ public class Submission {
      * 
      * @throws IOException If writing the file or creating the parent directories fails.
      */
-    private void writeFile(Path filepath, String content, Path directory) throws IOException {
+    private void writeFile(Path filepath, byte[] content, Path directory) throws IOException {
         Path absoluteDestination = directory.resolve(filepath);
         Files.createDirectories(absoluteDestination.getParent());
-        Files.writeString(absoluteDestination, content, StandardCharsets.UTF_8);
+        Files.write(absoluteDestination, content);
     }
     
 }

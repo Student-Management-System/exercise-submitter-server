@@ -1,5 +1,6 @@
 package net.ssehub.teaching.exercise_submitter.server.storage;
 
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
@@ -15,7 +16,7 @@ public class SubmissionBuilder {
     
     private String author;
     
-    private Map<Path, String> files;
+    private Map<Path, byte[]> files;
     
     /**
      * Creates a new builder with no files (yet).
@@ -37,7 +38,7 @@ public class SubmissionBuilder {
      * @throws IllegalArgumentException If the given filepath is not relative.
      * @throws IllegalStateException If {@link #build()} has already been called on this builder.
      */
-    public void addFile(Path filepath, String content) throws IllegalArgumentException, IllegalStateException {
+    public void addFile(Path filepath, byte[] content) throws IllegalArgumentException, IllegalStateException {
         checkNotBuilt();
         
         if (filepath.isAbsolute()) {
@@ -51,6 +52,21 @@ public class SubmissionBuilder {
         }
         
         this.files.put(filepath, content);
+    }
+    
+    /**
+     * Same as {@link #addFile(Path, byte[])}, but file content is the given string and will be UTF-8 encoded.
+     * <p>
+     * This is a convenience method for test cases.
+     *  
+     * @param filepath The relative path of the file in the submission directory.
+     * @param content The string content of the file.
+     * 
+     * @throws IllegalArgumentException If the given filepath is not relative.
+     * @throws IllegalStateException If {@link #build()} has already been called on this builder.
+     */
+    public void addUtf8File(Path filepath, String content)  throws IllegalArgumentException, IllegalStateException {
+        addFile(filepath, content.getBytes(StandardCharsets.UTF_8));
     }
     
     /**

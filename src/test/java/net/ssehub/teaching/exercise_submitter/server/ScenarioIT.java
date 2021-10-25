@@ -9,6 +9,8 @@ import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Arrays;
+import java.util.Base64;
 import java.util.List;
 import java.util.Map;
 
@@ -28,6 +30,7 @@ import net.ssehub.studentmgmt.docker.StuMgmtDocker;
 import net.ssehub.studentmgmt.docker.StuMgmtDocker.AssignmentState;
 import net.ssehub.studentmgmt.docker.StuMgmtDocker.Collaboration;
 import net.ssehub.teaching.exercise_submitter.server.rest.ExerciseSubmissionServer;
+import net.ssehub.teaching.exercise_submitter.server.rest.dto.FileDto;
 import net.ssehub.teaching.exercise_submitter.server.rest.dto.SubmissionResultDto;
 import net.ssehub.teaching.exercise_submitter.server.rest.routes.AbstractRestTest;
 
@@ -61,8 +64,12 @@ public class ScenarioIT {
         docker.createGroup(course, "TheOdds", "student1", "student3");
         docker.createGroup(course, "TheEvens", "student2");
         
+        // used in singleFileSubmissionAndReplay()
         docker.createAssignment(course, "Homework01", AssignmentState.SUBMISSION, Collaboration.GROUP);
+        // used in submissionWithCompilationErrorAndReplay()
         docker.createAssignment(course, "Testat", AssignmentState.SUBMISSION, Collaboration.SINGLE);
+        // used in submissionWithBinaryFile()
+        docker.createAssignment(course, "Homework02", AssignmentState.SUBMISSION, Collaboration.GROUP);
         
         
         int port = AbstractRestTest.generateRandomPort();
@@ -92,7 +99,7 @@ public class ScenarioIT {
         Response submissionResponse = target.path("/submission/java-wise2122/Homework01/TheOdds")
                 .request()
                 .header("Authorization", "Bearer " + docker.getAuthToken("student1"))
-                .post(Entity.entity(Map.of("Main.java", fileContent), MediaType.APPLICATION_JSON));
+                .post(Entity.entity(Arrays.asList(new FileDto("Main.java", fileContent)), MediaType.APPLICATION_JSON));
         
         
         SubmissionResultDto submissionResult = submissionResponse.readEntity(SubmissionResultDto.class);
@@ -130,11 +137,15 @@ public class ScenarioIT {
                 .header("Authorization", "Bearer " + docker.getAuthToken("student3"))
                 .get();
         
-        Map<?, ?> replayResult = replayResponse.readEntity(Map.class);
+        List<Map<?, ?>> replayResult = replayResponse.readEntity(List.class);
         
         assertAll(
             () -> assertEquals(200, replayResponse.getStatus()),
-            () -> assertEquals(Map.of("Main.java", fileContent), replayResult)
+            () -> assertEquals(1, replayResult.size()),
+            () -> assertEquals("Main.java", replayResult.get(0).get("path")),
+            () -> assertEquals(
+                    Base64.getEncoder().encodeToString(fileContent.getBytes(StandardCharsets.UTF_8)),
+                    replayResult.get(0).get("content"))
         );
     }
     
@@ -147,7 +158,7 @@ public class ScenarioIT {
         Response submissionResponse = target.path("/submission/java-wise2122/Testat/student1")
                 .request()
                 .header("Authorization", "Bearer " + docker.getAuthToken("student1"))
-                .post(Entity.entity(Map.of("Main.java", fileContent), MediaType.APPLICATION_JSON));
+                .post(Entity.entity(Arrays.asList(new FileDto("Main.java", fileContent)), MediaType.APPLICATION_JSON));
         
         
         SubmissionResultDto submissionResult = submissionResponse.readEntity(SubmissionResultDto.class);
@@ -186,11 +197,29 @@ public class ScenarioIT {
                 .header("Authorization", "Bearer " + docker.getAuthToken("student1"))
                 .get();
         
-        Map<?, ?> replayResult = replayResponse.readEntity(Map.class);
+        List<Map<?, ?>> replayResult = replayResponse.readEntity(List.class);
         
         assertAll(
             () -> assertEquals(200, replayResponse.getStatus()),
-            () -> assertEquals(Map.of("Main.java", fileContent), replayResult)
+            () -> assertEquals(1, replayResult.size()),
+            () -> assertEquals("Main.java", replayResult.get(0).get("path")),
+            () -> assertEquals(
+                    Base64.getEncoder().encodeToString(fileContent.getBytes(StandardCharsets.UTF_8)),
+                    replayResult.get(0).get("content"))
+        );
+    }
+    
+    @Test
+    public void submissionWithBinaryFile() throws IOException {
+        byte[] fileContent = Files.readAllBytes(TESTDATA.resolve("binaryFile/one-pixel.png"));
+        
+        Response submissionResponse = target.path("/submission/java-wise2122/Homework02/TheOdds")
+                .request()
+                .header("Authorization", "Bearer " + docker.getAuthToken("student1"))
+                .post(Entity.entity(Arrays.asList(new FileDto("Main.java", fileContent)), MediaType.APPLICATION_JSON));
+        
+        assertAll(
+            () -> assertEquals(200, submissionResponse.getStatus())
         );
     }
     

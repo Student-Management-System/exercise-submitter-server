@@ -1,6 +1,7 @@
 package net.ssehub.teaching.exercise_submitter.server.storage.filesystem;
 
 import static org.junit.jupiter.api.Assertions.assertAll;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
@@ -282,7 +283,8 @@ public class FilesystemStorageTest {
         
         assertAll(
             () -> assertEquals(1, submission.getNumFiles()),
-            () -> assertEquals("some content\n", submission.getFileContent(Path.of("test.txt")))
+            () -> assertArrayEquals("some content\n".getBytes(StandardCharsets.UTF_8),
+                    submission.getFileContent(Path.of("test.txt")))
         );
     }
     
@@ -308,9 +310,12 @@ public class FilesystemStorageTest {
         
         assertAll(
             () -> assertEquals(3, submission.getNumFiles()),
-            () -> assertEquals("first content\n", submission.getFileContent(Path.of("dir1/test.txt"))),
-            () -> assertEquals("second content\n", submission.getFileContent(Path.of("dir1/other.txt"))),
-            () -> assertEquals("third cöntent\n", submission.getFileContent(Path.of("dir2/subdir/another.txt")))
+            () -> assertArrayEquals("first content\n".getBytes(StandardCharsets.UTF_8),
+                    submission.getFileContent(Path.of("dir1/test.txt"))),
+            () -> assertArrayEquals("second content\n".getBytes(StandardCharsets.UTF_8),
+                    submission.getFileContent(Path.of("dir1/other.txt"))),
+            () -> assertArrayEquals("third cöntent\n".getBytes(StandardCharsets.UTF_8),
+                    submission.getFileContent(Path.of("dir2/subdir/another.txt")))
         );
     }
     
@@ -336,10 +341,12 @@ public class FilesystemStorageTest {
         
         assertAll(
             () -> assertEquals(1, s1.getNumFiles()),
-            () -> assertEquals("some content\n", s1.getFileContent(Path.of("test.txt"))),
+            () -> assertArrayEquals("some content\n".getBytes(StandardCharsets.UTF_8),
+                    s1.getFileContent(Path.of("test.txt"))),
             
             () -> assertEquals(1, s2.getNumFiles()),
-            () -> assertEquals("other content\n", s2.getFileContent(Path.of("other.txt")))
+            () -> assertArrayEquals("other content\n".getBytes(StandardCharsets.UTF_8),
+                    s2.getFileContent(Path.of("other.txt")))
         );
     }
     
@@ -444,8 +451,8 @@ public class FilesystemStorageTest {
         FilesystemStorage storage = new FilesystemStorage(temporaryDirectory);
         
         SubmissionBuilder builder = new SubmissionBuilder("random-author");
-        builder.addFile(Path.of("test.txt"), "some content\n");
-        builder.addFile(Path.of("dir/test.txt"), "other content\n");
+        builder.addUtf8File(Path.of("test.txt"), "some content\n");
+        builder.addUtf8File(Path.of("dir/test.txt"), "other content\n");
         
         assertDoesNotThrow(
             () -> storage.submitNewVersion(new SubmissionTarget("course", "Homework01", "Group01"), builder.build()));

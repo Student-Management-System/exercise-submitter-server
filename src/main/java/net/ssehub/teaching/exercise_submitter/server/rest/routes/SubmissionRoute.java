@@ -1,8 +1,8 @@
 package net.ssehub.teaching.exercise_submitter.server.rest.routes;
 
-import java.util.HashMap;
+import java.util.Base64;
+import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -26,6 +26,7 @@ import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.Response.Status;
 import net.ssehub.teaching.exercise_submitter.server.auth.AuthManager;
+import net.ssehub.teaching.exercise_submitter.server.rest.dto.FileDto;
 import net.ssehub.teaching.exercise_submitter.server.rest.dto.SubmissionResultDto;
 import net.ssehub.teaching.exercise_submitter.server.rest.dto.VersionDto;
 import net.ssehub.teaching.exercise_submitter.server.storage.ISubmissionStorage;
@@ -107,7 +108,7 @@ public class SubmissionRoute {
                     @Content(
                         schema = @Schema(implementation = SubmissionResultDto.class),
                         examples = {
-                            @ExampleObject(value = "{\"accepted\": true}")
+                            @ExampleObject(value = "{\"accepted\": true, \"messages\": []}")
                         })
                 }),
             @ApiResponse(
@@ -117,7 +118,7 @@ public class SubmissionRoute {
                     @Content(
                         schema = @Schema(implementation = SubmissionResultDto.class),
                         examples = {
-                            @ExampleObject(value = "{\"accepted\": false}")
+                            @ExampleObject(value = "{\"accepted\": false, \"messages\": []}")
                         })
                 }),
             @ApiResponse(responseCode = "400", description = "Input data malformed or invalid"),
@@ -137,11 +138,7 @@ public class SubmissionRoute {
             @PathParam("course") String course,
             @PathParam("assignment") String assignmentName,
             @PathParam("group") String groupName,
-            @RequestBody(description = "Map of relative file paths (keys) and file content (values)", content = {
-                @Content(schema = @Schema(type = "object"), examples = {
-                    @ExampleObject(value = "{\"Main.java\": \"file content...\", \"dir/Util.java\": \"content\"}")
-                })
-            }) Map<String, String> files,
+            @RequestBody(description = "The files of this submission") List<FileDto> files,
             @HeaderParam("Authorization") @Parameter(hidden = true) String authHeader)
     
             throws NoSuchTargetException, StorageException, UnauthorizedException {
@@ -154,8 +151,9 @@ public class SubmissionRoute {
             authManager.checkSubmissionAllowed(user, target);
             
             SubmissionBuilder builder = new SubmissionBuilder(user);
-            for (Map.Entry<String, String> file : files.entrySet()) {
-                builder.addFile(java.nio.file.Path.of(file.getKey()), file.getValue());
+            for (FileDto file : files) {
+                builder.addFile(java.nio.file.Path.of(file.getPath()),
+                        Base64.getDecoder().decode(file.getContent()));
             }
             
             SubmissionResultDto result = submissionManager.submit(target, builder.build());
@@ -239,16 +237,13 @@ public class SubmissionRoute {
      * @param groupName The name of the group to retrieve the latest submission of.
      * @param authHeader The JWT token to authenticate the user.
      * 
-     * @return A HTTP response with a {@link SubmissionDto} as data.
+     * @return A HTTP response with a list of {@link FileDto} as data.
      */
     @Operation(
         description = "Retrieves the latest submission of the given assignment and group",
         responses = {
             @ApiResponse(responseCode = "200", description = "Submission is returned", content = {
-                @Content(schema = @Schema(type = "object"), examples = {
-                    @ExampleObject(value = "{\"Main.java\": \"file content...\", \"dir/Util.java\": \"content\"}")
-                })
-            }),
+                @Content(array = @ArraySchema(schema = @Schema(implementation = FileDto.class)))}),
             @ApiResponse(responseCode = "403", description = "User is not authorized to retrieve a submission"),
             @ApiResponse(responseCode = "404",
                 description = "Assignment or group does not exist, or there is no version to retrieve"),
@@ -282,16 +277,13 @@ public class SubmissionRoute {
      * @param timestamp The Unix timestamp identifying the version.
      * @param authHeader The JWT token to authenticate the user.
      * 
-     * @return A HTTP response with a {@link SubmissionDto} as data.
+     * @return A HTTP response with a list of {@link FileDto} as data.
      */
     @Operation(
         description = "Retrieves the specified submission of the given assignment and group",
         responses = {
             @ApiResponse(responseCode = "200", description = "Submission is returned", content = {
-                @Content(schema = @Schema(type = "object"), examples = {
-                    @ExampleObject(value = "{\"Main.java\": \"file content...\", \"dir/Util.java\": \"content\"}")
-                })
-            }),
+                @Content(array = @ArraySchema(schema = @Schema(implementation = FileDto.class)))}),
             @ApiResponse(responseCode = "403", description = "User is not authorized to retrieve a submission"),
             @ApiResponse(responseCode = "404",
                 description = "Assignment or group does not exist, or the specified version does not exist"),
@@ -335,7 +327,7 @@ public class SubmissionRoute {
      * @param versionSelector A callback function to decide which version to use. The given list always has at least one
      *      item. Return <code>null</code> to indicate that the wanted version is not available.
      *      
-     * @return A HTTP response with a {@link SubmissionDto} as data.
+     * @return A HTTP response with a list of {@link FileDto} as data.
      */
     private Response getSubmission(String authHeader, SubmissionTarget target,
             Function<List<Version>, Version> versionSelector)
@@ -353,9 +345,12 @@ public class SubmissionRoute {
             if (selectedVersion != null) {
                 Submission submission = storage.getSubmission(target, selectedVersion);
                 
-                Map<String, String> files = new HashMap<>(submission.getNumFiles());
-                for (java.nio.file.Path file : submission.getFilepaths()) {
-                    files.put(file.toString().replace('\\', '/'), submission.getFileContent(file));
+                List<FileDto> files = new LinkedList<>();
+                
+                for (java.nio.file.Path filepath : submission.getFilepaths()) {
+                    files.add(new FileDto(
+                            filepath.toString().replace('\\', '/'),
+                            submission.getFileContent(filepath)));
                 }
                 
                 response = Response.ok(files).build();

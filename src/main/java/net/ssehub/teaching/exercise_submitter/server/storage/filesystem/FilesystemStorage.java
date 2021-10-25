@@ -2,7 +2,6 @@ package net.ssehub.teaching.exercise_submitter.server.storage.filesystem;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Instant;
@@ -198,7 +197,7 @@ public class FilesystemStorage implements ISubmissionStorage {
                 .filter(Files::isRegularFile)
                 .forEach(file -> {
                     try {
-                        builder.addFile(versionDir.relativize(file), Files.readString(file, StandardCharsets.UTF_8));
+                        builder.addFile(versionDir.relativize(file), Files.readAllBytes(file));
                     } catch (IOException e) {
                         throw new UncheckedIOException(e);
                     }

@@ -1,14 +1,18 @@
 package net.ssehub.teaching.exercise_submitter.server.rest.routes;
 
 import static org.junit.jupiter.api.Assertions.assertAll;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.Arrays;
+import java.util.Base64;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -23,6 +27,7 @@ import jakarta.ws.rs.core.Response;
 import net.ssehub.studentmgmt.backend_api.ApiException;
 import net.ssehub.teaching.exercise_submitter.server.auth.PermissiveAuthManager;
 import net.ssehub.teaching.exercise_submitter.server.rest.dto.CheckMessageDto;
+import net.ssehub.teaching.exercise_submitter.server.rest.dto.FileDto;
 import net.ssehub.teaching.exercise_submitter.server.rest.dto.SubmissionResultDto;
 import net.ssehub.teaching.exercise_submitter.server.storage.EmptyStorage;
 import net.ssehub.teaching.exercise_submitter.server.storage.NoSuchTargetException;
@@ -49,7 +54,7 @@ public class SubmissionRouteIT extends AbstractRestTest {
             startServer();
             Response response = target.path("/submission/foo-wise2122/Homework01/Group01")
                     .request()
-                    .post(Entity.entity(Map.of(), MediaType.APPLICATION_JSON));
+                    .post(Entity.entity(Arrays.asList(), MediaType.APPLICATION_JSON));
             
             assertAll(
                 () -> assertEquals(403, response.getStatus()),
@@ -63,7 +68,7 @@ public class SubmissionRouteIT extends AbstractRestTest {
             Response response = target.path("/submission/foo-wise2122/Homework01/Group01")
                     .request()
                     .header("Authorization", JWT_TOKEN)
-                    .post(Entity.entity(Map.of("../test.txt", "some content\n"), MediaType.APPLICATION_JSON));
+                    .post(Entity.entity(Arrays.asList(new FileDto("../test.txt", "some content\n")), MediaType.APPLICATION_JSON));
             
             assertAll(
                 () -> assertEquals(400, response.getStatus()),
@@ -85,7 +90,7 @@ public class SubmissionRouteIT extends AbstractRestTest {
             Response response = target.path("/submission/foo-wise2122/Homework01/Group01")
                     .request()
                     .header("Authorization", JWT_TOKEN)
-                    .post(Entity.entity(Map.of("test.txt", "some content\n"), MediaType.APPLICATION_JSON));
+                    .post(Entity.entity(Arrays.asList(new FileDto("test.txt", "some content\n")), MediaType.APPLICATION_JSON));
             
             assertAll(
                 () -> assertEquals(403, response.getStatus()),
@@ -108,7 +113,7 @@ public class SubmissionRouteIT extends AbstractRestTest {
             Response response = target.path("/submission/foo-wise2122/Homework01/Group01")
                     .request()
                     .header("Authorization", JWT_TOKEN)
-                    .post(Entity.entity(Map.of("test.txt", "some content\n"), MediaType.APPLICATION_JSON));
+                    .post(Entity.entity(Arrays.asList(new FileDto("test.txt", "some content\n")), MediaType.APPLICATION_JSON));
             
             assertAll(
                 () -> assertEquals(403, response.getStatus()),
@@ -130,7 +135,7 @@ public class SubmissionRouteIT extends AbstractRestTest {
             Response response = target.path("/submission/foo-wise2122/Homework01/Group01")
                     .request()
                     .header("Authorization", JWT_TOKEN)
-                    .post(Entity.entity(Map.of("test.txt", "some content\n"), MediaType.APPLICATION_JSON));
+                    .post(Entity.entity(Arrays.asList(new FileDto("test.txt", "some content\n")), MediaType.APPLICATION_JSON));
             
             assertAll(
                 () -> assertEquals(404, response.getStatus()),
@@ -153,7 +158,7 @@ public class SubmissionRouteIT extends AbstractRestTest {
             Response response = target.path("/submission/foo-wise2122/Homework01/Group01")
                     .request()
                     .header("Authorization", JWT_TOKEN)
-                    .post(Entity.entity(Map.of("test.txt", "some content\n"), MediaType.APPLICATION_JSON));
+                    .post(Entity.entity(Arrays.asList(new FileDto("test.txt", "some content\n")), MediaType.APPLICATION_JSON));
             
             assertAll(
                 () -> assertEquals(500, response.getStatus()),
@@ -177,14 +182,15 @@ public class SubmissionRouteIT extends AbstractRestTest {
             Response response = target.path("/submission/foo-wise2122/Homework01/Group01")
                     .request()
                     .header("Authorization", JWT_TOKEN)
-                    .post(Entity.entity(Map.of("test.txt", "some content\n"), MediaType.APPLICATION_JSON));
+                    .post(Entity.entity(Arrays.asList(new FileDto("test.txt", "some content\n")), MediaType.APPLICATION_JSON));
             
             SubmissionResultDto dto = response.readEntity(SubmissionResultDto.class);
             
             assertAll(
                 () -> assertEquals(201, response.getStatus()),
                 () -> assertEquals(1, result.get().getNumFiles()),
-                () -> assertEquals("some content\n", result.get().getFileContent(Path.of("test.txt"))),
+                () -> assertArrayEquals("some content\n".getBytes(StandardCharsets.UTF_8),
+                        result.get().getFileContent(Path.of("test.txt"))),
                 () -> assertTrue(dto.getAccepted())
             );
         }
@@ -205,7 +211,7 @@ public class SubmissionRouteIT extends AbstractRestTest {
             Response response = target.path("/submission/foo-wise2122/Homework01/Group01")
                     .request()
                     .header("Authorization", JWT_TOKEN)
-                    .post(Entity.entity(Map.of("test.txt", "some content\n"), MediaType.APPLICATION_JSON));
+                    .post(Entity.entity(Arrays.asList(new FileDto("test.txt", "some content\n")), MediaType.APPLICATION_JSON));
             
 
             SubmissionResultDto result = response.readEntity(SubmissionResultDto.class);
@@ -234,7 +240,7 @@ public class SubmissionRouteIT extends AbstractRestTest {
             Response response = target.path("/submission/foo-wise2122/Homework01/Group01")
                     .request()
                     .header("Authorization", JWT_TOKEN)
-                    .post(Entity.entity(Map.of("test.txt", "some content\n"), MediaType.APPLICATION_JSON));
+                    .post(Entity.entity(Arrays.asList(new FileDto("test.txt", "some content\n")), MediaType.APPLICATION_JSON));
             
             SubmissionResultDto dto = response.readEntity(SubmissionResultDto.class);
             
@@ -550,7 +556,7 @@ public class SubmissionRouteIT extends AbstractRestTest {
                     }
                     
                     SubmissionBuilder builder = new SubmissionBuilder(version.getAuthor());
-                    builder.addFile(Path.of("dir/test.txt"), "Some content.\n");
+                    builder.addUtf8File(Path.of("dir/test.txt"), "Some content.\n");
                     
                     return builder.build();
                 }
@@ -561,11 +567,17 @@ public class SubmissionRouteIT extends AbstractRestTest {
                     .request()
                     .header("Authorization", JWT_TOKEN)
                     .get();
-            Map<?, ?> result = response.readEntity(Map.class);
+            
+            @SuppressWarnings("unchecked")
+            List<Map<?, ?>> files = response.readEntity(List.class);
             
             assertAll(
                 () -> assertEquals(200, response.getStatus()),
-                () -> assertEquals(Map.of("dir/test.txt", "Some content.\n"), result)
+                () -> assertEquals(1, files.size()),
+                () -> assertEquals("dir/test.txt", files.get(0).get("path")),
+                () -> assertEquals(
+                        Base64.getEncoder().encodeToString("Some content.\n".getBytes(StandardCharsets.UTF_8)),
+                        files.get(0).get("content"))
             );
         }
         
@@ -577,7 +589,7 @@ public class SubmissionRouteIT extends AbstractRestTest {
                         throws NoSuchTargetException, StorageException {
                     return Arrays.asList(
                             new Version("student123", Instant.now()),
-                            new Version("student321", Instant.now())
+                            new Version("student321", Instant.now().minus(5, ChronoUnit.SECONDS))
                     );
                 }
                 
@@ -586,7 +598,7 @@ public class SubmissionRouteIT extends AbstractRestTest {
                         throws NoSuchTargetException, StorageException {
                     
                     SubmissionBuilder builder = new SubmissionBuilder(version.getAuthor());
-                    builder.addFile(Path.of("author.txt"), version.getAuthor());
+                    builder.addUtf8File(Path.of("author.txt"), version.getAuthor());
                     return builder.build();
                 }
             });
@@ -596,11 +608,17 @@ public class SubmissionRouteIT extends AbstractRestTest {
                     .request()
                     .header("Authorization", JWT_TOKEN)
                     .get();
-            Map<?, ?> result = response.readEntity(Map.class);
+            
+            @SuppressWarnings("unchecked")
+            List<Map<?, ?>> files = response.readEntity(List.class);
             
             assertAll(
                 () -> assertEquals(200, response.getStatus()),
-                () -> assertEquals("student123", result.get("author.txt"))
+                () -> assertEquals(1, files.size()),
+                () -> assertEquals("author.txt", files.get(0).get("path")),
+                () -> assertEquals(
+                        Base64.getEncoder().encodeToString("student123".getBytes(StandardCharsets.UTF_8)),
+                        files.get(0).get("content"))
             );
         }
         
@@ -658,7 +676,7 @@ public class SubmissionRouteIT extends AbstractRestTest {
                 public Submission getSubmission(SubmissionTarget target, Version version)
                         throws NoSuchTargetException, StorageException {
                     SubmissionBuilder builder = new SubmissionBuilder(version.getAuthor());
-                    builder.addFile(Path.of("author.txt"), version.getAuthor());
+                    builder.addUtf8File(Path.of("author.txt"), version.getAuthor());
                     return builder.build();
                 }
             });
@@ -668,11 +686,17 @@ public class SubmissionRouteIT extends AbstractRestTest {
                     .request()
                     .header("Authorization", JWT_TOKEN)
                     .get();
-            Map<?, ?> result = response.readEntity(Map.class);
+            
+            @SuppressWarnings("unchecked")
+            List<Map<?, ?>> files = response.readEntity(List.class);
             
             assertAll(
                 () -> assertEquals(200, response.getStatus()),
-                () -> assertEquals("tommy", result.get("author.txt"))
+                () -> assertEquals(1, files.size()),
+                () -> assertEquals("author.txt", files.get(0).get("path")),
+                () -> assertEquals(
+                        Base64.getEncoder().encodeToString("tommy".getBytes(StandardCharsets.UTF_8)),
+                        files.get(0).get("content"))
             );
         }
         
@@ -695,7 +719,7 @@ public class SubmissionRouteIT extends AbstractRestTest {
                 public Submission getSubmission(SubmissionTarget target, Version version)
                         throws NoSuchTargetException, StorageException {
                     SubmissionBuilder builder = new SubmissionBuilder(version.getAuthor());
-                    builder.addFile(Path.of("author.txt"), version.getAuthor());
+                    builder.addUtf8File(Path.of("author.txt"), version.getAuthor());
                     return builder.build();
                 }
             });
@@ -705,11 +729,17 @@ public class SubmissionRouteIT extends AbstractRestTest {
                     .request()
                     .header("Authorization", JWT_TOKEN)
                     .get();
-            Map<?, ?> result = response.readEntity(Map.class);
+            
+            @SuppressWarnings("unchecked")
+            List<Map<?, ?>> files = response.readEntity(List.class);
             
             assertAll(
                 () -> assertEquals(200, response.getStatus()),
-                () -> assertEquals("max", result.get("author.txt"))
+                () -> assertEquals(1, files.size()),
+                () -> assertEquals("author.txt", files.get(0).get("path")),
+                () -> assertEquals(
+                        Base64.getEncoder().encodeToString("max".getBytes(StandardCharsets.UTF_8)),
+                        files.get(0).get("content"))
             );
         }
         

@@ -1,6 +1,7 @@
 package net.ssehub.teaching.exercise_submitter.server.storage;
 
 import static org.junit.jupiter.api.Assertions.assertAll;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -47,23 +48,24 @@ public class SubmissionTest {
     
     @Test
     public void singleFile() {
-        Map<Path, String> files = new HashMap<>();
-        files.put(Path.of("test.txt"), "some content\n");
+        Map<Path, byte[]> files = new HashMap<>();
+        files.put(Path.of("test.txt"), "some content\n".getBytes(StandardCharsets.UTF_8));
         Submission submission = new Submission("author", files);
         
         assertAll(
             () -> assertEquals(1, submission.getNumFiles()),
             () -> assertEquals(new HashSet<>(Arrays.asList(Path.of("test.txt"))), submission.getFilepaths()),
             () -> assertTrue(submission.containsFile(Path.of("test.txt"))),
-            () -> assertEquals("some content\n", submission.getFileContent(Path.of("test.txt")))
+            () -> assertArrayEquals("some content\n".getBytes(StandardCharsets.UTF_8),
+                    submission.getFileContent(Path.of("test.txt")))
         );
     }
     
     @Test
     public void multipleFile() {
-        Map<Path, String> files = new HashMap<>();
-        files.put(Path.of("test.txt"), "some content\n");
-        files.put(Path.of("dir/other.txt"), "other content\n");
+        Map<Path, byte[]> files = new HashMap<>();
+        files.put(Path.of("test.txt"), "some content\n".getBytes(StandardCharsets.UTF_8));
+        files.put(Path.of("dir/other.txt"), "other content\n".getBytes(StandardCharsets.UTF_8));
         Submission submission = new Submission("author", files);
         
         assertAll(
@@ -73,8 +75,10 @@ public class SubmissionTest {
             () -> assertTrue(submission.containsFile(Path.of("test.txt"))),
             () -> assertTrue(submission.containsFile(Path.of("dir/other.txt"))),
             () -> assertFalse(submission.containsFile(Path.of("other.txt"))),
-            () -> assertEquals("some content\n", submission.getFileContent(Path.of("test.txt"))),
-            () -> assertEquals("other content\n", submission.getFileContent(Path.of("dir/other.txt")))
+            () -> assertArrayEquals("some content\n".getBytes(StandardCharsets.UTF_8),
+                    submission.getFileContent(Path.of("test.txt"))),
+            () -> assertArrayEquals("other content\n".getBytes(StandardCharsets.UTF_8),
+                    submission.getFileContent(Path.of("dir/other.txt")))
         );
     }
     
@@ -108,8 +112,8 @@ public class SubmissionTest {
     
     @Test
     public void writeSingleFileSubmission() throws IOException {
-        Map<Path, String> files = new HashMap<>();
-        files.put(Path.of("test.txt"), "some content\n");
+        Map<Path, byte[]> files = new HashMap<>();
+        files.put(Path.of("test.txt"), "some content\n".getBytes(StandardCharsets.UTF_8));
         Submission submission = new Submission("author", files);
         
         temporaryDirectory = Files.createTempDirectory("SubmissionTest.writeSingleFileSubmission");
@@ -128,9 +132,9 @@ public class SubmissionTest {
     
     @Test
     public void writeMultipleFileSubmission() throws IOException {
-        Map<Path, String> files = new HashMap<>();
-        files.put(Path.of("test.txt"), "some content\n");
-        files.put(Path.of("other.txt"), "other content\n");
+        Map<Path, byte[]> files = new HashMap<>();
+        files.put(Path.of("test.txt"), "some content\n".getBytes(StandardCharsets.UTF_8));
+        files.put(Path.of("other.txt"), "other content\n".getBytes(StandardCharsets.UTF_8));
         Submission submission = new Submission("author", files);
         
         temporaryDirectory = Files.createTempDirectory("SubmissionTest.writeMultipleFileSubmission");
@@ -151,10 +155,10 @@ public class SubmissionTest {
     
     @Test
     public void writeMultipleFilesInDirectories() throws IOException {
-        Map<Path, String> files = new HashMap<>();
-        files.put(Path.of("dir1/test.txt"), "some content\n");
-        files.put(Path.of("dir1/other.txt"), "other content\n");
-        files.put(Path.of("dir2/subdir/other.txt"), "even different content\n");
+        Map<Path, byte[]> files = new HashMap<>();
+        files.put(Path.of("dir1/test.txt"), "some content\n".getBytes(StandardCharsets.UTF_8));
+        files.put(Path.of("dir1/other.txt"), "other content\n".getBytes(StandardCharsets.UTF_8));
+        files.put(Path.of("dir2/subdir/other.txt"), "even different content\n".getBytes(StandardCharsets.UTF_8));
         Submission submission = new Submission("author", files);
         
         temporaryDirectory = Files.createTempDirectory("SubmissionTest.writeMultipleFilesInDirectories");
@@ -181,8 +185,8 @@ public class SubmissionTest {
     
     @Test
     public void writeOverwritesExistingFile() throws IOException {
-        Map<Path, String> files = new HashMap<>();
-        files.put(Path.of("test.txt"), "some content\n");
+        Map<Path, byte[]> files = new HashMap<>();
+        files.put(Path.of("test.txt"), "some content\n".getBytes(StandardCharsets.UTF_8));
         Submission submission = new Submission("author", files);
         
         temporaryDirectory = Files.createTempDirectory("SubmissionTest.writeSingleFileSubmission");
@@ -197,6 +201,26 @@ public class SubmissionTest {
                         .collect(Collectors.toList())),
             () -> assertEquals("some content\n",
                     Files.readString(temporaryDirectory.resolve("test.txt"), StandardCharsets.UTF_8))
+        );
+    }
+    
+    @Test
+    public void writeBinaryFile() throws IOException {
+        Map<Path, byte[]> files = new HashMap<>();
+        files.put(Path.of("test.txt"), new byte[] {0x00, (byte) 0xE3, 0x45});
+        Submission submission = new Submission("author", files);
+        
+        temporaryDirectory = Files.createTempDirectory("SubmissionTest.writeBinaryFile");
+        
+        submission.writeToDirectory(temporaryDirectory);
+        
+        assertAll(
+            () -> assertEquals(Arrays.asList(Path.of("test.txt")),
+                        Files.list(temporaryDirectory)
+                        .map(p -> temporaryDirectory.relativize(p))
+                        .collect(Collectors.toList())),
+            () -> assertArrayEquals(new byte[] {0x00, (byte) 0xE3, 0x45},
+                    Files.readAllBytes(temporaryDirectory.resolve("test.txt")))
         );
     }
     
