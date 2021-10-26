@@ -66,11 +66,13 @@ public class NotificationRoute {
         Response response;
         
         try {
-            stuMgmtView.update(notification);
-            LOGGER.info(() -> "StuMgmtView updated");
-            
-            storage.createOrUpdateAssignmentsFromView(stuMgmtView);
-            LOGGER.info(() -> "Storage updated");
+            synchronized (SubmissionRoute.LOCK) {
+                stuMgmtView.update(notification);
+                LOGGER.info(() -> "StuMgmtView updated");
+                
+                storage.createOrUpdateAssignmentsFromView(stuMgmtView);
+                LOGGER.info(() -> "Storage updated");
+            }
             
             response = Response.ok().build();
             

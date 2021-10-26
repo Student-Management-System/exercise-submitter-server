@@ -134,8 +134,10 @@ public class ExerciseSubmitterServer {
         boolean success = false;
         while (!success) {
             try {
-                stuMgmtView.fullReload();
-                storage.createOrUpdateAssignmentsFromView(stuMgmtView);
+                synchronized (SubmissionRoute.LOCK) {
+                    stuMgmtView.fullReload();
+                    storage.createOrUpdateAssignmentsFromView(stuMgmtView);
+                }
                 success = true;
             } catch (StorageException | StuMgmtLoadingException e) {
                 LOGGER.log(Level.WARNING, "Failed to load intial student management system data; retrying...", e);

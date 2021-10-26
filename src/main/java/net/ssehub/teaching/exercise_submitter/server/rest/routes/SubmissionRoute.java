@@ -37,6 +37,7 @@ import net.ssehub.teaching.exercise_submitter.server.storage.Submission;
 import net.ssehub.teaching.exercise_submitter.server.storage.SubmissionBuilder;
 import net.ssehub.teaching.exercise_submitter.server.storage.SubmissionTarget;
 import net.ssehub.teaching.exercise_submitter.server.storage.Version;
+import net.ssehub.teaching.exercise_submitter.server.stu_mgmt.StuMgmtView;
 import net.ssehub.teaching.exercise_submitter.server.submission.SubmissionManager;
 import net.ssehub.teaching.exercise_submitter.server.submission.UnauthorizedException;
 
@@ -48,6 +49,12 @@ import net.ssehub.teaching.exercise_submitter.server.submission.UnauthorizedExce
 @Path("/submission")
 @Produces(MediaType.APPLICATION_JSON)
 public class SubmissionRoute {
+    
+    /**
+     * Global lock to ensure that operations don't interfere with each other. Must be acquired by routes that access
+     * the {@link StuMgmtView} or {@link ISubmissionStorage}.
+     */
+    public static final Object LOCK = new Object();
     
     private static final Logger LOGGER = Logger.getLogger(SubmissionRoute.class.getName());
     
@@ -154,15 +161,20 @@ public class SubmissionRoute {
         
         try {
             String user = authenticate(authHeader);
-            authManager.checkSubmissionAllowed(user, target);
             
-            SubmissionBuilder builder = new SubmissionBuilder(user);
-            for (FileDto file : files) {
-                builder.addFile(java.nio.file.Path.of(file.getPath()),
-                        Base64.getDecoder().decode(file.getContent()));
+            SubmissionResultDto result;
+            
+            synchronized (LOCK) {
+                authManager.checkSubmissionAllowed(user, target);
+                
+                SubmissionBuilder builder = new SubmissionBuilder(user);
+                for (FileDto file : files) {
+                    builder.addFile(java.nio.file.Path.of(file.getPath()),
+                            Base64.getDecoder().decode(file.getContent()));
+                }
+                
+                result = submissionManager.submit(target, builder.build());
             }
-            
-            SubmissionResultDto result = submissionManager.submit(target, builder.build());
             
             response = Response
                     .status(result.getAccepted() ? Status.CREATED : Status.OK)
@@ -221,9 +233,13 @@ public class SubmissionRoute {
         SubmissionTarget target = new SubmissionTarget(course, assignmentName, groupName);
         
         String user = authenticate(authHeader);
-        authManager.checkReplayAllowed(user, target);
         
-        List<Version> versions = storage.getVersions(target);
+        List<Version> versions;
+        
+        synchronized (LOCK) {
+            authManager.checkReplayAllowed(user, target);
+            versions = storage.getVersions(target);
+        }
         
         List<VersionDto> dtos = versions.stream()
             .map(version -> {
@@ -353,47 +369,50 @@ public class SubmissionRoute {
             throws NoSuchTargetException, StorageException, UnauthorizedException {
         
         String user = authenticate(authHeader);
-        authManager.checkReplayAllowed(user, target);
         
         Response response;
-        List<Version> versions = storage.getVersions(target);
-        if (!versions.isEmpty()) {
+        synchronized (LOCK) {
+            authManager.checkReplayAllowed(user, target);
             
-            Version selectedVersion = versionSelector.apply(versions);
-            if (selectedVersion != null) {
-                Submission submission = storage.getSubmission(target, selectedVersion);
+            List<Version> versions = storage.getVersions(target);
+            if (!versions.isEmpty()) {
                 
-                List<FileDto> files = new LinkedList<>();
-                
-                for (java.nio.file.Path filepath : submission.getFilepaths()) {
-                    files.add(new FileDto(
-                            filepath.toString().replace('\\', '/'),
-                            submission.getFileContent(filepath)));
+                Version selectedVersion = versionSelector.apply(versions);
+                if (selectedVersion != null) {
+                    Submission submission = storage.getSubmission(target, selectedVersion);
+                    
+                    List<FileDto> files = new LinkedList<>();
+                    
+                    for (java.nio.file.Path filepath : submission.getFilepaths()) {
+                        files.add(new FileDto(
+                                filepath.toString().replace('\\', '/'),
+                                submission.getFileContent(filepath)));
+                    }
+                    
+                    LOGGER.info(() -> "Returning submission version "
+                            + selectedVersion.getCreationTime().getEpochSecond() + " by " + submission.getAuthor());
+                    
+                    response = Response.ok(files).build();
+                    
+                } else {
+                    LOGGER.info(() -> "Requested version does not exist");
+                    
+                    response = Response
+                            .status(Status.NOT_FOUND.getStatusCode(), "Selected version not found for group "
+                                    + target.getGroupName() + " in assignment " + target.getAssignmentName()
+                                    + " in course " + target.getCourse())
+                            .build();
                 }
                 
-                LOGGER.info(() -> "Returning submission version " + selectedVersion.getCreationTime().getEpochSecond()
-                        + " by " + submission.getAuthor());
-                
-                response = Response.ok(files).build();
-                
             } else {
-                LOGGER.info(() -> "Requested version does not exist");
+                LOGGER.info(() -> "No version yet submitted");
                 
                 response = Response
-                        .status(Status.NOT_FOUND.getStatusCode(), "Selected version not found for group "
+                        .status(Status.NOT_FOUND.getStatusCode(), "No versions have been submitted for group "
                                 + target.getGroupName() + " in assignment " + target.getAssignmentName()
                                 + " in course " + target.getCourse())
                         .build();
             }
-            
-        } else {
-            LOGGER.info(() -> "No version yet submitted");
-            
-            response = Response
-                    .status(Status.NOT_FOUND.getStatusCode(), "No versions have been submitted for group "
-                            + target.getGroupName() + " in assignment " + target.getAssignmentName()
-                            + " in course " + target.getCourse())
-                    .build();
         }
         
         return response;
