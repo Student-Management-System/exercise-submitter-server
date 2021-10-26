@@ -206,7 +206,7 @@ public class StuMgmtView {
      * @param courseId The ID of the course to re-load.
      */
     private void updateCourse(String courseId) {
-        LOGGER.fine(() -> "Re-loading course " + courseId);
+        LOGGER.info(() -> "Re-loading course " + courseId);
         Course course = createCourse(courseId);
         
         CourseParticipantsApi participantsApi = new CourseParticipantsApi(mgmtClient);
