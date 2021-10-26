@@ -28,7 +28,7 @@ import jakarta.ws.rs.core.Response;
 import net.ssehub.studentmgmt.docker.StuMgmtDocker;
 import net.ssehub.studentmgmt.docker.StuMgmtDocker.AssignmentState;
 import net.ssehub.studentmgmt.docker.StuMgmtDocker.Collaboration;
-import net.ssehub.teaching.exercise_submitter.server.rest.ExerciseSubmissionServer;
+import net.ssehub.teaching.exercise_submitter.server.rest.ExerciseSubmitterServer;
 import net.ssehub.teaching.exercise_submitter.server.rest.dto.FileDto;
 import net.ssehub.teaching.exercise_submitter.server.rest.dto.SubmissionResultDto;
 import net.ssehub.teaching.exercise_submitter.server.rest.routes.AbstractRestTest;
@@ -77,7 +77,7 @@ public class ScenarioIT {
         
         storagePath = Files.createTempDirectory("exercise-submitter-server-scenario-it");
         
-        server = ExerciseSubmissionServer.startDefaultServer(port, storagePath.toString(),
+        server = ExerciseSubmitterServer.startDefaultServer(port, storagePath.toString(),
                 docker.getAuthUrl(), docker.getStuMgmtUrl(), "submission-system", "123456");
     }
     

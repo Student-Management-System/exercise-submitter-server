@@ -47,9 +47,9 @@ import net.ssehub.teaching.exercise_submitter.server.submission.checks.JavacChec
     )
 )
 @SecurityScheme(name = "bearerAuth", type = SecuritySchemeType.HTTP, scheme = "bearer", bearerFormat = "JWT")
-public class ExerciseSubmissionServer {
+public class ExerciseSubmitterServer {
 
-    private static final Logger LOGGER = Logger.getLogger(ExerciseSubmissionServer.class.getName());
+    private static final Logger LOGGER = Logger.getLogger(ExerciseSubmitterServer.class.getName());
     
     /**
      * Creates and starts the server.

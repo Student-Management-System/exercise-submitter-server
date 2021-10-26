@@ -14,7 +14,7 @@ import jakarta.ws.rs.client.ClientBuilder;
 import jakarta.ws.rs.client.WebTarget;
 import net.ssehub.teaching.exercise_submitter.server.auth.AuthManager;
 import net.ssehub.teaching.exercise_submitter.server.auth.PermissiveAuthManager;
-import net.ssehub.teaching.exercise_submitter.server.rest.ExerciseSubmissionServer;
+import net.ssehub.teaching.exercise_submitter.server.rest.ExerciseSubmitterServer;
 import net.ssehub.teaching.exercise_submitter.server.storage.EmptyStorage;
 import net.ssehub.teaching.exercise_submitter.server.storage.ISubmissionStorage;
 import net.ssehub.teaching.exercise_submitter.server.stu_mgmt.EmptyStuMgmtView;
@@ -68,7 +68,7 @@ public abstract class AbstractRestTest {
     
     protected void startServer() {
         assertDoesNotThrow(() -> stuMgmtView.fullReload());
-        server = ExerciseSubmissionServer.startServer(uri, submissionManager, storage, authManager, stuMgmtView);
+        server = ExerciseSubmitterServer.startServer(uri, submissionManager, storage, authManager, stuMgmtView);
     }
     
     @AfterEach

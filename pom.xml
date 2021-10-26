@@ -26,7 +26,7 @@
 
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-		<mainclass>net.ssehub.teaching.exercise_submitter.server.rest.ExerciseSubmissionServer</mainclass>
+		<mainclass>net.ssehub.teaching.exercise_submitter.server.rest.ExerciseSubmitterServer</mainclass>
 	</properties>
 
 	<build>
