@@ -1,11 +1,10 @@
 package net.ssehub.teaching.exercise_submitter.server.rest.routes;
 
-import java.util.Map;
 import java.util.logging.Logger;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
-import io.swagger.v3.oas.annotations.media.ExampleObject;
+import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.Path;
@@ -35,11 +34,7 @@ public class HeartbeatRoute {
             @ApiResponse(
                 responseCode = "200",
                 description = "Server is running",
-                content = {
-                    @Content(examples = {
-                        @ExampleObject(value = "{\"status\": \"ok\"}")
-                    })
-                })
+                content = {@Content(schema = @Schema(implementation = StatusDto.class))})
         }
     )
     @GET
@@ -47,8 +42,41 @@ public class HeartbeatRoute {
         LOGGER.fine("Heartbeat request received");
         return Response
                 .ok()
-                .entity(Map.of("status", "ok"))
+                .entity(StatusDto.OK)
                 .build();
+    }
+    
+    /**
+     * Small wrapper class to return a status object.
+     */
+    public static class StatusDto {
+        
+        public static final StatusDto OK = new StatusDto().setStatus("ok");
+        
+        private String status;
+       
+        /**
+         * Returns the status.
+         * 
+         * @return The status.
+         */
+        @Schema(example = "ok")
+        public String getStatus() {
+            return status;
+        }
+        
+        /**
+         * Sets the status.
+         * 
+         * @param status The status.
+         * 
+         * @return this.
+         */
+        public StatusDto setStatus(String status) {
+            this.status = status;
+            return this;
+        }
+        
     }
     
 }
