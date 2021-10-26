@@ -1,10 +1,20 @@
 package net.ssehub.teaching.exercise_submitter.server.stu_mgmt;
 
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeFormatterBuilder;
+import java.time.format.DateTimeParseException;
+import java.time.temporal.ChronoField;
+import java.time.temporal.ChronoUnit;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
@@ -25,6 +35,7 @@ import net.ssehub.studentmgmt.backend_api.model.ParticipantDto.RoleEnum;
 import net.ssehub.studentmgmt.sparkyservice_api.api.AuthControllerApi;
 import net.ssehub.studentmgmt.sparkyservice_api.model.AuthenticationInfoDto;
 import net.ssehub.studentmgmt.sparkyservice_api.model.CredentialsDto;
+import net.ssehub.studentmgmt.sparkyservice_api.model.TokenDto;
 
 /**
  * A local view of the courses, users, groups, and assignment in the student management system.
@@ -35,6 +46,22 @@ public class StuMgmtView {
 
     private static final Logger LOGGER = Logger.getLogger(StuMgmtView.class.getName());
     
+    private static final DateTimeFormatter TOKEN_EXPIRATION_PARSER = new DateTimeFormatterBuilder()
+            .parseLenient()
+            .parseCaseInsensitive()
+            .appendValue(ChronoField.MONTH_OF_YEAR, 2)
+            .appendLiteral('/')
+            .appendValue(ChronoField.DAY_OF_MONTH, 2)
+            .appendLiteral('/')
+            .appendValue(ChronoField.YEAR, 2)
+            .appendLiteral(' ')
+            .appendValue(ChronoField.HOUR_OF_DAY, 2)
+            .appendLiteral(':')
+            .appendValue(ChronoField.MINUTE_OF_HOUR, 2)
+            .appendLiteral(':')
+            .appendValue(ChronoField.SECOND_OF_MINUTE, 2)
+            .toFormatter(Locale.ROOT);
+    
     private Map<String, Course> courses;
     
     private ApiClient mgmtClient;
@@ -44,6 +71,8 @@ public class StuMgmtView {
     private String username;
     
     private String password;
+    
+    private Instant currentTokenExpiration;
     
     /**
      * Creates a view on the given student management system. The view is initially empty, call {@link #fullReload()} to
@@ -75,16 +104,28 @@ public class StuMgmtView {
      * @throws StuMgmtLoadingException If authentication fails.
      */
     private void authenticateMgmtClient() throws StuMgmtLoadingException {
-        try {
-            LOGGER.info(() -> "Logging into " + authApi.getApiClient().getBasePath() + " with username " + username);
+        if (currentTokenExpiration == null
+                || currentTokenExpiration.isBefore(Instant.now().plus(1, ChronoUnit.HOURS))) {
             
-            AuthenticationInfoDto dto = authApi.authenticate(
-                    new CredentialsDto().username(username).password(password));
-            
-            mgmtClient.setAccessToken(dto.getToken().getToken());
-            
-        } catch (net.ssehub.studentmgmt.sparkyservice_api.ApiException e) {
-            throw new StuMgmtLoadingException("Failed to authenticate as " + username, e);
+            try {
+                LOGGER.info(() -> "Logging into " + authApi.getApiClient().getBasePath()
+                        + " with username " + username);
+                
+                AuthenticationInfoDto dto = authApi.authenticate(
+                        new CredentialsDto().username(username).password(password));
+                
+                TokenDto token = dto.getToken();
+                mgmtClient.setAccessToken(token.getToken());
+                
+                currentTokenExpiration = LocalDateTime.from(TOKEN_EXPIRATION_PARSER.parse(token.getExpiration()))
+                        .toInstant(ZoneOffset.UTC);
+                
+            } catch (net.ssehub.studentmgmt.sparkyservice_api.ApiException e) {
+                throw new StuMgmtLoadingException("Failed to authenticate as " + username, e);
+                
+            } catch (DateTimeParseException e) {
+                LOGGER.log(Level.WARNING, "Can't parse token expiration: " + e.getParsedString(), e);
+            }
         }
     }
     
