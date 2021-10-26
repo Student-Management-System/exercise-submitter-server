@@ -5,6 +5,8 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
 import net.ssehub.teaching.exercise_submitter.server.rest.dto.CheckMessageDto;
@@ -25,6 +27,8 @@ import net.ssehub.teaching.exercise_submitter.server.submission.checks.ResultMes
  *
  */
 public class SubmissionManager {
+    
+    private static final Logger LOGGER = Logger.getLogger(SubmissionManager.class.getName());
     
     private ISubmissionStorage storage;
     
@@ -82,8 +86,9 @@ public class SubmissionManager {
         List<ResultMessage> checkMessages = new LinkedList<>();
         boolean reject = false;
         
+        Path temporaryDirectory = null;
         try {
-            Path temporaryDirectory = Files.createTempDirectory("submission-check");
+            temporaryDirectory = Files.createTempDirectory("exercise-submission");
             submission.writeToDirectory(temporaryDirectory);
             
             for (Check check : rejectingChecks) {
@@ -107,8 +112,18 @@ public class SubmissionManager {
             
             
         } catch (IOException e) {
+            LOGGER.log(Level.WARNING, "Failed to create temporary submission directory", e);
             reject = true;
             checkMessages.add(new ResultMessage("hook", MessageType.ERROR, "An internal error occurred"));
+            
+        } finally {
+            if (temporaryDirectory != null) {
+                try {
+                    Files.delete(temporaryDirectory);
+                } catch (IOException e) {
+                    LOGGER.log(Level.WARNING, "Failed to delete temporary submission directory", e);
+                }
+            }
         }
         
         SubmissionResultDto result = new SubmissionResultDto();
@@ -117,6 +132,10 @@ public class SubmissionManager {
                 .sorted()
                 .map(CheckMessageDto::new)
                 .collect(Collectors.toList()));
+        
+        LOGGER.info(() -> "Submission to " + target + " " + (result.getAccepted() ? "accepted" : "rejected")
+                + "; messages: " + result.getMessages());
+        
         return result;
     }
     

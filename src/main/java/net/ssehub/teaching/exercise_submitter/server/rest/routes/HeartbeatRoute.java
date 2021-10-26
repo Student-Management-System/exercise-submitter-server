@@ -1,6 +1,7 @@
 package net.ssehub.teaching.exercise_submitter.server.rest.routes;
 
 import java.util.Map;
+import java.util.logging.Logger;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -21,6 +22,8 @@ import jakarta.ws.rs.core.Response;
 @Produces(MediaType.APPLICATION_JSON)
 public class HeartbeatRoute {
 
+    private static final Logger LOGGER = Logger.getLogger(HeartbeatRoute.class.getName());
+    
     /**
      * Returns <code>{"status":"ok"}</code>.
      * 
@@ -41,6 +44,7 @@ public class HeartbeatRoute {
     )
     @GET
     public Response heartbeat() {
+        LOGGER.fine("Heartbeat request received");
         return Response
                 .ok()
                 .entity(Map.of("status", "ok"))

@@ -15,7 +15,6 @@
  */
 package net.ssehub.teaching.exercise_submitter.server.submission.checks;
 
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.condition.EnabledIf;
 
 @EnabledIf("net.ssehub.teaching.exercise_submitter.server.submission.checks.InternalJavacCheck#isSupported")
@@ -24,11 +23,6 @@ public class InternalJavacCheckIT extends JavacCheckIT {
     @Override
     protected JavacCheck creatInstance() {
         return new InternalJavacCheck();
-    }
-    
-    @BeforeAll
-    public static void initLogger() {
-        LoggingSetup.setupStdoutLogging();
     }
 
 }

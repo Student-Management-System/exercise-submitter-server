@@ -387,9 +387,4 @@ public class CheckstyleCheckIT {
         );
     }
     
-    @BeforeAll
-    public static void initLogger() {
-        LoggingSetup.setupStdoutLogging();
-    }
-    
 }

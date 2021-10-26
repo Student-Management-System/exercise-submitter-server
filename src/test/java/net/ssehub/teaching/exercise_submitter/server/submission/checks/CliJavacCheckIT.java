@@ -21,7 +21,6 @@ import static org.junit.jupiter.api.Assertions.assertAll;
 
 import java.util.Arrays;
 
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -83,11 +82,6 @@ public class CliJavacCheckIT extends JavacCheckIT {
     @Override
     public void classpathMissingLibrary() {
         super.classpathMissingLibrary();
-    }
-    
-    @BeforeAll
-    public static void initLogger() {
-        LoggingSetup.setupStdoutLogging();
     }
     
 }

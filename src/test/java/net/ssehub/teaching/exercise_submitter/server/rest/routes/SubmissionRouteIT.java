@@ -51,7 +51,7 @@ public class SubmissionRouteIT extends AbstractRestTest {
         
         @Test
         public void noTokenUnauthorized() {
-            startServer();
+            startServer();  
             Response response = target.path("/submission/foo-wise2122/Homework01/Group01")
                     .request()
                     .post(Entity.entity(Arrays.asList(), MediaType.APPLICATION_JSON));

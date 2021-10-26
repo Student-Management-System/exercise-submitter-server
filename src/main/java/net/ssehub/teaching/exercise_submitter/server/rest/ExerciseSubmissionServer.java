@@ -4,6 +4,8 @@ import java.io.File;
 import java.io.IOException;
 import java.net.URI;
 import java.nio.file.Path;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import org.glassfish.grizzly.http.server.HttpServer;
 import org.glassfish.jersey.grizzly2.httpserver.GrizzlyHttpServerFactory;
@@ -18,6 +20,7 @@ import net.ssehub.studentmgmt.backend_api.ApiException;
 import net.ssehub.studentmgmt.sparkyservice_api.api.AuthControllerApi;
 import net.ssehub.studentmgmt.sparkyservice_api.model.CredentialsDto;
 import net.ssehub.teaching.exercise_submitter.server.auth.AuthManager;
+import net.ssehub.teaching.exercise_submitter.server.logging.LoggingSetup;
 import net.ssehub.teaching.exercise_submitter.server.rest.routes.HeartbeatRoute;
 import net.ssehub.teaching.exercise_submitter.server.rest.routes.NotificationRoute;
 import net.ssehub.teaching.exercise_submitter.server.rest.routes.SubmissionRoute;
@@ -49,6 +52,8 @@ import net.ssehub.teaching.exercise_submitter.server.submission.checks.JavacChec
 @SecurityScheme(name = "bearerAuth", type = SecuritySchemeType.HTTP, scheme = "bearer", bearerFormat = "JWT")
 public class ExerciseSubmissionServer {
 
+    private static final Logger LOGGER = Logger.getLogger(ExerciseSubmissionServer.class.getName());
+    
     /**
      * Creates and starts the server.
      * 
@@ -62,6 +67,7 @@ public class ExerciseSubmissionServer {
      */
     public static HttpServer startServer(String baseUri, SubmissionManager submissionManager,
             ISubmissionStorage storage, AuthManager authManager, StuMgmtView stuMgmtView) {
+        
         ResourceConfig config = new ResourceConfig()
                 .register(HeartbeatRoute.class)
                 .register(new SubmissionRoute(submissionManager, storage, authManager))
@@ -92,10 +98,13 @@ public class ExerciseSubmissionServer {
                 = new net.ssehub.studentmgmt.sparkyservice_api.ApiClient();
         authClient.setBasePath(authUrl);
         
+        LOGGER.config(() -> "Logging into " + authUrl + " with username " + user);
+        
         CredentialsDto credentials = new CredentialsDto().username(user).password(password);
         
         String token = new AuthControllerApi(authClient).authenticate(credentials).getToken().getToken();
         
+        LOGGER.config(() -> "Using authenticated student management client to " + mgmtUrl);
         mgmtClient.setAccessToken(token);
         return mgmtClient;
     }
@@ -147,27 +156,27 @@ public class ExerciseSubmissionServer {
             throws IOException, ApiException, net.ssehub.studentmgmt.sparkyservice_api.ApiException {
     // checkstyle: resume parameter number check
         
-        String url = "http://localhost:" + port + "/";
+        String url = "http://0.0.0.0:" + port + "/";
         
+        LOGGER.config(() -> "Using storage directory " + storagePath);
         ISubmissionStorage storage = new FilesystemStorage(Path.of(storagePath));
         SubmissionManager submissionManager = new SubmissionManager(storage);
         createChecks(submissionManager);
         
-        System.out.println("Logging into stu-mgmt system as " + username);
         StuMgmtView stuMgmtView = new StuMgmtView(
                 createAuthenticatedMgmtApiClient(authSystemUrl, stuMgmtUrl, username, password));
         AuthManager authManager = new AuthManager(authSystemUrl, stuMgmtView);
-        
+
+        LOGGER.config("Starting HTTP server on port " + port);
         HttpServer server = startServer(url, submissionManager, storage, authManager, stuMgmtView);
         
         try {
             stuMgmtView.update(null); // TODO: trigger an update after the notifications are listening
             storage.createOrUpdateAssignmentsFromView(stuMgmtView);
         } catch (StorageException | ApiException e) {
-            e.printStackTrace();
+            LOGGER.log(Level.WARNING, "Failed to load intial student management system data", e);
         }
         
-        System.out.println("Server listens at " + url);
         return server;
         
     }
@@ -181,8 +190,6 @@ public class ExerciseSubmissionServer {
      *          <li>Path to storage directory</li>
      *          <li>URL to auth system (Sparky) API</li>
      *          <li>URL to student management system API</li>
-     *          <li>The username to authenticate as</li>
-     *          <li>The password to authenticate with</li>
      *      </ol>
      * 
      * @throws IOException If reading user input fails.
@@ -192,10 +199,15 @@ public class ExerciseSubmissionServer {
     public static void main(String[] args)
             throws IOException, ApiException, net.ssehub.studentmgmt.sparkyservice_api.ApiException {
         
+        LoggingSetup.init();
+//        LoggingSetup.setLevel("INFO");
+        LOGGER.info("Starting");
+        
         HttpServer server = startDefaultServer(Integer.parseInt(args[0]), args[1], args[2], args[3], 
                 System.getenv("SUBMISSION_SERVER_MGMT_USER"), System.getenv("SUBMISSION_SERVER_MGMT_PW"));
         
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+            LOGGER.info("Shutting down HTTP server");
             server.shutdown();
         }));
     }

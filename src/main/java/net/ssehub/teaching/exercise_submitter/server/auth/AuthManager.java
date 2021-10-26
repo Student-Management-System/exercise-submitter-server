@@ -1,5 +1,7 @@
 package net.ssehub.teaching.exercise_submitter.server.auth;
 
+import java.util.logging.Logger;
+
 import net.ssehub.studentmgmt.backend_api.model.ParticipantDto.RoleEnum;
 import net.ssehub.studentmgmt.sparkyservice_api.ApiClient;
 import net.ssehub.studentmgmt.sparkyservice_api.ApiException;
@@ -19,6 +21,8 @@ import net.ssehub.teaching.exercise_submitter.server.submission.UnauthorizedExce
  */
 public class AuthManager {
 
+    private static final Logger LOGGER = Logger.getLogger(AuthManager.class.getName());
+    
     private String authApiUrl;
     
     private StuMgmtView stuMgmtView;
@@ -32,6 +36,8 @@ public class AuthManager {
     public AuthManager(String authApiUrl, StuMgmtView stuMgmtView) {
         this.authApiUrl = authApiUrl;
         this.stuMgmtView = stuMgmtView;
+        
+        LOGGER.info(() -> "Using " + authApiUrl + " for authentication");
     }
     
     /**
@@ -55,7 +61,8 @@ public class AuthManager {
         } catch (ApiException e) {
             throw new UnauthorizedException(e);
         }
-        
+
+        LOGGER.info(() -> "Authenticated as " + dto.getUser().getUsername() + " (" + dto.getUser().getFullName() + ")");
         return dto.getUser().getUsername(); 
     }
     
@@ -97,6 +104,9 @@ public class AuthManager {
             }
             
             if (!groupAllowed) {
+                LOGGER.info(() -> participant.getName() + " not allowed to access group " + targetGroupName + " in "
+                        + assignment.getName());
+                
                 throw new UnauthorizedException();
             }
         }
@@ -121,6 +131,8 @@ public class AuthManager {
                 .orElseThrow(() -> new UnauthorizedException());
         
         if (!assignment.canSubmit(participant)) {
+            LOGGER.info(() -> participant.getName() +  " not authorized to submit to " + assignment.getName()
+                    + " in " + course.getId());
             throw new UnauthorizedException();
         }
         
@@ -146,6 +158,8 @@ public class AuthManager {
                 .orElseThrow(() -> new UnauthorizedException());
         
         if (!assignment.canReplay(participant)) {
+            LOGGER.info(() -> participant.getName() +  " not authorized to replay from " + assignment.getName()
+                    + " in " + course.getId());
             throw new UnauthorizedException();
         }
         

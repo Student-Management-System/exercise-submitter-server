@@ -5,6 +5,8 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
+import java.util.logging.Logger;
+import java.util.stream.Collectors;
 
 import net.ssehub.studentmgmt.backend_api.ApiClient;
 import net.ssehub.studentmgmt.backend_api.ApiException;
@@ -28,6 +30,8 @@ import net.ssehub.studentmgmt.backend_api.model.ParticipantDto.RoleEnum;
  */
 public class StuMgmtView {
 
+    private static final Logger LOGGER = Logger.getLogger(StuMgmtView.class.getName());
+    
     private Map<String, Course> courses;
     
     private ApiClient mgmtClient;
@@ -120,25 +124,42 @@ public class StuMgmtView {
      * Initializes this view.
      */
     protected void init() throws ApiException {
+        LOGGER.info(() -> "Completely reloading information");
+        
         CourseApi courseApi = new CourseApi(mgmtClient);
         CourseParticipantsApi participantsApi = new CourseParticipantsApi(mgmtClient);
         AssignmentApi assignmentApi = new AssignmentApi(mgmtClient);
         AssignmentRegistrationApi groupApi = new AssignmentRegistrationApi(mgmtClient);
         
         for (CourseDto cDto : courseApi.getCourses(null, null, null, null, null)) {
+            LOGGER.fine(() -> "Loading course " + cDto.getId());
             Course course = createCourse(cDto.getId());
             
             for (ParticipantDto pDto
                     : participantsApi.getUsersOfCourse(course.getId(), null, null, null, null, null)) {
+            
+                LOGGER.fine(() -> "Creating " + pDto.getRole() + " " + pDto.getUsername()
+                        + " in course " + cDto.getId());
                 
                 createParticipant(course, pDto.getUsername(), pDto.getRole());
             }
             
             for (AssignmentDto aDto : assignmentApi.getAssignmentsOfCourse(course.getId())) {
+                
+                LOGGER.fine(() -> "Creating " + aDto.getCollaboration() + "-assignment " + aDto.getName()
+                        + "(" + aDto.getStartDate() + ") in course " + cDto.getId());
+                
                 Assignment assignment = createAssignment(
                         course, aDto.getName(), aDto.getState(), aDto.getCollaboration());
                 
                 for (GroupDto gDto : groupApi.getRegisteredGroups(course.getId(), aDto.getId(), null, null, null)) {
+                    
+                    LOGGER.fine(() -> "Creating group " + gDto.getName() + " with members "
+                                + gDto.getMembers().stream()
+                                    .map(ParticipantDto::getUsername)
+                                    .collect(Collectors.joining(", "))
+                                + " in assignment " + aDto.getName() + " in course " + cDto.getId());
+                    
                     createGroup(assignment, gDto.getName(), gDto.getMembers().stream()
                             .map(ParticipantDto::getUsername)
                             .map(course::getParticipant)
@@ -148,6 +169,8 @@ public class StuMgmtView {
                 }
             }
         }
+        
+        LOGGER.info(() -> "Loaded " + courses.size() + " courses");
     }
     
     /**

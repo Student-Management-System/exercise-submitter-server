@@ -4,6 +4,7 @@ import java.util.Base64;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.function.Function;
+import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
 import io.swagger.v3.oas.annotations.Operation;
@@ -48,6 +49,8 @@ import net.ssehub.teaching.exercise_submitter.server.submission.UnauthorizedExce
 @Produces(MediaType.APPLICATION_JSON)
 public class SubmissionRoute {
     
+    private static final Logger LOGGER = Logger.getLogger(SubmissionRoute.class.getName());
+    
     private SubmissionManager submissionManager;
     
     private ISubmissionStorage storage;
@@ -79,6 +82,7 @@ public class SubmissionRoute {
      */
     private String authenticate(String authorizationHeader) throws UnauthorizedException {
         if (authorizationHeader == null || !authorizationHeader.startsWith("Bearer ")) {
+            LOGGER.info(() -> "Missing or invalid authorization header: " + authorizationHeader);
             throw new UnauthorizedException();
         }
         
@@ -143,6 +147,8 @@ public class SubmissionRoute {
     
             throws NoSuchTargetException, StorageException, UnauthorizedException {
         
+        LOGGER.info(() -> "Submission request to " + course + "/" + assignmentName + "/" + groupName + " received");
+        
         Response response;
         SubmissionTarget target = new SubmissionTarget(course, assignmentName, groupName);
         
@@ -164,10 +170,11 @@ public class SubmissionRoute {
                     .build();
             
         } catch (IllegalArgumentException e) {
+            LOGGER.info(() -> "Invalid filepath in submission: " + e.getMessage());
+            
             response = Response
                     .status(Status.BAD_REQUEST.getStatusCode(), "Invalid filepath: " + e.getMessage())
                     .build();
-            
         }
         
         return response;
@@ -208,6 +215,9 @@ public class SubmissionRoute {
     
             throws NoSuchTargetException, StorageException, UnauthorizedException {
 
+        LOGGER.info(() -> "Request to list versions of " + course + "/" + assignmentName + "/" + groupName
+                + " received");
+
         SubmissionTarget target = new SubmissionTarget(course, assignmentName, groupName);
         
         String user = authenticate(authHeader);
@@ -223,6 +233,8 @@ public class SubmissionRoute {
                 return dto;
             })
             .collect(Collectors.toList());
+        
+        LOGGER.info(() -> "Returning list of " + dtos.size() + " versions");
         
         return Response
                 .ok(dtos)
@@ -263,6 +275,9 @@ public class SubmissionRoute {
             @HeaderParam("Authorization") @Parameter(hidden = true)  String authHeader)
     
             throws NoSuchTargetException, StorageException, UnauthorizedException  {
+        
+        LOGGER.info(() -> "Replay of latest version of " + course + "/" + assignmentName + "/" + groupName
+                + " received");
         
         return getSubmission(authHeader, new SubmissionTarget(course, assignmentName, groupName),
             versions -> versions.get(0));
@@ -306,6 +321,9 @@ public class SubmissionRoute {
             @HeaderParam("Authorization") @Parameter(hidden = true)  String authHeader)
     
             throws NoSuchTargetException, StorageException, UnauthorizedException  {
+        
+        LOGGER.info(() -> "Replay of version " + timestamp + " of " + course + "/" + assignmentName + "/" + groupName
+                + " received");
         
         return getSubmission(authHeader, new SubmissionTarget(course, assignmentName, groupName), versions -> {
             Version match = null;
@@ -353,9 +371,14 @@ public class SubmissionRoute {
                             submission.getFileContent(filepath)));
                 }
                 
+                LOGGER.info(() -> "Returning submission version " + selectedVersion.getCreationTime().getEpochSecond()
+                        + " by " + submission.getAuthor());
+                
                 response = Response.ok(files).build();
                 
             } else {
+                LOGGER.info(() -> "Requested version does not exist");
+                
                 response = Response
                         .status(Status.NOT_FOUND.getStatusCode(), "Selected version not found for group "
                                 + target.getGroupName() + " in assignment " + target.getAssignmentName()
@@ -364,6 +387,8 @@ public class SubmissionRoute {
             }
             
         } else {
+            LOGGER.info(() -> "No version yet submitted");
+            
             response = Response
                     .status(Status.NOT_FOUND.getStatusCode(), "No versions have been submitted for group "
                             + target.getGroupName() + " in assignment " + target.getAssignmentName()

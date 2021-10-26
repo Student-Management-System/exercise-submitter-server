@@ -1,5 +1,8 @@
 package net.ssehub.teaching.exercise_submitter.server.rest.routes;
 
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.parameters.RequestBody;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -20,6 +23,8 @@ import net.ssehub.teaching.exercise_submitter.server.stu_mgmt.StuMgmtView;
  */
 @Path("/notify")
 public class NotificationRoute {
+
+    private static final Logger LOGGER = Logger.getLogger(NotificationRoute.class.getName());
     
     private ISubmissionStorage storage;
     
@@ -56,15 +61,22 @@ public class NotificationRoute {
     @POST
     public Response notification(@RequestBody NotificationDto notification) throws StorageException {
 
+        LOGGER.info(() -> "Notification received: " + notification);
+        
         Response response;
         
         try {
             stuMgmtView.update(notification);
+            LOGGER.info(() -> "StuMgmtView updated");
+            
             storage.createOrUpdateAssignmentsFromView(stuMgmtView);
+            LOGGER.info(() -> "Storage updated");
             
             response = Response.ok().build();
             
         } catch (ApiException e) {
+            LOGGER.log(Level.WARNING, "Failed to update StuMgmtView", e);
+            
             response = Response
                     .status(Status.INTERNAL_SERVER_ERROR.getStatusCode(),
                             "Error retrieving information from student management system")

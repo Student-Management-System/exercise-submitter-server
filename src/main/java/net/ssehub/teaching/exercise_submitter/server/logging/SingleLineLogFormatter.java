@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.ssehub.teaching.exercise_submitter.server.submission.checks;
+package net.ssehub.teaching.exercise_submitter.server.logging;
 
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;

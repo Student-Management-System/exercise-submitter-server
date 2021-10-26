@@ -156,7 +156,7 @@ public abstract class JavacCheck extends Check {
         Set<File> javaFiles = FileUtils.findFilesBySuffix(submissionDirectory, ".java");
         
         if (!javaFiles.isEmpty()) {
-            LOGGER.log(Level.FINER, "Compiling files {0}...", javaFiles);
+            LOGGER.log(Level.FINE, "Compiling files {0}...", javaFiles);
             success = runJavac(submissionDirectory, javaFiles);
             
         } else {

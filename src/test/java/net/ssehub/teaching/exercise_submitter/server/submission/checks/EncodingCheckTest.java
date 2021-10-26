@@ -212,9 +212,4 @@ public class EncodingCheckTest {
         }
     }
     
-    @BeforeAll
-    public static void initLogger() {
-        LoggingSetup.setupStdoutLogging();
-    }
-    
 }

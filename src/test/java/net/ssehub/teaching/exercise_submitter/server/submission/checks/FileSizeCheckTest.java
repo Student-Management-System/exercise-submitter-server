@@ -256,9 +256,4 @@ public class FileSizeCheckTest {
         }
     }
     
-    @BeforeAll
-    public static void initLogger() {
-        LoggingSetup.setupStdoutLogging();
-    }
-    
 }

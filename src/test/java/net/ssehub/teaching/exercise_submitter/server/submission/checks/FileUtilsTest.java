@@ -727,9 +727,4 @@ public class FileUtilsTest {
         }
     }
     
-    @BeforeAll
-    public static void initLogger() {
-        LoggingSetup.setupStdoutLogging();
-    }
-    
 }
