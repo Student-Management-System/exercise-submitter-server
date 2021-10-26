@@ -133,6 +133,8 @@ public class SubmissionManager {
                 .map(CheckMessageDto::new)
                 .collect(Collectors.toList()));
         
+        // TODO: send result to stumgmt system
+        
         LOGGER.info(() -> "Submission to " + target + " " + (result.getAccepted() ? "accepted" : "rejected")
                 + "; messages: " + result.getMessages());
         

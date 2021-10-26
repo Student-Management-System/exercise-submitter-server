@@ -9,6 +9,7 @@ import java.util.logging.Logger;
 
 import org.glassfish.grizzly.http.server.HttpServer;
 import org.glassfish.jersey.grizzly2.httpserver.GrizzlyHttpServerFactory;
+import org.glassfish.jersey.jsonb.JsonBindingFeature;
 import org.glassfish.jersey.server.ResourceConfig;
 
 import io.swagger.v3.oas.annotations.OpenAPIDefinition;
@@ -69,7 +70,8 @@ public class ExerciseSubmitterServer {
                 .register(HeartbeatRoute.class)
                 .register(new SubmissionRoute(submissionManager, storage, authManager))
                 .register(new NotificationRoute(storage, stuMgmtView))
-                .packages("net.ssehub.teaching.exercise_submitter.server.rest.exceptions");
+                .packages("net.ssehub.teaching.exercise_submitter.server.rest.exceptions")
+                .register(JsonBindingFeature.class);
         return GrizzlyHttpServerFactory.createHttpServer(URI.create(baseUri), config);
     }
     
