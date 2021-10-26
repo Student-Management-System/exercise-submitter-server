@@ -22,6 +22,9 @@ import net.ssehub.studentmgmt.backend_api.model.GroupDto;
 import net.ssehub.studentmgmt.backend_api.model.NotificationDto;
 import net.ssehub.studentmgmt.backend_api.model.ParticipantDto;
 import net.ssehub.studentmgmt.backend_api.model.ParticipantDto.RoleEnum;
+import net.ssehub.studentmgmt.sparkyservice_api.api.AuthControllerApi;
+import net.ssehub.studentmgmt.sparkyservice_api.model.AuthenticationInfoDto;
+import net.ssehub.studentmgmt.sparkyservice_api.model.CredentialsDto;
 
 /**
  * A local view of the courses, users, groups, and assignment in the student management system.
@@ -36,17 +39,53 @@ public class StuMgmtView {
     
     private ApiClient mgmtClient;
     
+    private AuthControllerApi authApi;
+    
+    private String username;
+    
+    private String password;
+    
     /**
-     * Creates a view on the given student management system.
+     * Creates a view on the given student management system. The view is initially empty, call {@link #fullReload()} to
+     * load initial data.
      * 
-     * @param mgmtClient The client to query the student management system. Should already be authenticated via a token.
-     * 
-     * @throws ApiException If reading the initial data fails.
+     * @param mgmtUrl The URL of the student management system.
+     * @param authUrl The URL of the authentication system (sparky-service) to acquire tokens from.
+     * @param username The username to log into the management system as.
+     * @param password The password to log into the management system with.
      */
-    public StuMgmtView(ApiClient mgmtClient) throws ApiException {
+    public StuMgmtView(String mgmtUrl, String authUrl, String username, String password) {
         this.courses = new HashMap<>();
-        this.mgmtClient = mgmtClient;
-        init();
+
+        this.mgmtClient = new ApiClient();
+        this.mgmtClient.setBasePath(mgmtUrl);
+        
+        net.ssehub.studentmgmt.sparkyservice_api.ApiClient authClient
+                = new net.ssehub.studentmgmt.sparkyservice_api.ApiClient();
+        authClient.setBasePath(authUrl);
+        this.authApi = new AuthControllerApi(authClient);
+        
+        this.username = username;
+        this.password = password;
+    }
+    
+    /**
+     * Adds an authentication token retrieved from the authentication system to the {@link #mgmtClient}.
+     * 
+     * @throws StuMgmtLoadingException If authentication fails.
+     */
+    private void authenticateMgmtClient() throws StuMgmtLoadingException {
+        try {
+            LOGGER.info(() -> "Logging into " + authApi.getApiClient().getBasePath() + " with username " + username);
+            
+            AuthenticationInfoDto dto = authApi.authenticate(
+                    new CredentialsDto().username(username).password(password));
+            
+            mgmtClient.setAccessToken(dto.getToken().getToken());
+            
+        } catch (net.ssehub.studentmgmt.sparkyservice_api.ApiException e) {
+            throw new StuMgmtLoadingException("Failed to authenticate as " + username, e);
+        }
     }
     
     /**
@@ -121,25 +160,24 @@ public class StuMgmtView {
     }
     
     /**
-     * Initializes this view.
+     * Re-loads the given course. The course is removed and re-created with updated information.
+     * 
+     * @param courseId The ID of the course to re-load.
      */
-    protected void init() throws ApiException {
-        LOGGER.info(() -> "Completely reloading information");
+    private void updateCourse(String courseId) {
+        LOGGER.fine(() -> "Re-loading course " + courseId);
+        Course course = createCourse(courseId);
         
-        CourseApi courseApi = new CourseApi(mgmtClient);
         CourseParticipantsApi participantsApi = new CourseParticipantsApi(mgmtClient);
         AssignmentApi assignmentApi = new AssignmentApi(mgmtClient);
         AssignmentRegistrationApi groupApi = new AssignmentRegistrationApi(mgmtClient);
         
-        for (CourseDto cDto : courseApi.getCourses(null, null, null, null, null)) {
-            LOGGER.fine(() -> "Loading course " + cDto.getId());
-            Course course = createCourse(cDto.getId());
-            
+        try {
             for (ParticipantDto pDto
                     : participantsApi.getUsersOfCourse(course.getId(), null, null, null, null, null)) {
-            
+                
                 LOGGER.fine(() -> "Creating " + pDto.getRole() + " " + pDto.getUsername()
-                        + " in course " + cDto.getId());
+                        + " in course " + courseId);
                 
                 createParticipant(course, pDto.getUsername(), pDto.getRole());
             }
@@ -147,7 +185,7 @@ public class StuMgmtView {
             for (AssignmentDto aDto : assignmentApi.getAssignmentsOfCourse(course.getId())) {
                 
                 LOGGER.fine(() -> "Creating " + aDto.getCollaboration() + "-assignment " + aDto.getName()
-                        + "(" + aDto.getStartDate() + ") in course " + cDto.getId());
+                        + "(" + aDto.getStartDate() + ") in course " + courseId);
                 
                 Assignment assignment = createAssignment(
                         course, aDto.getName(), aDto.getState(), aDto.getCollaboration());
@@ -155,10 +193,10 @@ public class StuMgmtView {
                 for (GroupDto gDto : groupApi.getRegisteredGroups(course.getId(), aDto.getId(), null, null, null)) {
                     
                     LOGGER.fine(() -> "Creating group " + gDto.getName() + " with members "
-                                + gDto.getMembers().stream()
-                                    .map(ParticipantDto::getUsername)
-                                    .collect(Collectors.joining(", "))
-                                + " in assignment " + aDto.getName() + " in course " + cDto.getId());
+                            + gDto.getMembers().stream()
+                                .map(ParticipantDto::getUsername)
+                                .collect(Collectors.joining(", "))
+                            + " in assignment " + aDto.getName() + " in course " + courseId);
                     
                     createGroup(assignment, gDto.getName(), gDto.getMembers().stream()
                             .map(ParticipantDto::getUsername)
@@ -168,6 +206,33 @@ public class StuMgmtView {
                             .toArray(s -> new Participant[s]));
                 }
             }
+        
+        } catch (ApiException e) {
+            LOGGER.warning(() -> "Failed to update course " + courseId + "; is " + username
+                    + " enrolled as lecturer?");
+        }
+        
+    }
+    
+    /**
+     * Completely reloads this view. Discards all current data and pulls everything from the management system again.
+     * 
+     * @throws StuMgmtLoadingException If loading data from the student management system fails.
+     */
+    public void fullReload() throws StuMgmtLoadingException {
+        LOGGER.info(() -> "Completely re-loading information");
+        courses.clear();
+        
+        authenticateMgmtClient();
+        CourseApi courseApi = new CourseApi(mgmtClient);
+        
+        try {
+            for (CourseDto cDto : courseApi.getCourses(null, null, null, null, null)) {
+                updateCourse(cDto.getId());
+            }
+            
+        } catch (ApiException e) {
+            throw new StuMgmtLoadingException("Failed to retrieve course list", e);
         }
         
         LOGGER.info(() -> "Loaded " + courses.size() + " courses");
@@ -177,11 +242,17 @@ public class StuMgmtView {
      * Updates this view based on the given notification data.
      * 
      * @param notification The notification data.
+     * 
+     * @throws StuMgmtLoadingException If loading data from the student management system fails.
      */
-    public void update(NotificationDto notification) throws ApiException {
-        // TODO: for now, just fully re-initialize
-        courses.clear();
-        init();
+    public void update(NotificationDto notification) throws StuMgmtLoadingException {
+        authenticateMgmtClient();
+        
+        if (notification.getCourseId() != null) {
+            updateCourse(notification.getCourseId());
+        } else {
+            fullReload();
+        }
     }
     
     /**

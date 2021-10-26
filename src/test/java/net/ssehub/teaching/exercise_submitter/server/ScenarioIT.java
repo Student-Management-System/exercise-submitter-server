@@ -25,7 +25,6 @@ import jakarta.ws.rs.client.Entity;
 import jakarta.ws.rs.client.WebTarget;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
-import net.ssehub.studentmgmt.backend_api.ApiException;
 import net.ssehub.studentmgmt.docker.StuMgmtDocker;
 import net.ssehub.studentmgmt.docker.StuMgmtDocker.AssignmentState;
 import net.ssehub.studentmgmt.docker.StuMgmtDocker.Collaboration;
@@ -47,7 +46,7 @@ public class ScenarioIT {
     private static Path storagePath;
     
     @BeforeAll
-    public static void startServer() throws IOException, ApiException, net.ssehub.studentmgmt.sparkyservice_api.ApiException {
+    public static void startServer() throws IOException {
         docker = new StuMgmtDocker();
         
         docker.createUser("teacher", "abcdefgh");

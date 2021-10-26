@@ -9,7 +9,6 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
-import net.ssehub.studentmgmt.backend_api.ApiException;
 import net.ssehub.studentmgmt.docker.StuMgmtDocker;
 import net.ssehub.teaching.exercise_submitter.server.stu_mgmt.EmptyStuMgmtView;
 import net.ssehub.teaching.exercise_submitter.server.submission.UnauthorizedException;
@@ -34,19 +33,19 @@ public class AuthManagerIT {
     public class Authenticate {
         
         @Test
-        public void invalidServerThrows() throws ApiException {
+        public void invalidServerThrows() {
             AuthManager auth = new AuthManager("http://doesnt_exist.local", new EmptyStuMgmtView());
             assertThrows(UnauthorizedException.class, () -> auth.authenticate("123"));
         }
         
         @Test
-        public void invalidTokenThrows() throws ApiException {
+        public void invalidTokenThrows() {
             AuthManager auth = new AuthManager(docker.getAuthUrl(), new EmptyStuMgmtView());
             assertThrows(UnauthorizedException.class, () -> auth.authenticate("123"));
         }
         
         @Test
-        public void validTokenReturnsUsername() throws ApiException {
+        public void validTokenReturnsUsername() {
             AuthManager auth = new AuthManager(docker.getAuthUrl(), new EmptyStuMgmtView());
             String user = assertDoesNotThrow(() -> auth.authenticate(docker.getAuthToken("someuser")));
             assertEquals("someuser", user);

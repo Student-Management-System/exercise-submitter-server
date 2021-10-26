@@ -10,10 +10,10 @@ import jakarta.ws.rs.POST;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.Response.Status;
-import net.ssehub.studentmgmt.backend_api.ApiException;
 import net.ssehub.studentmgmt.backend_api.model.NotificationDto;
 import net.ssehub.teaching.exercise_submitter.server.storage.ISubmissionStorage;
 import net.ssehub.teaching.exercise_submitter.server.storage.StorageException;
+import net.ssehub.teaching.exercise_submitter.server.stu_mgmt.StuMgmtLoadingException;
 import net.ssehub.teaching.exercise_submitter.server.stu_mgmt.StuMgmtView;
 
 /**
@@ -74,7 +74,7 @@ public class NotificationRoute {
             
             response = Response.ok().build();
             
-        } catch (ApiException e) {
+        } catch (StuMgmtLoadingException e) {
             LOGGER.log(Level.WARNING, "Failed to update StuMgmtView", e);
             
             response = Response

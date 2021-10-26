@@ -24,7 +24,6 @@ import org.junit.jupiter.api.Test;
 import jakarta.ws.rs.client.Entity;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
-import net.ssehub.studentmgmt.backend_api.ApiException;
 import net.ssehub.teaching.exercise_submitter.server.auth.PermissiveAuthManager;
 import net.ssehub.teaching.exercise_submitter.server.rest.dto.CheckMessageDto;
 import net.ssehub.teaching.exercise_submitter.server.rest.dto.FileDto;
@@ -78,7 +77,7 @@ public class SubmissionRouteIT extends AbstractRestTest {
         }
         
         @Test
-        public void notAuthenticated() throws ApiException {
+        public void notAuthenticated() {
             setAuthManager(new PermissiveAuthManager() {
                 @Override
                 public String authenticate(String token) throws UnauthorizedException {
@@ -99,7 +98,7 @@ public class SubmissionRouteIT extends AbstractRestTest {
         }
         
         @Test
-        public void notAuthorized() throws ApiException {
+        public void notAuthorized() {
             setAuthManager(new PermissiveAuthManager() {
                 @Override
                 public void checkSubmissionAllowed(String user, SubmissionTarget target) throws UnauthorizedException {
@@ -271,7 +270,7 @@ public class SubmissionRouteIT extends AbstractRestTest {
         }
     
         @Test
-        public void notAuthenticated() throws ApiException {
+        public void notAuthenticated() {
             setAuthManager(new PermissiveAuthManager() {
                 @Override
                 public String authenticate(String token) throws UnauthorizedException {
@@ -292,7 +291,7 @@ public class SubmissionRouteIT extends AbstractRestTest {
         }
         
         @Test
-        public void notAuthorized() throws ApiException {
+        public void notAuthorized() {
             setAuthManager(new PermissiveAuthManager() {
                 @Override
                 public void checkReplayAllowed(String user, SubmissionTarget target) throws UnauthorizedException {
@@ -433,7 +432,7 @@ public class SubmissionRouteIT extends AbstractRestTest {
         }
         
         @Test
-        public void notAuthenticated() throws ApiException {
+        public void notAuthenticated() {
             setAuthManager(new PermissiveAuthManager() {
                 @Override
                 public String authenticate(String token) throws UnauthorizedException {
@@ -454,7 +453,7 @@ public class SubmissionRouteIT extends AbstractRestTest {
         }
         
         @Test
-        public void notAuthorized() throws ApiException {
+        public void notAuthorized() {
             setAuthManager(new PermissiveAuthManager() {
                 @Override
                 public void checkReplayAllowed(String user, SubmissionTarget target) throws UnauthorizedException {

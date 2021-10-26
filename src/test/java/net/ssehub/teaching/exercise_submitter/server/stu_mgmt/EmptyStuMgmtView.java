@@ -1,15 +1,19 @@
 package net.ssehub.teaching.exercise_submitter.server.stu_mgmt;
 
-import net.ssehub.studentmgmt.backend_api.ApiException;
+import net.ssehub.studentmgmt.backend_api.model.NotificationDto;
 
 public class EmptyStuMgmtView extends StuMgmtView {
 
-    public EmptyStuMgmtView() throws ApiException {
-        super(null);
+    public EmptyStuMgmtView() {
+        super(null, null, null, null);
     }
     
     @Override
-    protected void init() throws ApiException {
+    public void fullReload() throws StuMgmtLoadingException {
+    }
+    
+    @Override
+    public void update(NotificationDto notification) throws StuMgmtLoadingException {
     }
 
 }

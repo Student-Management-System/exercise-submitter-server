@@ -1,13 +1,12 @@
 package net.ssehub.teaching.exercise_submitter.server.auth;
 
-import net.ssehub.studentmgmt.backend_api.ApiException;
 import net.ssehub.teaching.exercise_submitter.server.storage.SubmissionTarget;
 import net.ssehub.teaching.exercise_submitter.server.stu_mgmt.EmptyStuMgmtView;
 import net.ssehub.teaching.exercise_submitter.server.submission.UnauthorizedException;
 
 public class PermissiveAuthManager extends AuthManager {
 
-    public PermissiveAuthManager() throws ApiException {
+    public PermissiveAuthManager() {
         super("", new EmptyStuMgmtView());
     }
 

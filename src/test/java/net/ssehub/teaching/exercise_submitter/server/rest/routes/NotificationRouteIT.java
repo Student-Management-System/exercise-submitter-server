@@ -10,20 +10,23 @@ import org.junit.jupiter.api.Test;
 import jakarta.ws.rs.client.Entity;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
-import net.ssehub.studentmgmt.backend_api.ApiException;
 import net.ssehub.studentmgmt.backend_api.model.NotificationDto;
 import net.ssehub.teaching.exercise_submitter.server.storage.EmptyStorage;
 import net.ssehub.teaching.exercise_submitter.server.storage.StorageException;
+import net.ssehub.teaching.exercise_submitter.server.stu_mgmt.StuMgmtLoadingException;
 import net.ssehub.teaching.exercise_submitter.server.stu_mgmt.StuMgmtView;
 
 public class NotificationRouteIT extends AbstractRestTest {
 
     @Test
-    public void viewUpdated() throws ApiException {
+    public void viewUpdated() {
         AtomicInteger numCalled = new AtomicInteger();
-        setStuMgmtView(new StuMgmtView(null) {
+        setStuMgmtView(new StuMgmtView(null, null, null, null) {
             @Override
-            protected void init() throws ApiException {
+            public void fullReload() throws StuMgmtLoadingException {
+            }
+            @Override
+            public void update(NotificationDto notification) throws StuMgmtLoadingException {
                 numCalled.incrementAndGet();
             }
         });
@@ -35,20 +38,19 @@ public class NotificationRouteIT extends AbstractRestTest {
         
         assertAll(
             () -> assertEquals(200, response.getStatus()),
-            () -> assertEquals(2, numCalled.get()) // once in c'tor, once through /notify route
+            () -> assertEquals(1, numCalled.get()) // once called through /notify route
         );
     }
     
     @Test
-    public void apiExcpetionInternalServerError() throws ApiException {
-        AtomicInteger numCalled = new AtomicInteger();
-        setStuMgmtView(new StuMgmtView(null) {
+    public void stuMgmtLoadingExceptionInternalServerError() {
+        setStuMgmtView(new StuMgmtView(null, null, null, null) {
             @Override
-            protected void init() throws ApiException {
-                numCalled.incrementAndGet();
-                if (numCalled.get() == 2) {
-                    throw new ApiException();
-                }
+            public void fullReload() throws StuMgmtLoadingException {
+            }
+            @Override
+            public void update(NotificationDto notification) throws StuMgmtLoadingException {
+                throw new StuMgmtLoadingException();
             }
         });
         startServer();
@@ -65,7 +67,7 @@ public class NotificationRouteIT extends AbstractRestTest {
     }
     
     @Test
-    public void storageUpdated() throws ApiException {
+    public void storageUpdated() {
         AtomicInteger numCalled = new AtomicInteger();
         setStorage(new EmptyStorage() {
             @Override
@@ -86,7 +88,7 @@ public class NotificationRouteIT extends AbstractRestTest {
     }
     
     @Test
-    public void storageExceptionInternalServerError() throws ApiException {
+    public void storageExceptionInternalServerError() {
         setStorage(new EmptyStorage() {
             @Override
             public void createOrUpdateAssignmentsFromView(StuMgmtView view) throws StorageException {

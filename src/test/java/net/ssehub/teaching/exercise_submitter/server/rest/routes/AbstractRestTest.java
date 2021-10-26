@@ -1,5 +1,7 @@
 package net.ssehub.teaching.exercise_submitter.server.rest.routes;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+
 import java.io.IOException;
 import java.net.ServerSocket;
 
@@ -10,7 +12,6 @@ import org.junit.jupiter.api.BeforeEach;
 import jakarta.ws.rs.client.Client;
 import jakarta.ws.rs.client.ClientBuilder;
 import jakarta.ws.rs.client.WebTarget;
-import net.ssehub.studentmgmt.backend_api.ApiException;
 import net.ssehub.teaching.exercise_submitter.server.auth.AuthManager;
 import net.ssehub.teaching.exercise_submitter.server.auth.PermissiveAuthManager;
 import net.ssehub.teaching.exercise_submitter.server.rest.ExerciseSubmissionServer;
@@ -18,8 +19,8 @@ import net.ssehub.teaching.exercise_submitter.server.storage.EmptyStorage;
 import net.ssehub.teaching.exercise_submitter.server.storage.ISubmissionStorage;
 import net.ssehub.teaching.exercise_submitter.server.stu_mgmt.EmptyStuMgmtView;
 import net.ssehub.teaching.exercise_submitter.server.stu_mgmt.StuMgmtView;
-import net.ssehub.teaching.exercise_submitter.server.submission.SubmissionManager;
 import net.ssehub.teaching.exercise_submitter.server.submission.NoChecksSubmissionManager;
+import net.ssehub.teaching.exercise_submitter.server.submission.SubmissionManager;
 
 public abstract class AbstractRestTest {
 
@@ -38,7 +39,7 @@ public abstract class AbstractRestTest {
     private StuMgmtView stuMgmtView;
     
     @BeforeEach
-    public void setupServer() throws ApiException {
+    public void setupServer() {
         uri = "http://localhost:" + generateRandomPort() + "/";
         Client client = ClientBuilder.newClient();
         target = client.target(uri);
@@ -66,6 +67,7 @@ public abstract class AbstractRestTest {
     }
     
     protected void startServer() {
+        assertDoesNotThrow(() -> stuMgmtView.fullReload());
         server = ExerciseSubmissionServer.startServer(uri, submissionManager, storage, authManager, stuMgmtView);
     }
     

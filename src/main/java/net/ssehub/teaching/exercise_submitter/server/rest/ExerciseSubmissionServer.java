@@ -15,10 +15,6 @@ import io.swagger.v3.oas.annotations.OpenAPIDefinition;
 import io.swagger.v3.oas.annotations.enums.SecuritySchemeType;
 import io.swagger.v3.oas.annotations.info.Info;
 import io.swagger.v3.oas.annotations.security.SecurityScheme;
-import net.ssehub.studentmgmt.backend_api.ApiClient;
-import net.ssehub.studentmgmt.backend_api.ApiException;
-import net.ssehub.studentmgmt.sparkyservice_api.api.AuthControllerApi;
-import net.ssehub.studentmgmt.sparkyservice_api.model.CredentialsDto;
 import net.ssehub.teaching.exercise_submitter.server.auth.AuthManager;
 import net.ssehub.teaching.exercise_submitter.server.logging.LoggingSetup;
 import net.ssehub.teaching.exercise_submitter.server.rest.routes.HeartbeatRoute;
@@ -27,6 +23,7 @@ import net.ssehub.teaching.exercise_submitter.server.rest.routes.SubmissionRoute
 import net.ssehub.teaching.exercise_submitter.server.storage.ISubmissionStorage;
 import net.ssehub.teaching.exercise_submitter.server.storage.StorageException;
 import net.ssehub.teaching.exercise_submitter.server.storage.filesystem.FilesystemStorage;
+import net.ssehub.teaching.exercise_submitter.server.stu_mgmt.StuMgmtLoadingException;
 import net.ssehub.teaching.exercise_submitter.server.stu_mgmt.StuMgmtView;
 import net.ssehub.teaching.exercise_submitter.server.submission.SubmissionManager;
 import net.ssehub.teaching.exercise_submitter.server.submission.checks.Check;
@@ -77,39 +74,6 @@ public class ExerciseSubmissionServer {
     }
     
     /**
-     * Creates an authenticated {@link ApiClient} for the student management system.
-     * 
-     * @param authUrl The URL to the auth system (sparky-service).
-     * @param mgmtUrl The URL to the student management system.
-     * @param user The username to authenticate as.
-     * @param password The password to authenticate with.
-     * 
-     * @return An authenticated {@link ApiClient}.
-     * 
-     * @throws net.ssehub.studentmgmt.sparkyservice_api.ApiException If authentication fails.
-     */
-    private static ApiClient createAuthenticatedMgmtApiClient(String authUrl, String mgmtUrl,
-            String user, String password)
-            throws net.ssehub.studentmgmt.sparkyservice_api.ApiException {
-        ApiClient mgmtClient = new ApiClient();
-        mgmtClient.setBasePath(mgmtUrl);
-        
-        net.ssehub.studentmgmt.sparkyservice_api.ApiClient authClient
-                = new net.ssehub.studentmgmt.sparkyservice_api.ApiClient();
-        authClient.setBasePath(authUrl);
-        
-        LOGGER.config(() -> "Logging into " + authUrl + " with username " + user);
-        
-        CredentialsDto credentials = new CredentialsDto().username(user).password(password);
-        
-        String token = new AuthControllerApi(authClient).authenticate(credentials).getToken().getToken();
-        
-        LOGGER.config(() -> "Using authenticated student management client to " + mgmtUrl);
-        mgmtClient.setAccessToken(token);
-        return mgmtClient;
-    }
-    
-    /**
      * Creates the standard {@link Check}s. TODO: make this configurable.
      * 
      * @param submissionManager The manager to add the {@link Check}s to.
@@ -146,14 +110,10 @@ public class ExerciseSubmissionServer {
      * @return The started HTTP server.
      * 
      * @throws IOException If creating the {@link FilesystemStorage} fails.
-     * @throws ApiException If creating the initial {@link StuMgmtView} fails.
-     * @throws net.ssehub.studentmgmt.sparkyservice_api.ApiException If authenticating with the given username and
-     *      password fails.
      */
     // checkstyle: stop parameter number check
     public static HttpServer startDefaultServer(int port, String storagePath, String authSystemUrl, String stuMgmtUrl,
-            String username, String password)
-            throws IOException, ApiException, net.ssehub.studentmgmt.sparkyservice_api.ApiException {
+            String username, String password) throws IOException {
     // checkstyle: resume parameter number check
         
         String url = "http://0.0.0.0:" + port + "/";
@@ -163,18 +123,26 @@ public class ExerciseSubmissionServer {
         SubmissionManager submissionManager = new SubmissionManager(storage);
         createChecks(submissionManager);
         
-        StuMgmtView stuMgmtView = new StuMgmtView(
-                createAuthenticatedMgmtApiClient(authSystemUrl, stuMgmtUrl, username, password));
+        StuMgmtView stuMgmtView = new StuMgmtView(stuMgmtUrl, authSystemUrl, username, password);
         AuthManager authManager = new AuthManager(authSystemUrl, stuMgmtView);
 
         LOGGER.config("Starting HTTP server on port " + port);
         HttpServer server = startServer(url, submissionManager, storage, authManager, stuMgmtView);
         
-        try {
-            stuMgmtView.update(null); // TODO: trigger an update after the notifications are listening
-            storage.createOrUpdateAssignmentsFromView(stuMgmtView);
-        } catch (StorageException | ApiException e) {
-            LOGGER.log(Level.WARNING, "Failed to load intial student management system data", e);
+        boolean success = false;
+        while (!success) {
+            try {
+                stuMgmtView.fullReload();
+                storage.createOrUpdateAssignmentsFromView(stuMgmtView);
+                success = true;
+            } catch (StorageException | StuMgmtLoadingException e) {
+                LOGGER.log(Level.WARNING, "Failed to load intial student management system data; retrying...", e);
+                
+                try {
+                    Thread.sleep(500);
+                } catch (InterruptedException e1) {
+                }
+            }
         }
         
         return server;
@@ -196,11 +164,10 @@ public class ExerciseSubmissionServer {
      * @throws ApiException If reading from the student management system fails.
      * @throws net.ssehub.studentmgmt.sparkyservice_api.ApiException If authenticating fails.
      */
-    public static void main(String[] args)
-            throws IOException, ApiException, net.ssehub.studentmgmt.sparkyservice_api.ApiException {
+    public static void main(String[] args) throws IOException {
         
         LoggingSetup.init();
-//        LoggingSetup.setLevel("INFO");
+        LoggingSetup.setLevel("INFO");
         LOGGER.info("Starting");
         
         HttpServer server = startDefaultServer(Integer.parseInt(args[0]), args[1], args[2], args[3], 

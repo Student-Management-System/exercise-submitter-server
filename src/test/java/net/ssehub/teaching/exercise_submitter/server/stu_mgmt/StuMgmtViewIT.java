@@ -9,7 +9,6 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
-import net.ssehub.studentmgmt.backend_api.ApiClient;
 import net.ssehub.studentmgmt.backend_api.model.AssignmentDto.CollaborationEnum;
 import net.ssehub.studentmgmt.backend_api.model.AssignmentDto.StateEnum;
 import net.ssehub.studentmgmt.backend_api.model.ParticipantDto.RoleEnum;
@@ -50,12 +49,12 @@ public class StuMgmtViewIT {
     }
     
     @Test
-    public void initialDataRead() {
-        ApiClient client = new ApiClient();
-        client.setBasePath(docker.getStuMgmtUrl());
-        client.setAccessToken(docker.getAuthToken("teacher"));
+    public void fullReload() {
+        StuMgmtView view = assertDoesNotThrow(() -> new StuMgmtView(docker.getStuMgmtUrl(), docker.getAuthUrl(),
+                "teacher", "abcdefgh"));
         
-        StuMgmtView view = assertDoesNotThrow(() -> new StuMgmtView(client));
+        assertDoesNotThrow(() -> view.fullReload());
+        
         assertEquals(2, view.getCourses().size());
         
         // bar

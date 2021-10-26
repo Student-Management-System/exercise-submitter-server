@@ -8,21 +8,21 @@ import java.util.Set;
 
 import org.junit.jupiter.api.Test;
 
-import net.ssehub.studentmgmt.backend_api.ApiException;
 import net.ssehub.studentmgmt.backend_api.model.AssignmentDto.CollaborationEnum;
 import net.ssehub.studentmgmt.backend_api.model.AssignmentDto.StateEnum;
 import net.ssehub.studentmgmt.backend_api.model.ParticipantDto.RoleEnum;
 import net.ssehub.teaching.exercise_submitter.server.stu_mgmt.Assignment;
 import net.ssehub.teaching.exercise_submitter.server.stu_mgmt.Course;
+import net.ssehub.teaching.exercise_submitter.server.stu_mgmt.StuMgmtLoadingException;
 import net.ssehub.teaching.exercise_submitter.server.stu_mgmt.StuMgmtView;
 
 public class ISubmissionStorageTest {
 
     @Test
-    public void createOrUpdateAssignmentsFromViewSingleAssignment() throws ApiException {
-        StuMgmtView view = new StuMgmtView(null) {
+    public void createOrUpdateAssignmentsFromViewSingleAssignment() throws StuMgmtLoadingException {
+        StuMgmtView view = new StuMgmtView(null, null, null, null) {
             @Override
-            protected void init() throws ApiException {
+            public void fullReload() {
                 Course course = createCourse("foo-123");
                 createAssignment(course, "Test01", StateEnum.IN_PROGRESS, CollaborationEnum.SINGLE);
                 createAssignment(course, "Test02", StateEnum.IN_PROGRESS, CollaborationEnum.SINGLE);
@@ -31,6 +31,7 @@ public class ISubmissionStorageTest {
                 createParticipant(course, "teacher", RoleEnum.LECTURER);
             }
         };
+        view.fullReload();
         
         Set<String> addedFolders = new HashSet<>();
         ISubmissionStorage storage = new EmptyStorage() {
@@ -55,10 +56,10 @@ public class ISubmissionStorageTest {
     }
     
     @Test
-    public void createOrUpdateAssignmentsFromViewGroupAssignment() throws ApiException {
-        StuMgmtView view = new StuMgmtView(null) {
+    public void createOrUpdateAssignmentsFromViewGroupAssignment() throws StuMgmtLoadingException {
+        StuMgmtView view = new StuMgmtView(null, null, null, null) {
             @Override
-            protected void init() throws ApiException {
+            public void fullReload() {
                 Course course = createCourse("foo-123");
                 Assignment a1 = createAssignment(course, "Test01", StateEnum.IN_PROGRESS, CollaborationEnum.GROUP);
                 Assignment a2 = createAssignment(course, "Test02", StateEnum.IN_PROGRESS, CollaborationEnum.GROUP);
@@ -67,6 +68,7 @@ public class ISubmissionStorageTest {
                 createGroup(a2, "Bar");
             }
         };
+        view.fullReload();
         
         Set<String> addedFolders = new HashSet<>();
         ISubmissionStorage storage = new EmptyStorage() {
@@ -89,10 +91,10 @@ public class ISubmissionStorageTest {
     }
     
     @Test
-    public void createOrUpdateAssignmentsFromViewGroupOrSingleAssignment() throws ApiException {
-        StuMgmtView view = new StuMgmtView(null) {
+    public void createOrUpdateAssignmentsFromViewGroupOrSingleAssignment() throws StuMgmtLoadingException {
+        StuMgmtView view = new StuMgmtView(null, null, null, null) {
             @Override
-            protected void init() throws ApiException {
+            public void fullReload() {
                 Course course = createCourse("foo-123");
                 createParticipant(course, "student1", RoleEnum.STUDENT);
                 createParticipant(course, "student2", RoleEnum.STUDENT);
@@ -107,6 +109,7 @@ public class ISubmissionStorageTest {
                 createGroup(a2, "Bar");
             }
         };
+        view.fullReload();
         
         Set<String> addedFolders = new HashSet<>();
         ISubmissionStorage storage = new EmptyStorage() {
