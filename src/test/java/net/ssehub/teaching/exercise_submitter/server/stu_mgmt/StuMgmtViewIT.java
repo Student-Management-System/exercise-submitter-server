@@ -49,6 +49,8 @@ public class StuMgmtViewIT {
     
     private static String student2Id;
     
+    private static String student3Id;
+    
     @BeforeAll
     public static void startServer() {
         docker = new StuMgmtDocker();
@@ -56,7 +58,7 @@ public class StuMgmtViewIT {
         docker.createUser("teacher", "abcdefgh");
         student1Id = docker.createUser("student1", "abcdefgh");
         student2Id = docker.createUser("student2", "abcdefgh");
-        docker.createUser("student3", "abcdefgh");
+        student3Id = docker.createUser("student3", "abcdefgh");
         
         docker.createCourse("bar", "sose20", "Barfoo", "teacher");
         
@@ -304,6 +306,41 @@ public class StuMgmtViewIT {
                 () -> assertEquals(2, assessments.get(0).getPartialAssessments().size()),
                 () -> assertEquals("Preexisting", assessments.get(0).getPartialAssessments().get(0).getTitle()),
                 () -> assertEquals("(check1) message", assessments.get(0).getPartialAssessments().get(1).getMarkers().get(0).getComment())
+            );
+        }
+        
+        @Test
+        public void assessmentNotUpdatedIfNotDraft() throws ApiException {
+            StuMgmtView view = assertDoesNotThrow(() -> new StuMgmtView(docker.getStuMgmtUrl(), docker.getAuthUrl(),
+                    "teacher", "abcdefgh"));
+            assertDoesNotThrow(() -> view.fullReload());
+            
+            ApiClient client = new ApiClient();
+            client.setBasePath(docker.getStuMgmtUrl());
+            client.setAccessToken(docker.getAuthToken("teacher"));
+            AssessmentApi api = new AssessmentApi(client);
+            
+            AssessmentCreateDto preexisting = new AssessmentCreateDto();
+            preexisting.setIsDraft(false);
+            preexisting.setAssignmentId(testatId);
+            preexisting.setUserId(student3Id);
+            
+            api.createAssessment(preexisting, "foo-wise2122", testatId);
+            
+            view.sendSubmissionResult(new SubmissionTarget("foo-wise2122", "Testat", "student3"),
+                    Arrays.asList(new ResultMessage("check1", MessageType.WARNING, "message")));
+            
+            List<AssessmentDto> assessments = api.getAssessmentsForAssignment(
+                    "foo-wise2122", testatId, null, null, null, null, student3Id, null, null);
+            
+            assertAll(
+                () -> assertEquals(1, assessments.size()),
+                () -> assertEquals("teacher", assessments.get(0).getCreator().getUsername()),
+                () -> assertEquals(false, assessments.get(0).isIsDraft()),
+                () -> assertNull(assessments.get(0).getGroupId()),
+                () -> assertEquals("student3", assessments.get(0).getParticipant().getUsername()),
+                
+                () -> assertEquals(0, assessments.get(0).getPartialAssessments().size())
             );
         }
         

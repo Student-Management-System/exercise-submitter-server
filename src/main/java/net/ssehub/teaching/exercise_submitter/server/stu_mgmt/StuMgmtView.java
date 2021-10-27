@@ -387,14 +387,20 @@ public class StuMgmtView {
             } else {
                 AssessmentDto existingAssessment = existingAssessments.get(0);
                 
-                AssessmentUpdateDto assessmentUpdate = new AssessmentUpdateDto();
-                existingAssessment.getPartialAssessments().stream()
-                        .filter(pa -> !pa.getKey().equals(PARTIAL_ASSESSMENT_KEY))
-                        .forEach(assessmentUpdate::addPartialAssessmentsItem);
-                assessmentUpdate.addPartialAssessmentsItem(createPartialAssessment(resultMessages));
-                
-                api.updateAssessment(assessmentUpdate, course.getId(), assginment.getMgmtId(),
-                        existingAssessment.getId());
+                if (existingAssessment.isIsDraft()) {
+                    AssessmentUpdateDto assessmentUpdate = new AssessmentUpdateDto();
+                    existingAssessment.getPartialAssessments().stream()
+                    .filter(pa -> !pa.getKey().equals(PARTIAL_ASSESSMENT_KEY))
+                    .forEach(assessmentUpdate::addPartialAssessmentsItem);
+                    assessmentUpdate.addPartialAssessmentsItem(createPartialAssessment(resultMessages));
+                    
+                    api.updateAssessment(assessmentUpdate, course.getId(), assginment.getMgmtId(),
+                            existingAssessment.getId());
+                    
+                } else {
+                    LOGGER.warning(() -> "Existing assessment for " + target
+                            + " is not a draft; not adding partial assessment");
+                }
             }
             
         } catch (NoSuchElementException e) {
