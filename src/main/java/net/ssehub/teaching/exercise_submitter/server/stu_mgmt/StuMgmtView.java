@@ -417,6 +417,9 @@ public class StuMgmtView {
         PartialAssessmentDto partialAssessment = new PartialAssessmentDto();
         partialAssessment.setKey(PARTIAL_ASSESSMENT_KEY);
         partialAssessment.setTitle(PARTIAL_ASSESSMENT_TITLE);
+        if (resultMessages.isEmpty()) {
+            partialAssessment.setComment("No errors or warnings.");
+        }
         
         resultMessages.stream()
                 .map(StuMgmtView::resultMessageToMarkerDto)
