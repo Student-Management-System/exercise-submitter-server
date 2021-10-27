@@ -142,7 +142,7 @@ public class SubmissionManager {
         LOGGER.info(() -> "Submission to " + target + " " + (result.getAccepted() ? "accepted" : "rejected")
                 + "; messages: " + result.getMessages());
         
-        if (!reject) {
+        if (!reject && !nonRejectingChecks.isEmpty()) {
             stuMgmtView.sendSubmissionResult(target, checkMessages);
         }
         

@@ -11,6 +11,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.junit.jupiter.api.Test;
 
@@ -232,6 +233,45 @@ public class SubmissionManagerTest {
                 new SubmissionTarget("a", "b", "c"), new SubmissionBuilder("s").build()));
         
         assertEquals(Collections.emptyList(), sentMessages);
+    }
+    
+    @Test
+    public void noResultMessagesCallSendResultMessage() {
+        AtomicBoolean called = new AtomicBoolean(false);
+        SubmissionManager manager = new SubmissionManager(new EmptyStorage(), new EmptyStuMgmtView() {
+            @Override
+            public void sendSubmissionResult(SubmissionTarget target, List<ResultMessage> messages) {
+                called.set(true);
+            }
+        });
+        
+        manager.addNonRejectingCheck(new Check() {
+            @Override
+            public boolean run(File submissionDirectory) {
+                return true;
+            }
+        });
+        
+        assertDoesNotThrow(() -> manager.submit(
+                new SubmissionTarget("a", "b", "c"), new SubmissionBuilder("s").build()));
+        
+        assertTrue(called.get());
+    }
+    
+    @Test
+    public void noNonRejectingChecksDontCallSendResultMessage() {
+        AtomicBoolean called = new AtomicBoolean(false);
+        SubmissionManager manager = new SubmissionManager(new EmptyStorage(), new EmptyStuMgmtView() {
+            @Override
+            public void sendSubmissionResult(SubmissionTarget target, List<ResultMessage> messages) {
+                called.set(true);
+            }
+        });
+        
+        assertDoesNotThrow(() -> manager.submit(
+                new SubmissionTarget("a", "b", "c"), new SubmissionBuilder("s").build()));
+        
+        assertFalse(called.get());
     }
     
 }
