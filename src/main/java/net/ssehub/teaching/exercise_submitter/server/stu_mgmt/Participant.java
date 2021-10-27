@@ -9,6 +9,8 @@ import net.ssehub.studentmgmt.backend_api.model.ParticipantDto.RoleEnum;
  */
 public class Participant {
 
+    private String mgmtId;
+    
     private String name;
     
     private RoleEnum role;
@@ -16,12 +18,23 @@ public class Participant {
     /**
      * Creates a new participant.
      * 
+     * @param mgmtId The ID of the participant in the student management system.
      * @param name The name of the participant.
      * @param role The role of the participant.
      */
-    Participant(String name, RoleEnum role) {
+    Participant(String mgmtId, String name, RoleEnum role) {
+        this.mgmtId = mgmtId;
         this.name = name;
         this.role = role;
+    }
+    
+    /**
+     * Returns the ID of the participant in the student management system.
+     * 
+     * @return The ID.
+     */
+    public String getMgmtId() {
+        return mgmtId;
     }
 
     /**

@@ -17,6 +17,8 @@ import net.ssehub.studentmgmt.backend_api.model.ParticipantDto.RoleEnum;
  */
 public class Assignment {
 
+    private String mgmtId;
+    
     private String name;
     
     private StateEnum state;
@@ -28,15 +30,26 @@ public class Assignment {
     /**
      * Creates an assignment.
      * 
+     * @param mgmtId The ID of this assignment in the student management system.
      * @param name The name of this assignment.
      * @param state The state of this assignment.
      * @param collaboration The collaboration type of this assignment.
      */
-    Assignment(String name, StateEnum state, CollaborationEnum collaboration) {
+    Assignment(String mgmtId, String name, StateEnum state, CollaborationEnum collaboration) {
+        this.mgmtId = mgmtId;
         this.name = name;
         this.state = state;
         this.collaboration = collaboration;
         this.groupsByNames = new HashMap<>();
+    }
+    
+    /**
+     * Returns the ID of this assignment in the student management system.
+     * 
+     * @return The ID.
+     */
+    String getMgmtId() {
+        return mgmtId;
     }
     
     /**

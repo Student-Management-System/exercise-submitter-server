@@ -13,6 +13,7 @@ import jakarta.ws.rs.core.Response;
 import net.ssehub.studentmgmt.backend_api.model.NotificationDto;
 import net.ssehub.teaching.exercise_submitter.server.storage.EmptyStorage;
 import net.ssehub.teaching.exercise_submitter.server.storage.StorageException;
+import net.ssehub.teaching.exercise_submitter.server.stu_mgmt.EmptyStuMgmtView;
 import net.ssehub.teaching.exercise_submitter.server.stu_mgmt.StuMgmtLoadingException;
 import net.ssehub.teaching.exercise_submitter.server.stu_mgmt.StuMgmtView;
 
@@ -21,10 +22,7 @@ public class NotificationRouteIT extends AbstractRestTest {
     @Test
     public void viewUpdated() {
         AtomicInteger numCalled = new AtomicInteger();
-        setStuMgmtView(new StuMgmtView(null, null, null, null) {
-            @Override
-            public void fullReload() throws StuMgmtLoadingException {
-            }
+        setStuMgmtView(new EmptyStuMgmtView() {
             @Override
             public void update(NotificationDto notification) throws StuMgmtLoadingException {
                 numCalled.incrementAndGet();
@@ -44,10 +42,7 @@ public class NotificationRouteIT extends AbstractRestTest {
     
     @Test
     public void stuMgmtLoadingExceptionInternalServerError() {
-        setStuMgmtView(new StuMgmtView(null, null, null, null) {
-            @Override
-            public void fullReload() throws StuMgmtLoadingException {
-            }
+        setStuMgmtView(new EmptyStuMgmtView() {
             @Override
             public void update(NotificationDto notification) throws StuMgmtLoadingException {
                 throw new StuMgmtLoadingException();

@@ -122,10 +122,11 @@ public class ExerciseSubmitterServer {
         
         LOGGER.config(() -> "Using storage directory " + storagePath);
         ISubmissionStorage storage = new FilesystemStorage(Path.of(storagePath));
-        SubmissionManager submissionManager = new SubmissionManager(storage);
+        StuMgmtView stuMgmtView = new StuMgmtView(stuMgmtUrl, authSystemUrl, username, password);
+        
+        SubmissionManager submissionManager = new SubmissionManager(storage, stuMgmtView);
         createChecks(submissionManager);
         
-        StuMgmtView stuMgmtView = new StuMgmtView(stuMgmtUrl, authSystemUrl, username, password);
         AuthManager authManager = new AuthManager(authSystemUrl, stuMgmtView);
 
         LOGGER.config("Starting HTTP server on port " + port);

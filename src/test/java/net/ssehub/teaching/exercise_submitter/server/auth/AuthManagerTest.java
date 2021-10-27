@@ -33,11 +33,11 @@ public class AuthManagerTest {
         
         @Test
         public void nonExistingAssignmentNotAllowed() throws StuMgmtLoadingException {
-            StuMgmtView view = new StuMgmtView(null, null, null, null) {
+            StuMgmtView view = new EmptyStuMgmtView() {
                 @Override
                 public void fullReload() {
                     Course course = createCourse("foo-123");
-                    createParticipant(course, "student1", RoleEnum.STUDENT);
+                    createParticipant(course, "abc", "student1", RoleEnum.STUDENT);
                 }
             };
             view.fullReload();
@@ -49,11 +49,11 @@ public class AuthManagerTest {
         
         @Test
         public void nonExistingParticipantNotAllowed() throws StuMgmtLoadingException {
-            StuMgmtView view = new StuMgmtView(null, null, null, null) {
+            StuMgmtView view = new EmptyStuMgmtView() {
                 @Override
                 public void fullReload() {
                     Course course = createCourse("foo-123");
-                    createAssignment(course, "Homework01", StateEnum.IN_PROGRESS, CollaborationEnum.SINGLE);
+                    createAssignment(course, "123", "Homework01", StateEnum.IN_PROGRESS, CollaborationEnum.SINGLE);
                 }
             };
             view.fullReload();
@@ -65,12 +65,12 @@ public class AuthManagerTest {
         
         @Test
         public void userStudentAssignmentInProgressAllowed() throws StuMgmtLoadingException {
-            StuMgmtView view = new StuMgmtView(null, null, null, null) {
+            StuMgmtView view = new EmptyStuMgmtView() {
                 @Override
                 public void fullReload() {
                     Course course = createCourse("foo-123");
-                    createParticipant(course, "student1", RoleEnum.STUDENT);
-                    createAssignment(course, "Homework01", StateEnum.IN_PROGRESS, CollaborationEnum.SINGLE);
+                    createParticipant(course, "abc", "student1", RoleEnum.STUDENT);
+                    createAssignment(course, "123", "Homework01", StateEnum.IN_PROGRESS, CollaborationEnum.SINGLE);
                 }
             };
             view.fullReload();
@@ -82,12 +82,12 @@ public class AuthManagerTest {
         
         @Test
         public void userStudentAssignmentInReviewNotAllowed() throws StuMgmtLoadingException {
-            StuMgmtView view = new StuMgmtView(null, null, null, null) {
+            StuMgmtView view = new EmptyStuMgmtView() {
                 @Override
                 public void fullReload() {
                     Course course = createCourse("foo-123");
-                    createParticipant(course, "student1", RoleEnum.STUDENT);
-                    createAssignment(course, "Homework01", StateEnum.IN_REVIEW, CollaborationEnum.SINGLE);
+                    createParticipant(course, "abc", "student1", RoleEnum.STUDENT);
+                    createAssignment(course, "123", "Homework01", StateEnum.IN_REVIEW, CollaborationEnum.SINGLE);
                 }
             };
             view.fullReload();
@@ -99,12 +99,12 @@ public class AuthManagerTest {
         
         @Test
         public void singleAssignmentSubmitToSameUserAllowed() throws StuMgmtLoadingException {
-            StuMgmtView view = new StuMgmtView(null, null, null, null) {
+            StuMgmtView view = new EmptyStuMgmtView() {
                 @Override
                 public void fullReload() {
                     Course course = createCourse("foo-123");
-                    createParticipant(course, "student1", RoleEnum.STUDENT);
-                    createAssignment(course, "Homework01", StateEnum.IN_PROGRESS, CollaborationEnum.SINGLE);
+                    createParticipant(course, "abc", "student1", RoleEnum.STUDENT);
+                    createAssignment(course, "123", "Homework01", StateEnum.IN_PROGRESS, CollaborationEnum.SINGLE);
                 }
             };
             view.fullReload();
@@ -116,12 +116,12 @@ public class AuthManagerTest {
         
         @Test
         public void singleAssignmentSubmitToDifferentStudentNotAllowed() throws StuMgmtLoadingException {
-            StuMgmtView view = new StuMgmtView(null, null, null, null) {
+            StuMgmtView view = new EmptyStuMgmtView() {
                 @Override
                 public void fullReload() {
                     Course course = createCourse("foo-123");
-                    createParticipant(course, "student1", RoleEnum.STUDENT);
-                    createAssignment(course, "Homework01", StateEnum.IN_PROGRESS, CollaborationEnum.SINGLE);
+                    createParticipant(course, "abc", "student1", RoleEnum.STUDENT);
+                    createAssignment(course, "123", "Homework01", StateEnum.IN_PROGRESS, CollaborationEnum.SINGLE);
                 }
             };
             view.fullReload();
@@ -133,14 +133,14 @@ public class AuthManagerTest {
         
         @Test
         public void groupAssignmentSubmitToOwnGroupAllowed() throws StuMgmtLoadingException {
-            StuMgmtView view = new StuMgmtView(null, null, null, null) {
+            StuMgmtView view = new EmptyStuMgmtView() {
                 @Override
                 public void fullReload() {
                     Course course = createCourse("foo-123");
-                    Participant p = createParticipant(course, "student1", RoleEnum.STUDENT);
+                    Participant p = createParticipant(course, "abc", "student1", RoleEnum.STUDENT);
                     Assignment a = createAssignment(
-                            course, "Homework01", StateEnum.IN_PROGRESS, CollaborationEnum.GROUP);
-                    createGroup(a, "Group01", p);
+                            course, "123", "Homework01", StateEnum.IN_PROGRESS, CollaborationEnum.GROUP);
+                    createGroup(a, "def", "Group01", p);
                 }
             };
             view.fullReload();
@@ -152,14 +152,14 @@ public class AuthManagerTest {
         
         @Test
         public void groupAssignmentSubmitToDifferentGroupNotAllowed() throws StuMgmtLoadingException {
-            StuMgmtView view = new StuMgmtView(null, null, null, null) {
+            StuMgmtView view = new EmptyStuMgmtView() {
                 @Override
                 public void fullReload() {
                     Course course = createCourse("foo-123");
-                    createParticipant(course, "student1", RoleEnum.STUDENT);
+                    createParticipant(course, "abc", "student1", RoleEnum.STUDENT);
                     Assignment a = createAssignment(
-                            course, "Homework01", StateEnum.IN_PROGRESS, CollaborationEnum.GROUP);
-                    createGroup(a, "Group01"); // student1 is not in this group
+                            course, "123", "Homework01", StateEnum.IN_PROGRESS, CollaborationEnum.GROUP);
+                    createGroup(a, "def", "Group01"); // student1 is not in this group
                 }
             };
             view.fullReload();
@@ -171,12 +171,12 @@ public class AuthManagerTest {
         
         @Test
         public void groupAssignmentSubmitToNonExistantGroupNotAllowed() throws StuMgmtLoadingException {
-            StuMgmtView view = new StuMgmtView(null, null, null, null) {
+            StuMgmtView view = new EmptyStuMgmtView() {
                 @Override
                 public void fullReload() {
                     Course course = createCourse("foo-123");
-                    createParticipant(course, "student1", RoleEnum.STUDENT);
-                    createAssignment(course, "Homework01", StateEnum.IN_PROGRESS, CollaborationEnum.GROUP);
+                    createParticipant(course, "abc", "student1", RoleEnum.STUDENT);
+                    createAssignment(course, "123", "Homework01", StateEnum.IN_PROGRESS, CollaborationEnum.GROUP);
                 }
             };
             view.fullReload();
@@ -188,12 +188,12 @@ public class AuthManagerTest {
         
         @Test
         public void groupOrSingleAssignmentSubmitToSameUserAllowed() throws StuMgmtLoadingException {
-            StuMgmtView view = new StuMgmtView(null, null, null, null) {
+            StuMgmtView view = new EmptyStuMgmtView() {
                 @Override
                 public void fullReload() {
                     Course course = createCourse("foo-123");
-                    createParticipant(course, "student1", RoleEnum.STUDENT);
-                    createAssignment(course, "Homework01", StateEnum.IN_PROGRESS, CollaborationEnum.GROUP_OR_SINGLE);
+                    createParticipant(course, "abc", "student1", RoleEnum.STUDENT);
+                    createAssignment(course, "123", "Homework01", StateEnum.IN_PROGRESS, CollaborationEnum.GROUP_OR_SINGLE);
                 }
             };
             view.fullReload();
@@ -205,12 +205,12 @@ public class AuthManagerTest {
         
         @Test
         public void groupOrSingleAssignmentSubmitToDifferentStudentNotAllowed() throws StuMgmtLoadingException {
-            StuMgmtView view = new StuMgmtView(null, null, null, null) {
+            StuMgmtView view = new EmptyStuMgmtView() {
                 @Override
                 public void fullReload() {
                     Course course = createCourse("foo-123");
-                    createParticipant(course, "student1", RoleEnum.STUDENT);
-                    createAssignment(course, "Homework01", StateEnum.IN_PROGRESS, CollaborationEnum.GROUP_OR_SINGLE);
+                    createParticipant(course, "abc", "student1", RoleEnum.STUDENT);
+                    createAssignment(course, "123", "Homework01", StateEnum.IN_PROGRESS, CollaborationEnum.GROUP_OR_SINGLE);
                 }
             };
             view.fullReload();
@@ -222,14 +222,14 @@ public class AuthManagerTest {
         
         @Test
         public void groupOrSingleAssignmentSubmitToOwnGroupAllowed() throws StuMgmtLoadingException {
-            StuMgmtView view = new StuMgmtView(null, null, null, null) {
+            StuMgmtView view = new EmptyStuMgmtView() {
                 @Override
                 public void fullReload() {
                     Course course = createCourse("foo-123");
-                    Participant p = createParticipant(course, "student1", RoleEnum.STUDENT);
+                    Participant p = createParticipant(course, "abc", "student1", RoleEnum.STUDENT);
                     Assignment a = createAssignment(
-                            course, "Homework01", StateEnum.IN_PROGRESS, CollaborationEnum.GROUP_OR_SINGLE);
-                    createGroup(a, "Group01", p);
+                            course, "123", "Homework01", StateEnum.IN_PROGRESS, CollaborationEnum.GROUP_OR_SINGLE);
+                    createGroup(a, "def", "Group01", p);
                 }
             };
             view.fullReload();
@@ -241,14 +241,14 @@ public class AuthManagerTest {
         
         @Test
         public void groupOrSingleAssignmentSubmitToDifferentGroupNotAllowed() throws StuMgmtLoadingException {
-            StuMgmtView view = new StuMgmtView(null, null, null, null) {
+            StuMgmtView view = new EmptyStuMgmtView() {
                 @Override
                 public void fullReload() {
                     Course course = createCourse("foo-123");
-                    createParticipant(course, "student1", RoleEnum.STUDENT);
+                    createParticipant(course, "abc", "student1", RoleEnum.STUDENT);
                     Assignment a = createAssignment(
-                            course, "Homework01", StateEnum.IN_PROGRESS, CollaborationEnum.GROUP_OR_SINGLE);
-                    createGroup(a, "Group01"); // student1 is not in this group
+                            course, "123", "Homework01", StateEnum.IN_PROGRESS, CollaborationEnum.GROUP_OR_SINGLE);
+                    createGroup(a, "def", "Group01"); // student1 is not in this group
                 }
             };
             view.fullReload();
@@ -260,12 +260,12 @@ public class AuthManagerTest {
         
         @Test
         public void groupOrSingleAssignmentSubmitToNonExistantGroupNotAllowed() throws StuMgmtLoadingException {
-            StuMgmtView view = new StuMgmtView(null, null, null, null) {
+            StuMgmtView view = new EmptyStuMgmtView() {
                 @Override
                 public void fullReload() {
                     Course course = createCourse("foo-123");
-                    createParticipant(course, "student1", RoleEnum.STUDENT);
-                    createAssignment(course, "Homework01", StateEnum.IN_PROGRESS, CollaborationEnum.GROUP_OR_SINGLE);
+                    createParticipant(course, "abc", "student1", RoleEnum.STUDENT);
+                    createAssignment(course, "123", "Homework01", StateEnum.IN_PROGRESS, CollaborationEnum.GROUP_OR_SINGLE);
                 }
             };
             view.fullReload();
@@ -277,13 +277,13 @@ public class AuthManagerTest {
         
         @Test
         public void teacherCanSubmitToOtherUser() throws StuMgmtLoadingException {
-            StuMgmtView view = new StuMgmtView(null, null, null, null) {
+            StuMgmtView view = new EmptyStuMgmtView() {
                 @Override
                 public void fullReload() {
                     Course course = createCourse("foo-123");
-                    createParticipant(course, "student1", RoleEnum.STUDENT);
-                    createParticipant(course, "teacher", RoleEnum.LECTURER);
-                    createAssignment(course, "Homework01", StateEnum.IN_PROGRESS, CollaborationEnum.SINGLE);
+                    createParticipant(course, "abc", "student1", RoleEnum.STUDENT);
+                    createParticipant(course, "def", "teacher", RoleEnum.LECTURER);
+                    createAssignment(course, "123", "Homework01", StateEnum.IN_PROGRESS, CollaborationEnum.SINGLE);
                 }
             };
             view.fullReload();
@@ -309,11 +309,11 @@ public class AuthManagerTest {
         
         @Test
         public void nonExistingAssignmentNotAllowed() throws StuMgmtLoadingException {
-            StuMgmtView view = new StuMgmtView(null, null, null, null) {
+            StuMgmtView view = new EmptyStuMgmtView() {
                 @Override
                 public void fullReload() {
                     Course course = createCourse("foo-123");
-                    createParticipant(course, "student1", RoleEnum.STUDENT);
+                    createParticipant(course, "abc", "student1", RoleEnum.STUDENT);
                 }
             };
             view.fullReload();
@@ -325,11 +325,11 @@ public class AuthManagerTest {
         
         @Test
         public void nonExistingParticipantNotAllowed() throws StuMgmtLoadingException {
-            StuMgmtView view = new StuMgmtView(null, null, null, null) {
+            StuMgmtView view = new EmptyStuMgmtView() {
                 @Override
                 public void fullReload() {
                     Course course = createCourse("foo-123");
-                    createAssignment(course, "Homework01", StateEnum.IN_PROGRESS, CollaborationEnum.SINGLE);
+                    createAssignment(course, "123", "Homework01", StateEnum.IN_PROGRESS, CollaborationEnum.SINGLE);
                 }
             };
             view.fullReload();
@@ -341,12 +341,12 @@ public class AuthManagerTest {
         
         @Test
         public void userStudentAssignmentInProgressAllowed() throws StuMgmtLoadingException {
-            StuMgmtView view = new StuMgmtView(null, null, null, null) {
+            StuMgmtView view = new EmptyStuMgmtView() {
                 @Override
                 public void fullReload() {
                     Course course = createCourse("foo-123");
-                    createParticipant(course, "student1", RoleEnum.STUDENT);
-                    createAssignment(course, "Homework01", StateEnum.IN_PROGRESS, CollaborationEnum.SINGLE);
+                    createParticipant(course, "abc", "student1", RoleEnum.STUDENT);
+                    createAssignment(course, "123", "Homework01", StateEnum.IN_PROGRESS, CollaborationEnum.SINGLE);
                 }
             };
             view.fullReload();
@@ -358,12 +358,12 @@ public class AuthManagerTest {
         
         @Test
         public void userStudentAssignmentInReviewNotAllowed() throws StuMgmtLoadingException {
-            StuMgmtView view = new StuMgmtView(null, null, null, null) {
+            StuMgmtView view = new EmptyStuMgmtView() {
                 @Override
                 public void fullReload() {
                     Course course = createCourse("foo-123");
-                    createParticipant(course, "student1", RoleEnum.STUDENT);
-                    createAssignment(course, "Homework01", StateEnum.IN_REVIEW, CollaborationEnum.SINGLE);
+                    createParticipant(course, "abc", "student1", RoleEnum.STUDENT);
+                    createAssignment(course, "123", "Homework01", StateEnum.IN_REVIEW, CollaborationEnum.SINGLE);
                 }
             };
             view.fullReload();
@@ -375,12 +375,12 @@ public class AuthManagerTest {
         
         @Test
         public void singleAssignmentDifferentUserNotAllowed() throws StuMgmtLoadingException {
-            StuMgmtView view = new StuMgmtView(null, null, null, null) {
+            StuMgmtView view = new EmptyStuMgmtView() {
                 @Override
                 public void fullReload() {
                     Course course = createCourse("foo-123");
-                    createParticipant(course, "student1", RoleEnum.STUDENT);
-                    createAssignment(course, "Homework01", StateEnum.IN_PROGRESS, CollaborationEnum.SINGLE);
+                    createParticipant(course, "abc", "student1", RoleEnum.STUDENT);
+                    createAssignment(course, "123", "Homework01", StateEnum.IN_PROGRESS, CollaborationEnum.SINGLE);
                 }
             };
             view.fullReload();

@@ -1,5 +1,6 @@
 package net.ssehub.teaching.exercise_submitter.server.stu_mgmt;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
@@ -11,8 +12,10 @@ import java.time.temporal.ChronoUnit;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.NoSuchElementException;
 import java.util.Optional;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -20,22 +23,33 @@ import java.util.stream.Collectors;
 
 import net.ssehub.studentmgmt.backend_api.ApiClient;
 import net.ssehub.studentmgmt.backend_api.ApiException;
+import net.ssehub.studentmgmt.backend_api.api.AssessmentApi;
 import net.ssehub.studentmgmt.backend_api.api.AssignmentApi;
 import net.ssehub.studentmgmt.backend_api.api.AssignmentRegistrationApi;
 import net.ssehub.studentmgmt.backend_api.api.CourseApi;
 import net.ssehub.studentmgmt.backend_api.api.CourseParticipantsApi;
+import net.ssehub.studentmgmt.backend_api.model.AssessmentCreateDto;
+import net.ssehub.studentmgmt.backend_api.model.AssessmentDto;
+import net.ssehub.studentmgmt.backend_api.model.AssessmentUpdateDto;
 import net.ssehub.studentmgmt.backend_api.model.AssignmentDto;
 import net.ssehub.studentmgmt.backend_api.model.AssignmentDto.CollaborationEnum;
 import net.ssehub.studentmgmt.backend_api.model.AssignmentDto.StateEnum;
+import net.ssehub.studentmgmt.backend_api.model.MarkerDto.SeverityEnum;
 import net.ssehub.studentmgmt.backend_api.model.CourseDto;
 import net.ssehub.studentmgmt.backend_api.model.GroupDto;
+import net.ssehub.studentmgmt.backend_api.model.MarkerDto;
 import net.ssehub.studentmgmt.backend_api.model.NotificationDto;
+import net.ssehub.studentmgmt.backend_api.model.PartialAssessmentDto;
 import net.ssehub.studentmgmt.backend_api.model.ParticipantDto;
 import net.ssehub.studentmgmt.backend_api.model.ParticipantDto.RoleEnum;
 import net.ssehub.studentmgmt.sparkyservice_api.api.AuthControllerApi;
 import net.ssehub.studentmgmt.sparkyservice_api.model.AuthenticationInfoDto;
 import net.ssehub.studentmgmt.sparkyservice_api.model.CredentialsDto;
 import net.ssehub.studentmgmt.sparkyservice_api.model.TokenDto;
+import net.ssehub.teaching.exercise_submitter.server.storage.SubmissionTarget;
+import net.ssehub.teaching.exercise_submitter.server.submission.checks.Check;
+import net.ssehub.teaching.exercise_submitter.server.submission.checks.ResultMessage;
+import net.ssehub.teaching.exercise_submitter.server.submission.checks.ResultMessage.MessageType;
 
 /**
  * A local view of the courses, users, groups, and assignment in the student management system.
@@ -61,6 +75,10 @@ public class StuMgmtView {
             .appendLiteral(':')
             .appendValue(ChronoField.SECOND_OF_MINUTE, 2)
             .toFormatter(Locale.ROOT);
+    
+    private static final String PARTIAL_ASSESSMENT_KEY = "exercise-submitter-checks";
+    
+    private static final String PARTIAL_ASSESSMENT_TITLE = "Automatic Checks";
     
     private Map<String, Course> courses;
     
@@ -150,13 +168,14 @@ public class StuMgmtView {
      * Convenience method for test cases.
      * 
      * @param course The course to add the participant to.
+     * @param mgmtId The ID of the participant in the student management system.
      * @param username The name of the new participant.
      * @param role The role of the new participant.
      * 
      * @return The new participant.
      */
-    protected Participant createParticipant(Course course, String username, RoleEnum role)  {
-        Participant participant = new Participant(username, role);
+    protected Participant createParticipant(Course course, String mgmtId, String username, RoleEnum role)  {
+        Participant participant = new Participant(mgmtId, username, role);
         course.addParticipant(participant);
         return participant;
     }
@@ -167,6 +186,7 @@ public class StuMgmtView {
      * Convenience method for test cases.
      * 
      * @param course The course to add the assignment to.
+     * @param mgmtId The ID of the assignment in the student management system.
      * @param name The name of the assignment.
      * @param state The state of the assignment.
      * @param collaboration The collaboration type of this assignment.
@@ -174,8 +194,8 @@ public class StuMgmtView {
      * @return The new assignment.
      */
     protected Assignment createAssignment(
-            Course course, String name, StateEnum state, CollaborationEnum collaboration) {
-        Assignment assignment = new Assignment(name, state, collaboration);
+            Course course, String mgmtId, String name, StateEnum state, CollaborationEnum collaboration) {
+        Assignment assignment = new Assignment(mgmtId, name, state, collaboration);
         course.addAssignment(assignment);
         return assignment;
     }
@@ -186,13 +206,14 @@ public class StuMgmtView {
      * Convenience method for test cases.
      * 
      * @param assignment The assignment to add the group to.
+     * @param mgmtId The ID of the group in the student management system.
      * @param name The name of the group.
      * @param participants The participants of this group.
      * 
      * @return The new group. 
      */
-    protected Group createGroup(Assignment assignment, String name, Participant... participants) {
-        Group group = new Group(name);
+    protected Group createGroup(Assignment assignment, String mgmtId, String name, Participant... participants) {
+        Group group = new Group(mgmtId, name);
         assignment.addGroup(group);
         for (Participant participant : participants) {
             group.addParticipant(participant);
@@ -220,7 +241,7 @@ public class StuMgmtView {
                 LOGGER.fine(() -> "Creating " + pDto.getRole() + " " + pDto.getUsername()
                         + " in course " + courseId);
                 
-                createParticipant(course, pDto.getUsername(), pDto.getRole());
+                createParticipant(course, pDto.getUserId(), pDto.getUsername(), pDto.getRole());
             }
             
             for (AssignmentDto aDto : assignmentApi.getAssignmentsOfCourse(course.getId())) {
@@ -229,7 +250,7 @@ public class StuMgmtView {
                         + "(" + aDto.getStartDate() + ") in course " + courseId);
                 
                 Assignment assignment = createAssignment(
-                        course, aDto.getName(), aDto.getState(), aDto.getCollaboration());
+                        course, aDto.getId(), aDto.getName(), aDto.getState(), aDto.getCollaboration());
                 
                 for (GroupDto gDto : groupApi.getRegisteredGroups(course.getId(), aDto.getId(), null, null, null)) {
                     
@@ -239,7 +260,7 @@ public class StuMgmtView {
                                 .collect(Collectors.joining(", "))
                             + " in assignment " + aDto.getName() + " in course " + courseId);
                     
-                    createGroup(assignment, gDto.getName(), gDto.getMembers().stream()
+                    createGroup(assignment, gDto.getId(), gDto.getName(), gDto.getMembers().stream()
                             .map(ParticipantDto::getUsername)
                             .map(course::getParticipant)
                             .filter(Optional::isPresent)
@@ -314,6 +335,124 @@ public class StuMgmtView {
      */
     public Optional<Course> getCourse(String course) {
         return Optional.ofNullable(courses.get(course));
+    }
+
+    /**
+     * Sends the given result messages of an accepted submission as a draft assessment to the student management system.
+     * 
+     * @param target The target that was submitted.
+     * @param resultMessages The messages created by the {@link Check}s.
+     */
+    public void sendSubmissionResult(SubmissionTarget target, List<ResultMessage> resultMessages) {
+        
+        try {
+            Course course = getCourse(target.getCourse()).orElseThrow();
+            Assignment assginment = course.getAssignment(target.getAssignmentName()).orElseThrow();
+            Optional<Group> group = assginment.getGroup(target.getGroupName());
+            String userOrGroupId;
+            boolean isGroup;
+            if (group.isPresent()) {
+                userOrGroupId = group.get().getMgmtId();
+                isGroup = true;
+            } else {
+                userOrGroupId = course.getParticipant(target.getGroupName()).orElseThrow().getMgmtId();
+                isGroup = false;
+            }
+            
+            authenticateMgmtClient();
+            AssessmentApi api = new AssessmentApi(mgmtClient);
+            
+            List<AssessmentDto> existingAssessments;
+            if (isGroup) {
+                existingAssessments = api.getAssessmentsForAssignment(
+                        course.getId(), assginment.getMgmtId(), null, null, null, userOrGroupId, null, null, null);
+            } else {
+                existingAssessments = api.getAssessmentsForAssignment(
+                        course.getId(), assginment.getMgmtId(), null, null, null, null, userOrGroupId, null, null);
+            }
+            
+            if (existingAssessments.isEmpty()) {
+                AssessmentCreateDto newAssessment = new AssessmentCreateDto();
+                if (isGroup) {
+                    newAssessment.setGroupId(userOrGroupId);
+                } else {
+                    newAssessment.setUserId(userOrGroupId);
+                }
+                newAssessment.setAssignmentId(assginment.getMgmtId());
+                newAssessment.setIsDraft(true);
+                newAssessment.addPartialAssessmentsItem(createPartialAssessment(resultMessages));
+                
+                api.createAssessment(newAssessment, course.getId(), assginment.getMgmtId());
+                
+            } else {
+                AssessmentDto existingAssessment = existingAssessments.get(0);
+                
+                AssessmentUpdateDto assessmentUpdate = new AssessmentUpdateDto();
+                existingAssessment.getPartialAssessments().stream()
+                        .filter(pa -> !pa.getKey().equals(PARTIAL_ASSESSMENT_KEY))
+                        .forEach(assessmentUpdate::addPartialAssessmentsItem);
+                assessmentUpdate.addPartialAssessmentsItem(createPartialAssessment(resultMessages));
+                
+                api.updateAssessment(assessmentUpdate, course.getId(), assginment.getMgmtId(),
+                        existingAssessment.getId());
+            }
+            
+        } catch (NoSuchElementException e) {
+            LOGGER.warning(() ->
+                    "Failed to send submission result to management system: can't find assginment " + target);
+            
+        } catch (StuMgmtLoadingException | ApiException e) {
+            LOGGER.log(Level.WARNING, "Failed to send submission result to management system", e);
+        }
+    }
+
+    /**
+     * Creates a {@link PartialAssessmentDto} for the given result messages.
+     * 
+     * @param resultMessages The messages to convert into markers in the partial assessment.
+     * 
+     * @return A {@link PartialAssessmentDto} with the given result message.
+     */
+    private static PartialAssessmentDto createPartialAssessment(List<ResultMessage> resultMessages) {
+        PartialAssessmentDto partialAssessment = new PartialAssessmentDto();
+        partialAssessment.setKey(PARTIAL_ASSESSMENT_KEY);
+        partialAssessment.setTitle(PARTIAL_ASSESSMENT_TITLE);
+        
+        resultMessages.stream()
+                .map(StuMgmtView::resultMessageToMarkerDto)
+                .forEach(partialAssessment::addMarkersItem);
+        return partialAssessment;
+    }
+
+    /**
+     * Converts a {@link ResultMessage} to a {@link MarkerDto}.
+     * 
+     * @param message The result message to convert.
+     * 
+     * @return The corresponding marker dto.
+     */
+    private static MarkerDto resultMessageToMarkerDto(ResultMessage message) {
+        MarkerDto marker = new MarkerDto();
+        
+        marker.setComment("(" + message.getCheckName() + ") " + message.getMessage());
+        
+        marker.setSeverity(message.getType() == MessageType.WARNING
+                ? SeverityEnum.WARNING : SeverityEnum.ERROR);
+        
+        if (message.getFile() != null) {
+            marker.setPath(message.getFile().getPath().replace('\\', '/'));
+            
+            if (message.getLine() != null) {
+                marker.setStartLineNumber(BigDecimal.valueOf(message.getLine()));
+                marker.setEndLineNumber(BigDecimal.valueOf(message.getLine()));
+                
+                if (message.getColumn() != null) {
+                    marker.setStartColumn(BigDecimal.valueOf(message.getColumn()));
+                    marker.setEndColumn(BigDecimal.valueOf(message.getColumn()));
+                }
+            }
+        }
+        return marker;
     }
     
 }

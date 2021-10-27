@@ -12,7 +12,7 @@ public class NoChecksSubmissionManager extends SubmissionManager {
     private ISubmissionStorage storage;
     
     public NoChecksSubmissionManager(ISubmissionStorage storage) {
-        super(storage);
+        super(storage, null);
         this.storage = storage;
     }
 

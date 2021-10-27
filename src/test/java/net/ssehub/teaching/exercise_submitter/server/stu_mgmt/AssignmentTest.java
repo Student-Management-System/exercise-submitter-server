@@ -41,9 +41,9 @@ public class AssignmentTest {
     @Test
     public void canSubmit() {
         for (RoleEnum role : RoleEnum.values()) {
-            Participant participant = new Participant("participant", role);
+            Participant participant = new Participant("abc", "participant", role);
             for (StateEnum  state : StateEnum.values()) {
-                Assignment assignment = new Assignment("Homework01", state, CollaborationEnum.SINGLE);
+                Assignment assignment = new Assignment("123", "Homework01", state, CollaborationEnum.SINGLE);
                 
                 boolean expected = SUBMISSIONS[ROLE_INDEX.get(role)][STATE_INDEX.get(state)];
                 assertEquals(
@@ -57,9 +57,9 @@ public class AssignmentTest {
     @Test
     public void canReplay() {
         for (RoleEnum role : RoleEnum.values()) {
-            Participant participant = new Participant("participant", role);
+            Participant participant = new Participant("abc", "participant", role);
             for (StateEnum  state : StateEnum.values()) {
-                Assignment assignment = new Assignment("Homework01", state, CollaborationEnum.SINGLE);
+                Assignment assignment = new Assignment("123", "Homework01", state, CollaborationEnum.SINGLE);
                 
                 boolean expected = REPLAY[ROLE_INDEX.get(role)][STATE_INDEX.get(state)];
                 assertEquals(

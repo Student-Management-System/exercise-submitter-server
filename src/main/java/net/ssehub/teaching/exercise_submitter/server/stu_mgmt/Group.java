@@ -10,6 +10,8 @@ import java.util.Map;
  */
 public class Group {
 
+    private String mgmtId;
+    
     private String name;
     
     private Map<String, Participant> participantsByName;
@@ -17,11 +19,22 @@ public class Group {
     /**
      * Creates a new group with the given name.
      * 
+     * @param mgmtId The ID of this group in the student management system.
      * @param name The name of the group.
      */
-    Group(String name) {
+    Group(String mgmtId, String name) {
+        this.mgmtId = mgmtId;
         this.name = name;
         this.participantsByName = new HashMap<>();
+    }
+    
+    /**
+     * Returns the ID of this group in the student management system.
+     * 
+     * @return The ID.
+     */
+    String getMgmtId() {
+        return mgmtId;
     }
     
     /**
