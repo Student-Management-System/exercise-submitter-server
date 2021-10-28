@@ -16,6 +16,7 @@ import io.swagger.v3.oas.annotations.OpenAPIDefinition;
 import io.swagger.v3.oas.annotations.enums.SecuritySchemeType;
 import io.swagger.v3.oas.annotations.info.Info;
 import io.swagger.v3.oas.annotations.security.SecurityScheme;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import net.ssehub.teaching.exercise_submitter.server.auth.AuthManager;
 import net.ssehub.teaching.exercise_submitter.server.logging.LoggingSetup;
 import net.ssehub.teaching.exercise_submitter.server.rest.routes.HeartbeatRoute;
@@ -45,7 +46,12 @@ import net.ssehub.teaching.exercise_submitter.server.submission.checks.JavacChec
         title = "Exercise Submitter Server",
         description = "A sever for storing and retrieving exercise submissions.",
         version = "1"
-    )
+    ),
+    tags = {
+        @Tag(name = "submission", description = "Sending and retrieving submission"),
+        @Tag(name = "notification", description = "Notifcations on changes in the student management system"),
+        @Tag(name = "status", description = "Server status")
+    }
 )
 @SecurityScheme(name = "bearerAuth", type = SecuritySchemeType.HTTP, scheme = "bearer", bearerFormat = "JWT")
 public class ExerciseSubmitterServer {

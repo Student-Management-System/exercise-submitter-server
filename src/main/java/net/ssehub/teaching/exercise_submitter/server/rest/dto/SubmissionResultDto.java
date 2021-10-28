@@ -2,6 +2,7 @@ package net.ssehub.teaching.exercise_submitter.server.rest.dto;
 
 import java.util.List;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import net.ssehub.teaching.exercise_submitter.server.submission.checks.Check;
 
 /**
@@ -9,10 +10,13 @@ import net.ssehub.teaching.exercise_submitter.server.submission.checks.Check;
  * 
  * @author Adam
  */
+@Schema(description = "The result of a submission")
 public class SubmissionResultDto {
 
+    @Schema(description = "Whether the submission was accepted or rejected by automatic checks", required = true)
     private boolean accepted;
     
+    @Schema(description = "Messages created by automatic checks on the submission", required = true)
     private List<CheckMessageDto> messages;
     
     /**

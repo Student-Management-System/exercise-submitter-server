@@ -16,6 +16,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.parameters.RequestBody;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.HeaderParam;
@@ -47,7 +48,10 @@ import net.ssehub.teaching.exercise_submitter.server.submission.UnauthorizedExce
  * @author Adam
  */
 @Path("/submission")
+@Consumes(MediaType.APPLICATION_JSON)
 @Produces(MediaType.APPLICATION_JSON)
+@Tag(name = "submission")
+@SecurityRequirement(name = "bearerAuth")
 public class SubmissionRoute {
     
     /**
@@ -136,21 +140,29 @@ public class SubmissionRoute {
             @ApiResponse(responseCode = "403", description = "User is not authorized to add a new submission"),
             @ApiResponse(responseCode = "404", description = "Assignment or group does not exist"),
             @ApiResponse(responseCode = "500", description = "An unexpected internal server error occurred")
-        },
-        security = {
-            @SecurityRequirement(name = "bearerAuth")
-        },
-        tags = {"submission"} 
+        }
     )
     @POST
-    @Consumes(MediaType.APPLICATION_JSON)
     @Path("/{course}/{assignment}/{group}")
     public Response submit(
-            @PathParam("course") String course,
-            @PathParam("assignment") String assignmentName,
-            @PathParam("group") String groupName,
-            @RequestBody(description = "The files of this submission") List<FileDto> files,
-            @HeaderParam("Authorization") @Parameter(hidden = true) String authHeader)
+            @PathParam("course")
+            @Parameter(description = "ID of the course that contains the assignment")
+            String course,
+            
+            @PathParam("assignment")
+            @Parameter(description = "Name of the assignment to submit to")
+            String assignmentName,
+            
+            @PathParam("group")
+            @Parameter(description = "Name of the group (or username for single assignments) to submit to")
+            String groupName,
+            
+            @RequestBody(description = "The files of this submission")
+            List<FileDto> files,
+            
+            @HeaderParam("Authorization")
+            @Parameter(hidden = true)
+            String authHeader)
     
             throws NoSuchTargetException, StorageException, UnauthorizedException {
         
@@ -211,19 +223,26 @@ public class SubmissionRoute {
             @ApiResponse(responseCode = "403", description = "User is not authorized to get the version list"),
             @ApiResponse(responseCode = "404", description = "Assignment or group does not exist"),
             @ApiResponse(responseCode = "500", description = "An unexpected internal server error occurred")
-        },
-        security = {
-            @SecurityRequirement(name = "bearerAuth")
-        },
-        tags = {"submission"} 
+        }
     )
     @GET
     @Path("/{course}/{assignment}/{group}/versions")
     public Response listVersions(
-            @PathParam("course") String course,
-            @PathParam("assignment") String assignmentName,
-            @PathParam("group") String groupName,
-            @HeaderParam("Authorization") @Parameter(hidden = true)  String authHeader)
+            @PathParam("course")
+            @Parameter(description = "ID of the course that contains the assignment")
+            String course,
+            
+            @PathParam("assignment")
+            @Parameter(description = "Name of the assignment to get versions for")
+            String assignmentName,
+            
+            @PathParam("group")
+            @Parameter(description = "Name of the group (or username for single assignments) to get versions for")
+            String groupName,
+            
+            @HeaderParam("Authorization")
+            @Parameter(hidden = true)
+            String authHeader)
     
             throws NoSuchTargetException, StorageException, UnauthorizedException {
 
@@ -276,19 +295,26 @@ public class SubmissionRoute {
             @ApiResponse(responseCode = "404",
                 description = "Assignment or group does not exist, or there is no version to retrieve"),
             @ApiResponse(responseCode = "500", description = "An unexpected internal server error occurred")
-        },
-        security = {
-            @SecurityRequirement(name = "bearerAuth")
-        },
-        tags = {"submission"} 
+        }
     )
     @GET
     @Path("/{course}/{assignment}/{group}/latest")
     public Response getLatest(
-            @PathParam("course") String course,
-            @PathParam("assignment") String assignmentName,
-            @PathParam("group") String groupName,
-            @HeaderParam("Authorization") @Parameter(hidden = true)  String authHeader)
+            @PathParam("course")
+            @Parameter(description = "ID of the course that contains the assignment")
+            String course,
+            
+            @PathParam("assignment")
+            @Parameter(description = "Name of the assignment to retrieve from")
+            String assignmentName,
+            
+            @PathParam("group")
+            @Parameter(description = "Name of the group (or username for single assignments) to retrieve from")
+            String groupName,
+            
+            @HeaderParam("Authorization")
+            @Parameter(hidden = true)
+            String authHeader)
     
             throws NoSuchTargetException, StorageException, UnauthorizedException  {
         
@@ -319,22 +345,30 @@ public class SubmissionRoute {
             @ApiResponse(responseCode = "404",
                 description = "Assignment or group does not exist, or the specified version does not exist"),
             @ApiResponse(responseCode = "500", description = "An unexpected internal server error occurred")
-        },
-        security = {
-            @SecurityRequirement(name = "bearerAuth")
-        },
-        tags = {"submission"} 
+        }
     )
     @GET
     @Path("/{course}/{assignment}/{group}/{version}")
     public Response getVersion(
-            @PathParam("course") String course,
-            @PathParam("assignment") String assignmentName,
-            @PathParam("group") String groupName,
+            @PathParam("course")
+            @Parameter(description = "ID of the course that contains the assignment")
+            String course,
+            
+            @PathParam("assignment")
+            @Parameter(description = "Name of the assignment to retrieve from")
+            String assignmentName,
+            
+            @PathParam("group")
+            @Parameter(description = "Name of the group (or username for single assignments) to retrieve from")
+            String groupName,
+            
             @PathParam("version")
-                @Parameter(description = "Identifies the version as a unix timestamp (seconds since epoch)")
-                long timestamp,
-            @HeaderParam("Authorization") @Parameter(hidden = true)  String authHeader)
+            @Parameter(description = "Identifies the version as a unix timestamp (seconds since epoch)")
+            long timestamp,
+            
+            @HeaderParam("Authorization")
+            @Parameter(hidden = true)
+            String authHeader)
     
             throws NoSuchTargetException, StorageException, UnauthorizedException  {
         

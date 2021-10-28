@@ -6,8 +6,12 @@ import java.util.logging.Logger;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.parameters.RequestBody;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.POST;
 import jakarta.ws.rs.Path;
+import jakarta.ws.rs.Produces;
+import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.Response.Status;
 import net.ssehub.studentmgmt.backend_api.model.NotificationDto;
@@ -22,6 +26,9 @@ import net.ssehub.teaching.exercise_submitter.server.stu_mgmt.StuMgmtView;
  * @author Adam
  */
 @Path("/notify")
+@Consumes(MediaType.APPLICATION_JSON)
+@Produces(MediaType.APPLICATION_JSON)
+@Tag(name = "notification")
 public class NotificationRoute {
 
     private static final Logger LOGGER = Logger.getLogger(NotificationRoute.class.getName());
@@ -55,11 +62,10 @@ public class NotificationRoute {
         responses = {
             @ApiResponse(responseCode = "200", description = "Notification received"),
             @ApiResponse(responseCode = "500", description = "An unexpected internal server error occurred")
-        },
-        tags = {"notification"}
+        }
     )
     @POST
-    public Response notification(@RequestBody NotificationDto notification) throws StorageException {
+    public Response notification(@RequestBody(required = true) NotificationDto notification) throws StorageException {
 
         LOGGER.info(() -> "Notification received: " + notification);
         

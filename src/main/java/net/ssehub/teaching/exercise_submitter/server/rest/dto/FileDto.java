@@ -10,13 +10,19 @@ import io.swagger.v3.oas.annotations.media.Schema;
  * 
  * @author Adam
  */
+@Schema(description = "A single file in a submission")
 public class FileDto {
 
-    @Schema(description = "Relative path of this file in the submission directory", example = "dir/Main.java")
+    @Schema(
+        description = "Relative path of this file in the submission directory",
+        required = true,
+        example = "dir/Main.java"
+    )
     private String path;
     
     @Schema(
-        description = "base64-encoded content of the file",
+        description = "Base64-encoded content of the file",
+        required = true,
         example = "cGFja2FnZSBkaXI7CgpwdWJsaWMgY2xhc3MgTWFpbiB7CgogICAgcHVibGljIHN0YXRpYyB2b2lk"
                 + "IG1haW4oU3RyaW5nW10gYXJncykgewogICAgICAgIFN5c3RlbS5vdXQucHJpbnRsbigiSGVsbG8g"
                 + "V29ybGQhIik7CiAgICB9Cgp9Cg==")

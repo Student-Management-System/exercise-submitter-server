@@ -7,13 +7,21 @@ import io.swagger.v3.oas.annotations.media.Schema;
  * 
  * @author Adam
  */
+@Schema(description = "A version of a submission")
 public class VersionDto {
 
-    @Schema(example = "student1")
+    @Schema(
+        description = "The username of the author that created the submission",
+        required = true,
+        example = "student1"
+    )
     private String author;
     
-    @Schema(description = "the timestamp when the version was created as seconds since unix epoch",
-            example = "1635177322")
+    @Schema(
+        description = "The timestamp when the version was created, as seconds since unix epoch",
+        required = true,
+        example = "1635177322"
+    )
     private long timestamp;
     
     /**

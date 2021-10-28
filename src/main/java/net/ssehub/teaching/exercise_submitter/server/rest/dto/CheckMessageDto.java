@@ -2,6 +2,7 @@ package net.ssehub.teaching.exercise_submitter.server.rest.dto;
 
 import java.util.Objects;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import net.ssehub.teaching.exercise_submitter.server.submission.checks.Check;
 import net.ssehub.teaching.exercise_submitter.server.submission.checks.ResultMessage;
 import net.ssehub.teaching.exercise_submitter.server.submission.checks.ResultMessage.MessageType;
@@ -11,18 +12,25 @@ import net.ssehub.teaching.exercise_submitter.server.submission.checks.ResultMes
  * 
  * @author Adam
  */
+@Schema(description = "A message created by an automatic check on a submission")
 public class CheckMessageDto {
 
+    @Schema(description = "The name of the automatic check", required = true, example = "javac")
     private String checkName;
     
+    @Schema(description = "Whether this message is an error or a warning", required = true, example = "ERROR")
     private ResultMessage.MessageType type;
     
+    @Schema(description = "The message created by the check", required = true, example = "';' expected")
     private String message;
     
+    @Schema(description = "The relative path of the file this message is about", example = "dir/Main.java")
     private String file;
     
+    @Schema(description = "The line number in the file that this message is about", example = "4")
     private Integer line;
     
+    @Schema(description = "The column of the line in the file that this message is about", example = "43")
     private Integer column;
     
     /**

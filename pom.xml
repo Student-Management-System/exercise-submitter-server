@@ -149,6 +149,7 @@
 						<resourcePackage>net.ssehub.teaching.exercise_submitter.server.rest.routes</resourcePackage>
 					</resourcePackages>
 					<prettyPrint>true</prettyPrint>
+					<sortOutput>true</sortOutput>
 				</configuration>
 				<executions>
 					<execution>
