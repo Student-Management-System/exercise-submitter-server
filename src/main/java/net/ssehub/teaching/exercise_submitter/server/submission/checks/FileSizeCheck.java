@@ -15,8 +15,8 @@
  */
 package net.ssehub.teaching.exercise_submitter.server.submission.checks;
 
-import java.io.File;
 import java.io.IOException;
+import java.nio.file.Path;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -90,12 +90,12 @@ public class FileSizeCheck extends Check {
 
 
     @Override
-    public boolean run(File submissionDirectory) {
+    public boolean run(Path submissionDirectory) {
         int numErrors = 0;
         long submissionSize = 0;
         
         try {
-            for (File file : FileUtils.findAllFiles(submissionDirectory)) {
+            for (Path file : FileUtils.findAllFiles(submissionDirectory)) {
                 long fileSize = FileUtils.getFileSize(file);
                 
                 LOGGER.log(Level.FINE, "File {0} has size of {1} bytes", new Object[] {
@@ -107,7 +107,7 @@ public class FileSizeCheck extends Check {
                     numErrors++;
                     
                     ResultMessage message = new ResultMessage(CHECK_NAME, MessageType.ERROR, "File is too large");
-                    message.setFile(FileUtils.getRelativeFile(submissionDirectory, file));
+                    message.setFile(submissionDirectory.relativize(file));
                     addResultMessage(message);
                 }
                 

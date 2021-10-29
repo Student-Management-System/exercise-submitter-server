@@ -21,7 +21,9 @@ import static org.hamcrest.collection.IsIterableContainingInAnyOrder.containsInA
 import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.fail;
 
-import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Arrays;
 
 import org.junit.jupiter.api.BeforeAll;
@@ -32,14 +34,14 @@ import net.ssehub.teaching.exercise_submitter.server.submission.checks.ResultMes
 
 public class FileSizeCheckTest {
     
-    private static final File TESTDATA = new File("src/test/resources/FileSizeCheckTest");
+    private static final Path TESTDATA = Path.of("src/test/resources/FileSizeCheckTest");
     
     @Test
     @DisplayName("succeeds on empty directory")
     public void emptyDirectory() {
-        File directory = new File(TESTDATA, "emptyDirectory");
+        Path directory = TESTDATA.resolve("emptyDirectory");
         assertThat("Precondition: directory with test files should exist",
-                directory.isDirectory(), is(true));
+                Files.isDirectory(directory), is(true));
         
         FileSizeCheck check = new FileSizeCheck();
         
@@ -54,9 +56,9 @@ public class FileSizeCheckTest {
     @Test
     @DisplayName("succeeds on single file that holds the file-size limit")
     public void sinlgeFileLimitHeld() {
-        File directory = new File(TESTDATA, "singleFile100Bytes");
+        Path directory = TESTDATA.resolve("singleFile100Bytes");
         assertThat("Precondition: directory with test files should exist",
-                directory.isDirectory(), is(true));
+                Files.isDirectory(directory), is(true));
         
         FileSizeCheck check = new FileSizeCheck();
         check.setMaxFileSize(200);
@@ -72,9 +74,9 @@ public class FileSizeCheckTest {
     @Test
     @DisplayName("succeeds on single file that holds the file-size limit exactly")
     public void sinlgeFileLimitHeldExactly() {
-        File directory = new File(TESTDATA, "singleFile100Bytes");
+        Path directory = TESTDATA.resolve("singleFile100Bytes");
         assertThat("Precondition: directory with test files should exist",
-                directory.isDirectory(), is(true));
+                Files.isDirectory(directory), is(true));
         
         FileSizeCheck check = new FileSizeCheck();
         check.setMaxFileSize(100);
@@ -90,9 +92,9 @@ public class FileSizeCheckTest {
     @Test
     @DisplayName("does not succeed on single file that breaks the file-size limit")
     public void sinlgeFileLimitViolated() {
-        File directory = new File(TESTDATA, "singleFile100Bytes");
+        Path directory = TESTDATA.resolve("singleFile100Bytes");
         assertThat("Precondition: directory with test files should exist",
-                directory.isDirectory(), is(true));
+                Files.isDirectory(directory), is(true));
         
         FileSizeCheck check = new FileSizeCheck();
         check.setMaxFileSize(99);
@@ -102,7 +104,7 @@ public class FileSizeCheckTest {
         assertAll(
             () -> assertThat("Postcondition: should not succeed", success, is(false)),
             () -> assertThat("Postcondition: should create an error message", check.getResultMessages(), is(Arrays.asList(
-                    new ResultMessage("file-size", MessageType.ERROR, "File is too large").setFile(new File("100bytes.txt"))
+                    new ResultMessage("file-size", MessageType.ERROR, "File is too large").setFile(Path.of("100bytes.txt"))
                 )))
         );
     }
@@ -110,9 +112,9 @@ public class FileSizeCheckTest {
     @Test
     @DisplayName("does not succeed with a single file that is larger than the submission-size limit")
     public void submissionSizeLimitViolatedBySingleFile() {
-        File directory = new File(TESTDATA, "singleFile100Bytes");
+        Path directory = TESTDATA.resolve("singleFile100Bytes");
         assertThat("Precondition: directory with test files should exist",
-                directory.isDirectory(), is(true));
+                Files.isDirectory(directory), is(true));
         
         FileSizeCheck check = new FileSizeCheck();
         check.setMaxSubmissionSize(99);
@@ -130,9 +132,9 @@ public class FileSizeCheckTest {
     @Test
     @DisplayName("succeeds on multiple files that hold the file-size limit")
     public void multipleFileLimitsHeld() {
-        File directory = new File(TESTDATA, "multipleFiles");
+        Path directory = TESTDATA.resolve("multipleFiles");
         assertThat("Precondition: directory with test files should exist",
-                directory.isDirectory(), is(true));
+                Files.isDirectory(directory), is(true));
         
         FileSizeCheck check = new FileSizeCheck();
         check.setMaxFileSize(200);
@@ -148,9 +150,9 @@ public class FileSizeCheckTest {
     @Test
     @DisplayName("does not succeed with multiple files breaking the file-size limit")
     public void multipleFileLimitsViolated() {
-        File directory = new File(TESTDATA, "multipleFiles");
+        Path directory = TESTDATA.resolve("multipleFiles");
         assertThat("Precondition: directory with test files should exist",
-                directory.isDirectory(), is(true));
+                Files.isDirectory(directory), is(true));
         
         FileSizeCheck check = new FileSizeCheck();
         check.setMaxFileSize(99);
@@ -160,8 +162,8 @@ public class FileSizeCheckTest {
         assertAll(
             () -> assertThat("Postcondition: should not succeed", success, is(false)),
             () -> assertThat("Postcondition: should create a error messages", check.getResultMessages(), containsInAnyOrder(
-                    new ResultMessage("file-size", MessageType.ERROR, "File is too large").setFile(new File("100bytes.txt")),
-                    new ResultMessage("file-size", MessageType.ERROR, "File is too large").setFile(new File("200bytes.txt"))
+                    new ResultMessage("file-size", MessageType.ERROR, "File is too large").setFile(Path.of("100bytes.txt")),
+                    new ResultMessage("file-size", MessageType.ERROR, "File is too large").setFile(Path.of("200bytes.txt"))
                 ))
         );
     }
@@ -169,9 +171,9 @@ public class FileSizeCheckTest {
     @Test
     @DisplayName("does not succeed with some of the submitted files breaking the file-size limit")
     public void multipleFileLimitsSomeViolated() {
-        File directory = new File(TESTDATA, "multipleFiles");
+        Path directory = TESTDATA.resolve("multipleFiles");
         assertThat("Precondition: directory with test files should exist",
-                directory.isDirectory(), is(true));
+                Files.isDirectory(directory), is(true));
         
         FileSizeCheck check = new FileSizeCheck();
         check.setMaxFileSize(150);
@@ -181,7 +183,7 @@ public class FileSizeCheckTest {
         assertAll(
             () -> assertThat("Postcondition: should not succeed", success, is(false)),
             () -> assertThat("Postcondition: should create an error message", check.getResultMessages(), is(Arrays.asList(
-                    new ResultMessage("file-size", MessageType.ERROR, "File is too large").setFile(new File("200bytes.txt"))
+                    new ResultMessage("file-size", MessageType.ERROR, "File is too large").setFile(Path.of("200bytes.txt"))
                 )))
         );
     }
@@ -189,9 +191,9 @@ public class FileSizeCheckTest {
     @Test
     @DisplayName("does not succeed with multiple files adding up to more than the submission-size limit")
     public void multipleFilesSubmissionTooLarge() {
-        File directory = new File(TESTDATA, "multipleFiles");
+        Path directory = TESTDATA.resolve("multipleFiles");
         assertThat("Precondition: directory with test files should exist",
-                directory.isDirectory(), is(true));
+                Files.isDirectory(directory), is(true));
         
         FileSizeCheck check = new FileSizeCheck();
         check.setMaxFileSize(200);
@@ -210,9 +212,9 @@ public class FileSizeCheckTest {
     @Test
     @DisplayName("succeeds with multiple files adding up to exactly the submission-size limit")
     public void multipleFilesSubmissionHeldExactly() {
-        File directory = new File(TESTDATA, "multipleFiles");
+        Path directory = TESTDATA.resolve("multipleFiles");
         assertThat("Precondition: directory with test files should exist",
-                directory.isDirectory(), is(true));
+                Files.isDirectory(directory), is(true));
         
         FileSizeCheck check = new FileSizeCheck();
         check.setMaxFileSize(200);
@@ -247,11 +249,13 @@ public class FileSizeCheckTest {
     
     @BeforeAll
     public static void createEmptyDirectory() {
-        File directory = new File(TESTDATA, "emptyDirectory");
-        if (!directory.isDirectory()) {
-            boolean created = directory.mkdir();
-            if (!created) {
-                fail("Setup: Could not create empty test directory " + directory.getPath());
+        Path directory = TESTDATA.resolve("emptyDirectory");
+        if (!Files.isDirectory(directory)) {
+            try {
+                Files.createDirectory(directory);
+            } catch (IOException e) {
+                e.printStackTrace();
+                fail("Setup: Could not create empty test directory " + directory);
             }
         }
     }

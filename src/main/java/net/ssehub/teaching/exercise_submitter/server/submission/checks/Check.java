@@ -15,13 +15,13 @@
  */
 package net.ssehub.teaching.exercise_submitter.server.submission.checks;
 
-import java.io.File;
+import java.nio.file.Path;
 import java.util.LinkedList;
 import java.util.List;
 
 /**
  * A check that runs on a submission directory. Checks whether a certain requirement is fulfilled by the submission.
- * Can either fail or succeed (return value of {@link #run(File)}) and creates {@link ResultMessage}s with further
+ * Can either fail or succeed (return value of {@link #run(Path)}) and creates {@link ResultMessage}s with further
  * information (see {@link #getResultMessages()}).
  * 
  * @author Adam
@@ -44,10 +44,10 @@ public abstract class Check {
      * 
      * @return Whether this check was successful.
      */
-    public abstract boolean run(File submissionDirectory);
+    public abstract boolean run(Path submissionDirectory);
     
     /**
-     * Adds a {@link ResultMessage} created during a {@link #run(File)} execution.
+     * Adds a {@link ResultMessage} created during a {@link #run(Path)} execution.
      * 
      * @param message The message to add.
      */
@@ -56,10 +56,10 @@ public abstract class Check {
     }
     
     /**
-     * Retrieves the result messages from the previous {@link #run(File)}. The result messages are cleared after this
-     * method is invoked, i.e. further invocations will return empty sets until {@link #run(File)} is called again.
+     * Retrieves the result messages from the previous {@link #run(Path)}. The result messages are cleared after this
+     * method is invoked, i.e. further invocations will return empty sets until {@link #run(Path)} is called again.
      * 
-     * @return The {@link ResultMessage}s for the previous {@link #run(File)}.
+     * @return The {@link ResultMessage}s for the previous {@link #run(Path)}.
      */
     public List<ResultMessage> getResultMessages() {
         List<ResultMessage> result = this.messages;

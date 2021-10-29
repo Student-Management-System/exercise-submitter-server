@@ -15,28 +15,19 @@
  */
 package net.ssehub.teaching.exercise_submitter.server.submission.checks;
 
-import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.Reader;
-import java.nio.charset.StandardCharsets;
+import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
 import java.nio.file.LinkOption;
-import java.util.HashSet;
+import java.nio.file.NoSuchFileException;
+import java.nio.file.Path;
+import java.nio.file.SimpleFileVisitor;
+import java.nio.file.attribute.BasicFileAttributes;
 import java.util.Map;
 import java.util.Set;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
-import javax.xml.parsers.ParserConfigurationException;
-
-import org.w3c.dom.Document;
-import org.xml.sax.SAXException;
+import java.util.stream.Collectors;
 
 /**
  * Static utility methods for files and directories.
@@ -45,12 +36,6 @@ import org.xml.sax.SAXException;
  */
 public class FileUtils {
 
-    private static final Logger LOGGER = Logger.getLogger(FileUtils.class.getName());
-    
-    private static boolean shutdownHookRegistered;
-    
-    private static Set<File> temporaryDirectories = new HashSet<>();
-    
     private static boolean fileOperationsShouldFail;
     
     /**
@@ -65,29 +50,14 @@ public class FileUtils {
      * @param suffix The suffix to search for.
      * 
      * @return The set of all matching files.
-     */
-    public static Set<File> findFilesBySuffix(File directory, String suffix) {
-        Set<File> result = new HashSet<>();
-        findeFilesBySuffixImpl(directory, suffix, result);
-        return result;
-    }
-    
-    /**
-     * Recurses through the given directory and finds all files (not directories) which name ends with the given suffix.
      * 
-     * @param directory The directory to search files in.
-     * @param suffix The suffix to search for.
-     * @param result The result set to add all found matching files to. 
+     * @throws IOException If searching through the directory fails.
      */
-    private static void findeFilesBySuffixImpl(File directory, String suffix, Set<File> result) {
-        for (File nested : directory.listFiles()) {
-            if (nested.isDirectory()) {
-                findeFilesBySuffixImpl(nested, suffix, result);
-                
-            } else if (nested.getName().endsWith(suffix)) {
-                result.add(nested);
-            }
-        }
+    public static Set<Path> findFilesBySuffix(Path directory, String suffix) throws IOException {
+        return Files.walk(directory)
+            .filter(Files::isRegularFile)
+            .filter(path -> path.getFileName().toString().endsWith(suffix))
+            .collect(Collectors.toSet());
     }
     
     /**
@@ -96,61 +66,30 @@ public class FileUtils {
      * @param directory The directory to search files in.
      * 
      * @return The set of all files in that directory.
+     * 
+     * @throws IOException If searching through the directory fails.
      */
-    public static Set<File> findAllFiles(File directory) {
-        Set<File> result = new HashSet<>();
-        findAllFilesImpl(directory, result);
-        return result;
-    }
-    
-    /**
-     * Recurses through the given directory and finds all files (not directories).
-     * 
-     * @param directory The directory to search files in.
-     * @param result The result set to add all files to.
-     */
-    public static void findAllFilesImpl(File directory, Set<File> result) {
-        for (File nested : directory.listFiles()) {
-            if (nested.isDirectory()) {
-                findAllFilesImpl(nested, result);
-                
-            } else {
-                result.add(nested);
-            }
-        }
-    }
-    
-    /**
-     * Creates a relative file path from a given directory. Basically, this strips the directory prefix from the given
-     * file path.
-     * 
-     * @param directory The directory considered as the base for the relative result.
-     * @param file The file path to make relative.
-     * 
-     * @return The file as a relative path based on <code>directory</code>.
-     * 
-     * @throws IllegalArgumentException If one of the parameters is relative and the other is absolute.
-     */
-    public static File getRelativeFile(File directory, File file) throws IllegalArgumentException {
-        return directory.toPath().relativize(file.toPath()).toFile();
+    public static Set<Path> findAllFiles(Path directory) throws IOException {
+        return Files.walk(directory)
+                .filter(Files::isRegularFile)
+                .collect(Collectors.toSet());
     }
     
     /**
      * Reads the file-size of the given file.
      * 
-     * @param file The file to get the size for. Must be a file ({@link File#isFile()} and not a directory.
+     * @param file The file to get the size for. Must be a file and not a directory.
      * 
      * @return The size of the file in bytes.
      * 
      * @throws IOException If reading the file-size fails.
      */
-    public static long getFileSize(File file) throws IOException {
-        if (!file.isFile()) {
-            throw new FileNotFoundException(file + " is not a file");
+    public static long getFileSize(Path file) throws IOException {
+        if (!Files.isRegularFile(file)) {
+            throw new NoSuchFileException(file + " is not a file");
         }
         
-        Map<String, Object> attributes = Files.readAttributes(
-                file.toPath(), "size", LinkOption.NOFOLLOW_LINKS);
+        Map<String, Object> attributes = Files.readAttributes(file, "size", LinkOption.NOFOLLOW_LINKS);
         
         return (long) attributes.get("size");
     }
@@ -158,9 +97,8 @@ public class FileUtils {
     /**
      * Rigs file operations to throw {@link IOException}s. Supported methods:
      * <ul>
-     *  <li>{@link #newInputStream(File)} returns a stream that throws on read operations</li>
-     *  <li>{@link #newReader(File)} returns a reader that throws on read operations</li>
-     *  <li>{@link #deleteFile(File)} always throws</li>
+     *  <li>{@link #newInputStream(Path)} returns a stream that throws on read operations</li>
+     *  <li>{@link #deleteFile(Path)} always throws</li>
      * </ul>
      * This method should only be used by test cases.
      * 
@@ -179,13 +117,13 @@ public class FileUtils {
      * 
      * @return An {@link InputStream} for the file's content.
      * 
-     * @throws FileNotFoundException If the file does not exist, is a directory rather than a regular file, or for 
+     * @throws IOException If the file does not exist, is a directory rather than a regular file, or for 
      *         some other reason cannot be opened for reading.
      */
-    public static InputStream newInputStream(File file) throws FileNotFoundException {
+    public static InputStream newInputStream(Path file) throws IOException {
         InputStream result;
         if (!fileOperationsShouldFail) {
-            result = new FileInputStream(file);
+            result = Files.newInputStream(file);
         } else {
             result = new InputStream() {
                 
@@ -199,143 +137,33 @@ public class FileUtils {
     }
     
     /**
-     * Creates a {@link Reader} to read the contents of the given file. Uses UTF-8 as the charset. This should
-     * be preferred over directly creating a {@link FileReader} as this method allows test cases to force
-     * {@link IOException}s for testing purposes.
-     * 
-     * @param file The file to read.
-     * 
-     * @return An {@link Reader} for the file's content.
-     * 
-     * @throws IOException If the file does not exist, is a directory rather than a regular file, or for 
-     *         some other reason cannot be opened for reading.
-     */
-    public static Reader newReader(File file) throws IOException {
-        Reader result;
-        if (!fileOperationsShouldFail) {
-            result = new FileReader(file, StandardCharsets.UTF_8);
-        } else {
-            result = new Reader() {
-                
-                @Override
-                public int read(char[] cbuf, int off, int len) throws IOException {
-                    throw new IOException("Rigged to fail");
-                }
-                
-                @Override
-                public void close() throws IOException {}
-                
-            };
-        }
-        return result;
-    }
-    
-    /**
-     * Deletes a single file or an empty directory.
-     * 
-     * @param file The file to delete.
-     * 
-     * @throws IOException If the given file is not a file or deletion fails.
-     */
-    public static void deleteFile(File file) throws IOException {
-        if (fileOperationsShouldFail) {
-            throw new IOException("Rigged to fail");
-        }
-        
-        Files.delete(file.toPath());
-    }
-    
-    /**
-     * Parses the XML content of the given file.
-     * 
-     * @param file The file to parse.
-     * 
-     * @return The XML {@link Document}.
-     * 
-     * @throws IOException If reading the file fails.
-     * @throws SAXException If the XML parsing failed.
-     */
-    public static Document parseXml(File file) throws IOException, SAXException {
-        DocumentBuilderFactory factory = DocumentBuilderFactory.newDefaultInstance();
-        DocumentBuilder parser;
-        try {
-            parser = factory.newDocumentBuilder();
-        } catch (ParserConfigurationException e) {
-            throw new RuntimeException(e); // cannot happen
-        }
-        parser.setErrorHandler(null);
-        Document result = parser.parse(newInputStream(file));
-        result.normalize();
-        return result;
-    }
-
-    /**
      * Deletes a directory with all content of it.
      * 
      * @param directory The folder to delete.
      * 
      * @throws IOException If deleting the directory fails.
      */
-    public static void deleteDirectory(File directory) throws IOException {
-        if (!directory.isDirectory()) {
+    public static void deleteDirectory(Path directory) throws IOException {
+        if (!Files.isDirectory(directory)) {
             throw new IOException(directory + " is not a directory");
         }
         
-        for (File file : directory.listFiles()) {
-            if (file.isDirectory()) {
-                deleteDirectory(file);
-            } else {
-                deleteFile(file);
+        if (fileOperationsShouldFail) {
+            throw new IOException("rigged to fail");
+        }
+        
+        Files.walkFileTree(directory, new SimpleFileVisitor<Path>() {
+            @Override
+            public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
+                Files.delete(file);
+                return FileVisitResult.CONTINUE;
             }
-        }
-        
-        deleteFile(directory);
-    }
-    
-    /**
-     * Creates a temporary folder that will be deleted by a shutdown hook.
-     * 
-     * @return The temporary folder.
-     * 
-     * @throws IOException If creating the temporary folder fails.
-     * 
-     * @see Runtime#addShutdownHook(Thread)
-     */
-    public static File createTemporaryDirectory() throws IOException {
-        if (!shutdownHookRegistered) {
-            Runtime.getRuntime().addShutdownHook(new Thread(FileUtils::cleanTemporaryFolders));
-            shutdownHookRegistered = true;
-        }
-        
-        File temporaryFile = File.createTempFile("submission-check", null);
-        deleteFile(temporaryFile);
-        
-        if (!temporaryFile.mkdir()) {
-            throw new IOException("Could not create temporary directory");
-        }
-        
-        synchronized (temporaryDirectories) {
-            temporaryDirectories.add(temporaryFile);
-        }
-        
-        return temporaryFile;
-    }
-    
-    /**
-     * Removes all temporary folders created via {@link #createTemporaryDirectory()}. Called by a shutdown hook.
-     * Package visibility for test cases.
-     */
-    static void cleanTemporaryFolders() {
-        synchronized (temporaryDirectories) {
-            for (File directory : temporaryDirectories) {
-                try {
-                    deleteDirectory(directory);
-                } catch (IOException e) {
-                    LOGGER.log(Level.WARNING, "Could not delete temporary directory " + directory, e);
-                }
+            @Override
+            public FileVisitResult postVisitDirectory(Path dir, IOException exc) throws IOException {
+                Files.delete(dir);
+                return FileVisitResult.CONTINUE;
             }
-            temporaryDirectories.clear();
-        }
+        });
     }
     
 }

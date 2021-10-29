@@ -15,9 +15,10 @@
  */
 package net.ssehub.teaching.exercise_submitter.server.submission.checks;
 
-import java.io.File;
+import java.io.IOException;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Path;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
@@ -45,7 +46,7 @@ public abstract class JavacCheck extends Check {
     
     private boolean enableWarnings;
     
-    private List<File> additionalClasspath;
+    private List<Path> additionalClasspath;
     
     /**
      * Creates a re-usable {@link JavacCheck}.
@@ -93,12 +94,12 @@ public abstract class JavacCheck extends Check {
      * 
      * @param classpathEntry The entry to pass as the classpath. May be either a directory or a jar file.
      */
-    public void addToClasspath(File classpathEntry) {
+    public void addToClasspath(Path classpathEntry) {
         this.additionalClasspath.add(classpathEntry);
     }
     
     /**
-     * Clears all previous entries added via {@link #addToClasspath(File)}.
+     * Clears all previous entries added via {@link #addToClasspath(Path)}.
      */
     public void clearClasspath() {
         this.additionalClasspath.clear();
@@ -142,27 +143,37 @@ public abstract class JavacCheck extends Check {
      * 
      * @return An unmodifiable view on the configured classpath.
      * 
-     * @see #addToClasspath(File)
+     * @see #addToClasspath(Path)
      * @see #clearClasspath()
      */
-    public List<File> getClasspath() {
+    public List<Path> getClasspath() {
         return Collections.unmodifiableList(additionalClasspath);
     }
     
     @Override
-    public boolean run(File submissionDirectory) {
+    public boolean run(Path submissionDirectory) {
         boolean success;
         
-        Set<File> javaFiles = FileUtils.findFilesBySuffix(submissionDirectory, ".java");
-        
-        if (!javaFiles.isEmpty()) {
-            LOGGER.log(Level.FINE, "Compiling files {0}...", javaFiles);
-            success = runJavac(submissionDirectory, javaFiles);
+        try {
+            Set<Path> javaFiles = FileUtils.findFilesBySuffix(submissionDirectory, ".java");
             
-        } else {
+            if (!javaFiles.isEmpty()) {
+                LOGGER.log(Level.FINE, "Compiling files {0}...", javaFiles);
+                success = runJavac(submissionDirectory, javaFiles);
+                
+            } else {
+                success = false;
+                addResultMessage(new ResultMessage(CHECK_NAME, MessageType.ERROR, "No Java files found"));
+            }
+            
+        } catch (IOException e) {
+            LOGGER.log(Level.WARNING, "Exception while collecting java files", e);
+            
             success = false;
-            addResultMessage(new ResultMessage(CHECK_NAME, MessageType.ERROR, "No Java files found"));
+            addResultMessage(new ResultMessage(CHECK_NAME, MessageType.ERROR,
+                    "An internal error occurred while running javac"));
         }
+        
         
         return success;
     }
@@ -175,6 +186,6 @@ public abstract class JavacCheck extends Check {
      * 
      * @return Whether the compilation was successful.
      */
-    protected abstract boolean runJavac(File submissionDirectory, Set<File> javaFiles);
+    protected abstract boolean runJavac(Path submissionDirectory, Set<Path> javaFiles);
 
 }

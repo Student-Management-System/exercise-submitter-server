@@ -15,7 +15,7 @@
  */
 package net.ssehub.teaching.exercise_submitter.server.submission.checks;
 
-import java.io.File;
+import java.nio.file.Path;
 
 public class MockCheck extends Check {
 
@@ -38,7 +38,7 @@ public class MockCheck extends Check {
     }
 
     @Override
-    public boolean run(File submissionDirectory) {
+    public boolean run(Path submissionDirectory) {
         for (ResultMessage message : resultMessages) {
             addResultMessage(message);
         }

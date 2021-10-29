@@ -15,7 +15,6 @@
  */
 package net.ssehub.teaching.exercise_submitter.server.submission.checks;
 
-import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.ByteBuffer;
@@ -24,6 +23,7 @@ import java.nio.charset.Charset;
 import java.nio.charset.CharsetDecoder;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -70,12 +70,12 @@ public class EncodingCheck extends Check {
     }
 
     @Override
-    public boolean run(File submissionDirectory) {
+    public boolean run(Path submissionDirectory) {
         boolean success = true;
         
         try {
-            for (File file : FileUtils.findAllFiles(submissionDirectory)) {
-                String mimeType = Files.probeContentType(file.toPath());
+            for (Path file : FileUtils.findAllFiles(submissionDirectory)) {
+                String mimeType = Files.probeContentType(file);
                 if (mimeType != null && mimeType.startsWith("text")) {
                     LOGGER.log(Level.FINE, "Checking file {0}...", file);
                     success &= checkFile(file, submissionDirectory);
@@ -106,7 +106,7 @@ public class EncodingCheck extends Check {
      * 
      * @throws IOException If reading the file fails.
      */
-    private boolean checkFile(File file, File submissionDirectory) throws IOException {
+    private boolean checkFile(Path file, Path submissionDirectory) throws IOException {
         boolean result;
         
         CharsetDecoder decoder = wantedCharset.newDecoder();
@@ -123,7 +123,7 @@ public class EncodingCheck extends Check {
             
             ResultMessage resultMessage = new ResultMessage(CHECK_NAME, MessageType.ERROR,
                     "File has invalid encoding; expected " + wantedCharset.displayName());
-            resultMessage.setFile(FileUtils.getRelativeFile(submissionDirectory, file));
+            resultMessage.setFile(submissionDirectory.relativize(file));
             
             addResultMessage(resultMessage);
         }

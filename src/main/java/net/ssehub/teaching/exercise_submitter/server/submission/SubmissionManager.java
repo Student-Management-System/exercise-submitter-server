@@ -1,13 +1,9 @@
 package net.ssehub.teaching.exercise_submitter.server.submission;
 
-import java.io.File;
 import java.io.IOException;
 import java.nio.charset.Charset;
-import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.SimpleFileVisitor;
-import java.nio.file.attribute.BasicFileAttributes;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
@@ -31,6 +27,7 @@ import net.ssehub.teaching.exercise_submitter.server.submission.checks.Check;
 import net.ssehub.teaching.exercise_submitter.server.submission.checks.CheckstyleCheck;
 import net.ssehub.teaching.exercise_submitter.server.submission.checks.CliJavacCheck;
 import net.ssehub.teaching.exercise_submitter.server.submission.checks.EncodingCheck;
+import net.ssehub.teaching.exercise_submitter.server.submission.checks.FileUtils;
 import net.ssehub.teaching.exercise_submitter.server.submission.checks.InternalJavacCheck;
 import net.ssehub.teaching.exercise_submitter.server.submission.checks.JavacCheck;
 import net.ssehub.teaching.exercise_submitter.server.submission.checks.ResultMessage;
@@ -145,7 +142,7 @@ public class SubmissionManager {
             break;
             
         case CheckstyleCheck.CHECK_NAME:
-            CheckstyleCheck checkstyleChek = new CheckstyleCheck(new File(checkConfiguration.getProperty("rules")
+            CheckstyleCheck checkstyleChek = new CheckstyleCheck(Path.of(checkConfiguration.getProperty("rules")
                     .orElseThrow(() -> new IllegalArgumentException("Checkstyle check must have \"rules\" set"))));
             result = checkstyleChek;
             break;
@@ -184,7 +181,7 @@ public class SubmissionManager {
             submission.writeToDirectory(temporaryDirectory);
             
             for (Check check : checks.rejecting) {
-                boolean passed = check.run(temporaryDirectory.toFile());
+                boolean passed = check.run(temporaryDirectory);
                 checkMessages.addAll(check.getResultMessages());
                 
                 if (!passed) {
@@ -195,7 +192,7 @@ public class SubmissionManager {
             
             if (!reject) {
                 for (Check check : checks.nonRejecting) {
-                    check.run(temporaryDirectory.toFile());
+                    check.run(temporaryDirectory);
                     checkMessages.addAll(check.getResultMessages());
                 }
                 
@@ -210,7 +207,11 @@ public class SubmissionManager {
             
         } finally {
             if (temporaryDirectory != null) {
-                deleteDirectory(temporaryDirectory);
+                try {
+                    FileUtils.deleteDirectory(temporaryDirectory);
+                } catch (IOException e) {
+                    LOGGER.log(Level.WARNING, "Failed to delete temporary submission directory", e);
+                }
             }
         }
         
@@ -232,30 +233,6 @@ public class SubmissionManager {
         }
         
         return result;
-    }
-
-    /**
-     * Deletes the given directory and all content recursively.
-     * 
-     * @param directory The directory to delete.
-     */
-    private void deleteDirectory(Path directory) {
-        try {
-            Files.walkFileTree(directory, new SimpleFileVisitor<Path>() {
-                @Override
-                public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
-                    Files.delete(file);
-                    return FileVisitResult.CONTINUE;
-                }
-                @Override
-                public FileVisitResult postVisitDirectory(Path dir, IOException exc) throws IOException {
-                    Files.delete(dir);
-                    return FileVisitResult.CONTINUE;
-                }
-            });
-        } catch (IOException e) {
-            LOGGER.log(Level.WARNING, "Failed to delete temporary submission directory", e);
-        }
     }
     
 }

@@ -453,7 +453,7 @@ public class StuMgmtView {
                 ? SeverityEnum.WARNING : SeverityEnum.ERROR);
         
         if (message.getFile() != null) {
-            marker.setPath(message.getFile().getPath().replace('\\', '/'));
+            marker.setPath(message.getFile().toString().replace('\\', '/'));
             
             if (message.getLine() != null) {
                 marker.setStartLineNumber(BigDecimal.valueOf(message.getLine()));

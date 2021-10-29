@@ -20,10 +20,11 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.collection.IsIterableContainingInAnyOrder.containsInAnyOrder;
 import static org.junit.jupiter.api.Assertions.fail;
 
-import java.io.File;
 import java.io.IOException;
 import java.lang.ProcessBuilder.Redirect;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
@@ -36,21 +37,21 @@ import net.ssehub.teaching.exercise_submitter.server.submission.checks.ResultMes
 
 public abstract class JavacCheckIT {
     
-    protected static final File TESTDATA = new File("src/test/resources/JavacCheckTest");
+    protected static final Path TESTDATA = Path.of("src/test/resources/JavacCheckTest");
 
-    protected File testDirecotry;
+    protected Path testDirectory;
     
     protected abstract JavacCheck creatInstance();
     
     @Test
     public void noJavaFiles() {
-        testDirecotry = new File(TESTDATA, "noJavaFiles");
+        testDirectory = TESTDATA.resolve("noJavaFiles");
         assertThat("Precondition: directory with test files does not exist",
-                testDirecotry.isDirectory());
+                Files.isDirectory(testDirectory));
         
         JavacCheck check = creatInstance();
         assertThat("Postcondition: run with no Java files should fail",
-                check.run(testDirecotry), is(false));
+                check.run(testDirectory), is(false));
         
         assertThat("Postcondition: should contain one ResultMessage for no Java files",
                 check.getResultMessages(), is(Arrays.asList(
@@ -60,16 +61,16 @@ public abstract class JavacCheckIT {
     
     @Test
     public void testResultMessageClearing() {
-        testDirecotry = new File(TESTDATA, "noJavaFiles");
+        testDirectory = TESTDATA.resolve("noJavaFiles");
         assertThat("Precondition: directory with test files does not exist",
-                testDirecotry.isDirectory());
+                Files.isDirectory(testDirectory));
         
         JavacCheck check = creatInstance();
         assertThat("Precondition: getResultMessages() should be empty before first invocation",
                 check.getResultMessages(), is(Arrays.asList()));
         
         assertThat("Postcondition: run with no Java files should fail",
-                check.run(testDirecotry), is(false));
+                check.run(testDirectory), is(false));
         
         assertThat("Postcondition: should contain one ResultMessage for no Java files",
                 check.getResultMessages(), is(Arrays.asList(
@@ -82,13 +83,13 @@ public abstract class JavacCheckIT {
     
     @Test
     public void singleCompilingFile() {
-        testDirecotry = new File(TESTDATA, "singleCompilingFile");
+        testDirectory = TESTDATA.resolve("singleCompilingFile");
         assertThat("Precondition: directory with test files does not exist",
-                testDirecotry.isDirectory());
+                Files.isDirectory(testDirectory));
         
         JavacCheck check = creatInstance();
         assertThat("Postcondition: run with single correct file should succeed",
-                check.run(testDirecotry), is(true));
+                check.run(testDirectory), is(true));
         
         assertThat("Postcondition: should not have any ResultMessages",
                 check.getResultMessages(), is(Arrays.asList()));
@@ -96,49 +97,49 @@ public abstract class JavacCheckIT {
     
     @Test
     public void singleIncorrectFile() {
-        testDirecotry = new File(TESTDATA, "singleIncorrectFile");
+        testDirectory = TESTDATA.resolve("singleIncorrectFile");
         assertThat("Precondition: directory with test files does not exist",
-                testDirecotry.isDirectory());
+                Files.isDirectory(testDirectory));
         
         JavacCheck check = creatInstance();
         assertThat("Postcondition: run with single incorrect file should not succeed",
-                check.run(testDirecotry), is(false));
+                check.run(testDirectory), is(false));
         
         assertThat("Postcondition: should contain a result message for the compilation error",
                 check.getResultMessages(), is(Arrays.asList(
                         new ResultMessage("javac", MessageType.ERROR, "';' expected")
-                            .setFile(new File("HelloWorld.java")).setLine(4).setColumn(43)
+                            .setFile(Path.of("HelloWorld.java")).setLine(4).setColumn(43)
                 )));
     }
     
     @Test
     public void singleIncorrectFileMultipleErrors() {
-        testDirecotry = new File(TESTDATA, "singleIncorrectFileMultipleErrors");
+        testDirectory = TESTDATA.resolve("singleIncorrectFileMultipleErrors");
         assertThat("Precondition: directory with test files does not exist",
-                testDirecotry.isDirectory());
+                Files.isDirectory(testDirectory));
         
         JavacCheck check = creatInstance();
         assertThat("Postcondition: run with single incorrect file with multiple errors should not succeed",
-                check.run(testDirecotry), is(false));
+                check.run(testDirectory), is(false));
         
         assertThat("Postcondition: should contain one ResultMessage for each compilation error",
                 check.getResultMessages(), containsInAnyOrder(
                         new ResultMessage("javac", MessageType.ERROR, "';' expected")
-                            .setFile(new File("HelloWorld.java")).setLine(4).setColumn(43),
+                            .setFile(Path.of("HelloWorld.java")).setLine(4).setColumn(43),
                         new ResultMessage("javac", MessageType.ERROR, "reached end of file while parsing")
-                            .setFile(new File("HelloWorld.java")).setLine(5).setColumn(6)
+                            .setFile(Path.of("HelloWorld.java")).setLine(5).setColumn(6)
                 ));
     }
     
     @Test
     public void multipleCompilingFiles() {
-        testDirecotry = new File(TESTDATA, "multipleCompilingFiles");
+        testDirectory = TESTDATA.resolve("multipleCompilingFiles");
         assertThat("Precondition: directory with test files does not exist",
-                testDirecotry.isDirectory());
+                Files.isDirectory(testDirectory));
         
         JavacCheck check = creatInstance();
         assertThat("Postcondition: run with multiple correct files should succeed",
-                check.run(testDirecotry), is(true));
+                check.run(testDirectory), is(true));
         
         assertThat("Postcondition: should not have any ResultMessages",
                 check.getResultMessages(), is(Arrays.asList()));
@@ -146,49 +147,49 @@ public abstract class JavacCheckIT {
     
     @Test
     public void multipleIncorrectFiles() {
-        testDirecotry = new File(TESTDATA, "multipleIncorrectFiles");
+        testDirectory = TESTDATA.resolve("multipleIncorrectFiles");
         assertThat("Precondition: directory with test files does not exist",
-                testDirecotry.isDirectory());
+                Files.isDirectory(testDirectory));
         
         JavacCheck check = creatInstance();
         assertThat("Postcondition: run with multiple incorrect files should not succeed",
-                check.run(testDirecotry), is(false));
+                check.run(testDirectory), is(false));
         
         assertThat("Postcondition: should contain a result message for the compilation error",
                 check.getResultMessages(), containsInAnyOrder(
                         new ResultMessage("javac", MessageType.ERROR, "';' expected")
-                            .setFile(new File("Main.java")).setLine(4).setColumn(37),
+                            .setFile(Path.of("Main.java")).setLine(4).setColumn(37),
                         new ResultMessage("javac", MessageType.ERROR, "invalid method declaration; return type required")
-                            .setFile(new File("Util.java")).setLine(3).setColumn(12)
+                            .setFile(Path.of("Util.java")).setLine(3).setColumn(12)
                 ));
     }
     
     @Test
     public void multipleWithOneIncorrectFiles() {
-        testDirecotry = new File(TESTDATA, "multipleWithOneIncorrectFiles");
+        testDirectory = TESTDATA.resolve("multipleWithOneIncorrectFiles");
         assertThat("Precondition: directory with test files does not exist",
-                testDirecotry.isDirectory());
+                Files.isDirectory(testDirectory));
         
         JavacCheck check = creatInstance();
         assertThat("Postcondition: run with multiple files with one incorrect should not succeed",
-                check.run(testDirecotry), is(false));
+                check.run(testDirectory), is(false));
         
         assertThat("Postcondition: should contain a result message for the compilation error",
                 check.getResultMessages(), is(Arrays.asList(
                         new ResultMessage("javac", MessageType.ERROR, "non-static method method() cannot be referenced from a static context")
-                            .setFile(new File("Main.java")).setLine(5).setColumn(13)
+                            .setFile(Path.of("Main.java")).setLine(5).setColumn(13)
                 )));
     }
     
     @Test
     public void correctPackages() {
-        testDirecotry = new File(TESTDATA, "packagesCorrect");
+        testDirectory = TESTDATA.resolve("packagesCorrect");
         assertThat("Precondition: directory with test files does not exist",
-                testDirecotry.isDirectory());
+                Files.isDirectory(testDirectory));
         
         JavacCheck check = creatInstance();
         assertThat("Postcondition: run without compilation error should succeed",
-                check.run(testDirecotry), is(true));
+                check.run(testDirectory), is(true));
         
         assertThat("Postcondition: should not have any ResultMessages",
                 check.getResultMessages(), is(Arrays.asList()));
@@ -196,34 +197,34 @@ public abstract class JavacCheckIT {
     
     @Test
     public void compilerErrorsInPackages() {
-        testDirecotry = new File(TESTDATA, "packagesIncorrect");
+        testDirectory = TESTDATA.resolve("packagesIncorrect");
         assertThat("Precondition: directory with test files does not exist",
-                testDirecotry.isDirectory());
+                Files.isDirectory(testDirectory));
         
         JavacCheck check = creatInstance();
         assertThat("Postcondition: run with compilation error should not succeed",
-                check.run(testDirecotry), is(false));
+                check.run(testDirectory), is(false));
         
         assertThat("Postcondition: should contain result messages with correct path for each compilation error",
                 check.getResultMessages(), containsInAnyOrder(
                         new ResultMessage("javac", MessageType.ERROR, "';' expected")
-                            .setFile(new File("main/Main.java")).setLine(8).setColumn(37),
+                            .setFile(Path.of("main/Main.java")).setLine(8).setColumn(37),
                         new ResultMessage("javac", MessageType.ERROR, "not a statement")
-                            .setFile(new File("util/Util.java")).setLine(6).setColumn(19)
+                            .setFile(Path.of("util/Util.java")).setLine(6).setColumn(19)
                 ));
     }
     
     @Test
     public void invalidJavaVersion() {
-        testDirecotry = TESTDATA;
+        testDirectory = TESTDATA;
         assertThat("Precondition: directory with test files does not exist",
-                testDirecotry.isDirectory());
+                Files.isDirectory(testDirectory));
         
         JavacCheck check = creatInstance();
         check.setJavaVersion(3); // only supported >= 6
         
         assertThat("Postcondition: run with invalid parameter should not succeed",
-                check.run(testDirecotry), is(false));
+                check.run(testDirectory), is(false));
         
         String message = "An internal error occurred while running javac";
         if (check instanceof CliJavacCheck) {
@@ -238,15 +239,15 @@ public abstract class JavacCheckIT {
     
     @Test
     public void warningsEnabled() {
-        testDirecotry = new File(TESTDATA, "warnings");
+        testDirectory = TESTDATA.resolve("warnings");
         assertThat("Precondition: directory with test files does not exist",
-                testDirecotry.isDirectory());
+                Files.isDirectory(testDirectory));
         
         JavacCheck check = creatInstance();
         check.setEnableWarnings(true);
         
         assertThat("Postcondition: run with compilation warnings should succeed",
-                check.run(testDirecotry), is(true));
+                check.run(testDirectory), is(true));
         
         String message1 = "division by zero";
         String message2 = "stop() in java.lang.Thread has been deprecated";
@@ -258,22 +259,22 @@ public abstract class JavacCheckIT {
         assertThat("Postcondition: should contain result messages for each compilation warning",
                 check.getResultMessages(), containsInAnyOrder(
                         new ResultMessage("javac", MessageType.WARNING, message1)
-                            .setFile(new File("HelloWorld.java")).setLine(4).setColumn(21),
+                            .setFile(Path.of("HelloWorld.java")).setLine(4).setColumn(21),
                         new ResultMessage("javac", MessageType.WARNING, message2)
-                            .setFile(new File("HelloWorld.java")).setLine(5).setColumn(21)
+                            .setFile(Path.of("HelloWorld.java")).setLine(5).setColumn(21)
                 ));
     }
     
     @Test
     public void warningsDisabled() {
-        testDirecotry = new File(TESTDATA, "warnings");
+        testDirectory = TESTDATA.resolve("warnings");
         assertThat("Precondition: directory with test files does not exist",
-                testDirecotry.isDirectory());
+                Files.isDirectory(testDirectory));
         
         JavacCheck check = creatInstance();
         
         assertThat("Postcondition: run with compilation warnings disabled should succeed",
-                check.run(testDirecotry), is(true));
+                check.run(testDirectory), is(true));
         
         assertThat("Postcondition: should contain no result messages with warnings disabled",
                 check.getResultMessages(), is(Arrays.asList()));
@@ -281,15 +282,15 @@ public abstract class JavacCheckIT {
     
     @Test
     public void version8FeaturesCorrect() {
-        testDirecotry = new File(TESTDATA, "version8Features");
+        testDirectory = TESTDATA.resolve("version8Features");
         assertThat("Precondition: directory with test files does not exist",
-                testDirecotry.isDirectory());
+                Files.isDirectory(testDirectory));
         
         JavacCheck check = creatInstance();
         check.setJavaVersion(8);
         
         assertThat("Postcondition: run with high-enough Java version should succeed",
-                check.run(testDirecotry), is(true));
+                check.run(testDirectory), is(true));
         
         assertThat("Postcondition: should contain no result messages",
                 check.getResultMessages(), is(Arrays.asList()));
@@ -297,33 +298,33 @@ public abstract class JavacCheckIT {
     
     @Test
     public void version8FeaturesIncorrect() {
-        testDirecotry = new File(TESTDATA, "version8Features");
+        testDirectory = TESTDATA.resolve("version8Features");
         assertThat("Precondition: directory with test files does not exist",
-                testDirecotry.isDirectory());
+                Files.isDirectory(testDirectory));
         
         JavacCheck check = creatInstance();
         check.setJavaVersion(7);
         
         assertThat("Postcondition: run with not high-enough Java version should not succeed",
-                check.run(testDirecotry), is(false));
+                check.run(testDirectory), is(false));
         
         assertThat("Postcondition: should contain no result messages",
                 check.getResultMessages(), is(Arrays.asList(
                         new ResultMessage("javac", MessageType.ERROR, "lambda expressions are not supported in -source 7")
-                            .setFile(new File("Lambda.java")).setLine(6).setColumn(48)
+                            .setFile(Path.of("Lambda.java")).setLine(6).setColumn(48)
                 )));
     }
     
     @Test
     public void charsetUtf8UmlautsCorrect() {
-        testDirecotry = new File(TESTDATA, "umlauts");
+        testDirectory = TESTDATA.resolve("umlauts");
         assertThat("Precondition: directory with test files does not exist",
-                testDirecotry.isDirectory());
+                Files.isDirectory(testDirectory));
         
         JavacCheck check = creatInstance();
         
         assertThat("Postcondition: run with correct encoding set should succeed",
-                check.run(testDirecotry), is(true));
+                check.run(testDirectory), is(true));
         
         assertThat("Postcondition: should contain no result messages",
                 check.getResultMessages(), is(Arrays.asList()));
@@ -331,14 +332,14 @@ public abstract class JavacCheckIT {
     
     @Test
     public void charsetIso88591UmlautsIncorrect() {
-        testDirecotry = new File(TESTDATA, "umlauts_ISO-8859-1");
+        testDirectory = TESTDATA.resolve("umlauts_ISO-8859-1");
         assertThat("Precondition: directory with test files does not exist",
-                testDirecotry.isDirectory());
+                Files.isDirectory(testDirectory));
         
         JavacCheck check = creatInstance();
         
         assertThat("Postcondition: run with incorrect encoding should not succeed",
-                check.run(testDirecotry), is(false));
+                check.run(testDirectory), is(false));
         
         String message = "illegal character: '\\ufffd'";
         if (check instanceof CliJavacCheck) {
@@ -348,25 +349,25 @@ public abstract class JavacCheckIT {
         assertThat("Postcondition: should contain no result messages",
                 check.getResultMessages(), containsInAnyOrder(
                         new ResultMessage("javac", MessageType.ERROR, message)
-                            .setFile(new File("Umlauts.java")).setLine(4).setColumn(13),
+                            .setFile(Path.of("Umlauts.java")).setLine(4).setColumn(13),
                         new ResultMessage("javac", MessageType.ERROR, message)
-                            .setFile(new File("Umlauts.java")).setLine(5).setColumn(28),
+                            .setFile(Path.of("Umlauts.java")).setLine(5).setColumn(28),
                         new ResultMessage("javac", MessageType.ERROR, "not a statement")
-                            .setFile(new File("Umlauts.java")).setLine(4).setColumn(9)
+                            .setFile(Path.of("Umlauts.java")).setLine(4).setColumn(9)
                 ));
     }
     
     @Test
     public void charsetIso88591UmlautsCorrect() {
-        testDirecotry = new File(TESTDATA, "umlauts_ISO-8859-1");
+        testDirectory = TESTDATA.resolve("umlauts_ISO-8859-1");
         assertThat("Precondition: directory with test files does not exist",
-                testDirecotry.isDirectory());
+                Files.isDirectory(testDirectory));
         
         JavacCheck check = creatInstance();
         check.setCharset(StandardCharsets.ISO_8859_1);
         
         assertThat("Postcondition: run with correct encoding set should succeed",
-                check.run(testDirecotry), is(true));
+                check.run(testDirectory), is(true));
         
         assertThat("Postcondition: should contain no result messages",
                 check.getResultMessages(), is(Arrays.asList()));
@@ -374,14 +375,14 @@ public abstract class JavacCheckIT {
     
     @Test
     public void srcFolderWithPackages() {
-        testDirecotry = new File(TESTDATA, "srcFolder");
+        testDirectory = TESTDATA.resolve("srcFolder");
         assertThat("Precondition: directory with test files does not exist",
-                testDirecotry.isDirectory());
+                Files.isDirectory(testDirectory));
         
         JavacCheck check = creatInstance();
         
         assertThat("Postcondition: run with files in the src folder should succeed",
-                check.run(testDirecotry), is(true));
+                check.run(testDirectory), is(true));
         
         assertThat("Postcondition: should create no error messages",
                 check.getResultMessages(), is(Arrays.asList()));
@@ -389,15 +390,15 @@ public abstract class JavacCheckIT {
     
     @Test
     public void srcFolderWithClasspathSet() {
-        testDirecotry = new File(TESTDATA, "srcFolder");
+        testDirectory = TESTDATA.resolve("srcFolder");
         assertThat("Precondition: directory with test files does not exist",
-                testDirecotry.isDirectory());
+                Files.isDirectory(testDirectory));
         
         JavacCheck check = creatInstance();
-        check.addToClasspath(new File(testDirecotry, "src"));
+        check.addToClasspath(testDirectory.resolve("src"));
         
         assertThat("Postcondition: run with files in the src folder should succeed",
-                check.run(testDirecotry), is(true));
+                check.run(testDirectory), is(true));
         
         assertThat("Postcondition: should create no error messages",
                 check.getResultMessages(), is(Arrays.asList()));
@@ -405,20 +406,20 @@ public abstract class JavacCheckIT {
     
     @Test
     public void classpathMissingLibrary() {
-        testDirecotry = new File(TESTDATA, "library");
+        testDirectory = TESTDATA.resolve("library");
         assertThat("Precondition: directory with test files does not exist",
-                testDirecotry.isDirectory());
+                Files.isDirectory(testDirectory));
         
         JavacCheck check = creatInstance();
         
         assertThat("Postcondition: run with invalid classpath set should not succeed",
-                check.run(testDirecotry), is(false));
+                check.run(testDirectory), is(false));
         
         List<ResultMessage> expected = new LinkedList<>();
         expected.add(new ResultMessage("javac", MessageType.ERROR, "package util does not exist")
-                .setFile(new File("Main.java")).setLine(1).setColumn(12));
+                .setFile(Path.of("Main.java")).setLine(1).setColumn(12));
         expected.add(new ResultMessage("javac", MessageType.ERROR, "cannot find symbol")
-                    .setFile(new File("Main.java")).setLine(7).setColumn(9));
+                    .setFile(Path.of("Main.java")).setLine(7).setColumn(9));
         
         assertThat("Postcondition: should create error messages",
                 check.getResultMessages(), containsInAnyOrder(expected.toArray()));
@@ -426,19 +427,19 @@ public abstract class JavacCheckIT {
     
     @Test
     public void classpathLibraryCorrect() {
-        testDirecotry = new File(TESTDATA, "library");
+        testDirectory = TESTDATA.resolve("library");
         assertThat("Precondition: directory with test files does not exist",
-                testDirecotry.isDirectory());
+                Files.isDirectory(testDirectory));
         
-        File library = new File(testDirecotry, "lib/util-lib.jar");
+        Path library = testDirectory.resolve("lib/util-lib.jar");
         assertThat("Precondition: library does not exist",
-                library.isFile());
+                Files.isRegularFile(library));
         
         JavacCheck check = creatInstance();
         check.addToClasspath(library);
         
         assertThat("Postcondition: run with correct classpath set should succeed",
-                check.run(testDirecotry), is(true));
+                check.run(testDirectory), is(true));
         
         assertThat("Postcondition: should create no error messages",
                 check.getResultMessages(), is(Arrays.asList()));
@@ -448,8 +449,8 @@ public abstract class JavacCheckIT {
     public void classpathCleared() {
         JavacCheck check = creatInstance();
         
-        testDirecotry = new File(TESTDATA, "library");
-        File library = new File(testDirecotry, "lib/util-lib.jar");
+        testDirectory = TESTDATA.resolve("library");
+        Path library = testDirectory.resolve("lib/util-lib.jar");
         
         check.addToClasspath(library);
         
@@ -464,21 +465,21 @@ public abstract class JavacCheckIT {
     
     @Test
     public void submissionCheckClassesNotInClasspath() {
-        testDirecotry = new File(TESTDATA, "usesClassesFromSubmissionCheck");
+        testDirectory = TESTDATA.resolve("usesClassesFromSubmissionCheck");
         assertThat("Precondition: directory with test files does not exist",
-                testDirecotry.isDirectory());
+                Files.isDirectory(testDirectory));
         
         JavacCheck check = creatInstance();
         
         assertThat("Postcondition: file that uses submission check classes should not compile",
-                check.run(testDirecotry), is(false));
+                check.run(testDirectory), is(false));
         
         assertThat("Postcondition: should create error messages",
                 check.getResultMessages(), containsInAnyOrder(
                         new ResultMessage("javac", MessageType.ERROR, "package net.ssehub.teaching.submission_check does not exist")
-                                .setFile(new File("Main.java")).setLine(4).setColumn(45),
+                                .setFile(Path.of("Main.java")).setLine(4).setColumn(45),
                         new ResultMessage("javac", MessageType.ERROR, "package net.ssehub.teaching.submission_check does not exist")
-                                .setFile(new File("Main.java")).setLine(5).setColumn(59)
+                                .setFile(Path.of("Main.java")).setLine(5).setColumn(59)
                 ));
     }
     
@@ -507,11 +508,11 @@ public abstract class JavacCheckIT {
         check.setEnableWarnings(true);
         assertThat(check.getEnableWarnings(), is(true));
         
-        check.addToClasspath(new File("abc"));
-        assertThat(check.getClasspath(), is(Arrays.asList(new File("abc"))));
+        check.addToClasspath(Path.of("abc"));
+        assertThat(check.getClasspath(), is(Arrays.asList(Path.of("abc"))));
         
-        check.addToClasspath(new File("def"));
-        assertThat(check.getClasspath(), is(Arrays.asList(new File("abc"), new File("def"))));
+        check.addToClasspath(Path.of("def"));
+        assertThat(check.getClasspath(), is(Arrays.asList(Path.of("abc"), Path.of("def"))));
     }
     
     // TODO: create a test for an error or warning with a line number but without a column
@@ -532,23 +533,27 @@ public abstract class JavacCheckIT {
     
     @AfterEach
     public void cleanup() {
-        if (testDirecotry != null && testDirecotry.isDirectory()) {
-            removeClassFiles(testDirecotry);
+        if (testDirectory != null && Files.isDirectory(testDirectory)) {
+            removeClassFiles(testDirectory);
         }
     }
     
-    private void removeClassFiles(File directory) {
-        for (File nested : directory.listFiles()) {
-            if (nested.isFile() && nested.getName().endsWith(".class")) {
-                boolean deleted = nested.delete();
-                if (!deleted) {
-                    fail("Cleanup: Failed to delete class file " + nested);
-                }
-                
-            } else if (nested.isDirectory()) {
-                removeClassFiles(nested);
-            }
+    private void removeClassFiles(Path directory) {
+        try {
+            Files.walk(directory)
+                .filter(Files::isRegularFile)
+                .filter(path -> path.getFileName().toString().endsWith(".class"))
+                .forEach(t -> {
+                    try {
+                        Files.delete(t);
+                    } catch (IOException e) {
+                        fail("Cleanup: Failed to delete class file " + t);
+                    }
+                });
+        } catch (IOException e) {
+            fail("Cleanup: Failed to delete class files in " + directory);
         }
+        
     }
     
 }

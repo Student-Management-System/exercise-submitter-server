@@ -15,7 +15,7 @@
  */
 package net.ssehub.teaching.exercise_submitter.server.submission.checks;
 
-import java.io.File;
+import java.nio.file.Path;
 import java.util.Objects;
 
 /**
@@ -40,7 +40,7 @@ public class ResultMessage implements Comparable<ResultMessage> {
     
     private String message;
     
-    private File file;
+    private Path file;
     
     private Integer line;
     
@@ -66,7 +66,7 @@ public class ResultMessage implements Comparable<ResultMessage> {
      * 
      * @return this (for convenience)
      */
-    public ResultMessage setFile(File file) {
+    public ResultMessage setFile(Path file) {
         this.file = file;
         return this;
     }
@@ -127,7 +127,7 @@ public class ResultMessage implements Comparable<ResultMessage> {
      * 
      * @return The file location; may be <code>null</code>.
      */
-    public File getFile() {
+    public Path getFile() {
         return file;
     }
     
@@ -175,7 +175,7 @@ public class ResultMessage implements Comparable<ResultMessage> {
         builder.append(checkName).append(' ').append(type.name().toLowerCase());
         
         if (file != null) {
-            builder.append(" in ").append(file.getPath());
+            builder.append(" in ").append(file.toString());
             if (line != null) {
                 builder.append(':').append(line);
                 if (column != null) {

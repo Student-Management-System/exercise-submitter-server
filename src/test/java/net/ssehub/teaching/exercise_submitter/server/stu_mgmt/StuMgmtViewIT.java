@@ -7,7 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import java.io.File;
+import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.List;
 
@@ -159,7 +159,7 @@ public class StuMgmtViewIT {
             assertDoesNotThrow(() -> view.fullReload());
             
             ResultMessage m2 = new ResultMessage("check2", MessageType.ERROR, "this is bad!");
-            m2.setFile(new File("dir/Main.java"));
+            m2.setFile(Path.of("dir/Main.java"));
             m2.setLine(5);
             m2.setColumn(8);
             view.sendSubmissionResult(new SubmissionTarget("foo-wise2122", "Homework01", "TheOdds"),

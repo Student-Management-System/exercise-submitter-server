@@ -16,10 +16,11 @@
 package net.ssehub.teaching.exercise_submitter.server.submission.checks;
 
 import java.io.BufferedReader;
-import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.lang.ProcessBuilder.Redirect;
+import java.nio.file.FileSystems;
+import java.nio.file.Path;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
@@ -74,13 +75,13 @@ public class CliJavacCheck extends JavacCheck {
     }
     
     @Override
-    protected boolean runJavac(File submissionDirectory, Set<File> javaFiles) {
+    protected boolean runJavac(Path submissionDirectory, Set<Path> javaFiles) {
         boolean success;
         
         ProcessBuilder processBuilder = new ProcessBuilder(buildCommand(submissionDirectory, javaFiles));
         processBuilder.redirectOutput(Redirect.DISCARD);
         processBuilder.redirectError(Redirect.PIPE);
-        processBuilder.directory(submissionDirectory);
+        processBuilder.directory(submissionDirectory.toFile());
         
         LOGGER.log(Level.FINE, "Running {0} in directory {1}...", new Object[] {
             processBuilder.command(), submissionDirectory});
@@ -126,7 +127,7 @@ public class CliJavacCheck extends JavacCheck {
      * 
      * @return The command that runs the Java compiler on the given files.
      */
-    private List<String> buildCommand(File submissionDirectory, Set<File> filesToCompile) {
+    private List<String> buildCommand(Path submissionDirectory, Set<Path> filesToCompile) {
         List<String> command = new LinkedList<>();
         command.add(javacCommand);
         
@@ -143,16 +144,16 @@ public class CliJavacCheck extends JavacCheck {
         if (!getClasspath().isEmpty()) {
             command.add("--class-path");
             
-            StringJoiner classpath = new StringJoiner(File.pathSeparator);
-            for (File classpathEntry : getClasspath()) {
-                classpath.add(classpathEntry.getAbsolutePath());
+            StringJoiner classpath = new StringJoiner(FileSystems.getDefault().getSeparator());
+            for (Path classpathEntry : getClasspath()) {
+                classpath.add(classpathEntry.toAbsolutePath().toString());
             }
             
             command.add(classpath.toString());
         }
         
-        for (File javaSourceFile : filesToCompile) {
-            command.add(FileUtils.getRelativeFile(submissionDirectory, javaSourceFile).getPath());
+        for (Path javaSourceFile : filesToCompile) {
+            command.add(submissionDirectory.relativize(javaSourceFile).toString());
         }
         
         return command;
@@ -176,7 +177,7 @@ public class CliJavacCheck extends JavacCheck {
                 MessageType type = MessageType.valueOf(matcher.group("type").toUpperCase());
                 ResultMessage message = new ResultMessage(CHECK_NAME, type, matcher.group("message"));
                 
-                message.setFile(new File(matcher.group("filename")));
+                message.setFile(Path.of(matcher.group("filename")));
                 message.setLine(Integer.parseInt(matcher.group("line")));
                 
                 if (output.size() > i + 2) {

@@ -7,23 +7,22 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
+
+import net.ssehub.teaching.exercise_submitter.server.submission.checks.FileUtils;
 
 public class SubmissionTest {
 
@@ -227,11 +226,7 @@ public class SubmissionTest {
     @AfterEach
     public void cleanTemporaryDirectory() throws IOException {
         if (temporaryDirectory != null) {
-            try (Stream<Path> walk = Files.walk(temporaryDirectory)) {
-                walk.sorted(Comparator.reverseOrder())
-                    .map(Path::toFile)
-                    .forEach(File::delete);
-            }
+            FileUtils.deleteDirectory(temporaryDirectory);
         }
     }
     

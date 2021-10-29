@@ -15,8 +15,9 @@
  */
 package net.ssehub.teaching.exercise_submitter.server.submission.checks;
 
-import java.io.File;
 import java.io.Writer;
+import java.nio.file.FileSystems;
+import java.nio.file.Path;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Locale;
@@ -29,12 +30,11 @@ import javax.tools.Diagnostic;
 import javax.tools.DiagnosticCollector;
 import javax.tools.JavaCompiler;
 import javax.tools.JavaCompiler.CompilationTask;
-
-import net.ssehub.teaching.exercise_submitter.server.submission.checks.ResultMessage.MessageType;
-
 import javax.tools.JavaFileObject;
 import javax.tools.StandardJavaFileManager;
 import javax.tools.ToolProvider;
+
+import net.ssehub.teaching.exercise_submitter.server.submission.checks.ResultMessage.MessageType;
 
 /**
  * A {@link JavacCheck} that uses the internal {@link JavaCompiler} interface. Use {@link #isSupported()} to check
@@ -56,14 +56,14 @@ public class InternalJavacCheck extends JavacCheck {
     }
     
     @Override
-    protected boolean runJavac(File submissionDirectory, Set<File> javaFiles) {
+    protected boolean runJavac(Path submissionDirectory, Set<Path> javaFiles) {
         JavaCompiler compiler = ToolProvider.getSystemJavaCompiler();
         
         StandardJavaFileManager fileManager = compiler.getStandardFileManager(
                 new DiagnosticCollector<>(), // discard error messages from FileManager
                 Locale.ROOT, getCharset());
         Iterable<? extends JavaFileObject> javaFileObjects
-                = fileManager.getJavaFileObjects(javaFiles.toArray(new File[0]));
+                = fileManager.getJavaFileObjects(javaFiles.toArray(new Path[0]));
         
         DiagnosticCollector<JavaFileObject> diagnosticCollector = new DiagnosticCollector<>();
         
@@ -116,9 +116,9 @@ public class InternalJavacCheck extends JavacCheck {
         if (!getClasspath().isEmpty()) {
             options.add("--class-path");
             
-            StringJoiner classpath = new StringJoiner(File.pathSeparator);
-            for (File classpathEntry : getClasspath()) {
-                classpath.add(classpathEntry.getPath());
+            StringJoiner classpath = new StringJoiner(FileSystems.getDefault().getSeparator());
+            for (Path classpathEntry : getClasspath()) {
+                classpath.add(classpathEntry.toString());
             }
             options.add(classpath.toString());
         } else {
@@ -137,7 +137,7 @@ public class InternalJavacCheck extends JavacCheck {
      * @param submissionDirectory The directory that contains the submission files.
      */
     private void convertDiagnostToResultMessage(Diagnostic<? extends JavaFileObject> diagnostic,
-            File submissionDirectory) {
+            Path submissionDirectory) {
         
         ResultMessage.MessageType type;
         switch (diagnostic.getKind()) {
@@ -165,8 +165,7 @@ public class InternalJavacCheck extends JavacCheck {
             ResultMessage resultMessage = new ResultMessage(CHECK_NAME, type, message);
             
             if (diagnostic.getSource() != null) {
-                File file = FileUtils.getRelativeFile(submissionDirectory, new File(diagnostic.getSource().getName()));
-                resultMessage.setFile(file);
+                resultMessage.setFile(submissionDirectory.relativize(Path.of(diagnostic.getSource().getName())));
                 
                 if (diagnostic.getLineNumber() != Diagnostic.NOPOS) {
                     resultMessage.setLine((int) diagnostic.getLineNumber());

@@ -8,8 +8,8 @@ import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import java.io.File;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.LinkedList;
@@ -58,7 +58,7 @@ public class SubmissionManagerTest {
         }
         
         @Override
-        public boolean run(File submissionDirectory) {
+        public boolean run(Path submissionDirectory) {
             Arrays.stream(messages).forEach(this::addResultMessage);
             return returnValue;
         }
@@ -581,7 +581,7 @@ public class SubmissionManagerTest {
             
             assertAll(
                 () -> assertInstanceOf(CheckstyleCheck.class, check),
-                () -> assertEquals(new File("basic.xml"), ((CheckstyleCheck) check).getCheckstyleRules())
+                () -> assertEquals(Path.of("basic.xml"), ((CheckstyleCheck) check).getCheckstyleRules())
             );
         }
         

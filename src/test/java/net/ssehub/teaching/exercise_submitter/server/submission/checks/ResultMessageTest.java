@@ -19,7 +19,7 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 
-import java.io.File;
+import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.LinkedList;
@@ -48,44 +48,44 @@ public class ResultMessageTest {
     @Test
     public void onlyBasicAndFile() {
         ResultMessage message = new ResultMessage("some-other-tool", MessageType.ERROR, "a file message");
-        message.setFile(new File("some/file.txt"));
+        message.setFile(Path.of("some/file.txt"));
         
         assertThat(message.getCheckName(), is("some-other-tool"));
         assertThat(message.getType(), is(MessageType.ERROR));
         assertThat(message.getMessage(), is("a file message"));
-        assertThat(message.getFile(), is(new File("some/file.txt")));
+        assertThat(message.getFile(), is(Path.of("some/file.txt")));
         assertThat(message.getLine(), is(nullValue()));
         assertThat(message.getColumn(), is(nullValue()));
         
-        assertThat(message.toString(), is("some-other-tool error in " +  new File("some/file.txt") + " \"a file message\""));
+        assertThat(message.toString(), is("some-other-tool error in " +  Path.of("some/file.txt") + " \"a file message\""));
     }
     
     @Test
     public void basicAndFileAndLine() {
         ResultMessage message = new ResultMessage("javac", MessageType.WARNING, "a file message");
-        message.setFile(new File("some/file.txt"));
+        message.setFile(Path.of("some/file.txt"));
         message.setLine(125);
         
         assertThat(message.getCheckName(), is("javac"));
         assertThat(message.getType(), is(MessageType.WARNING));
         assertThat(message.getMessage(), is("a file message"));
-        assertThat(message.getFile(), is(new File("some/file.txt")));
+        assertThat(message.getFile(), is(Path.of("some/file.txt")));
         assertThat(message.getLine(), is(125));
         assertThat(message.getColumn(), is(nullValue()));
 
-        assertThat(message.toString(), is("javac warning in " +  new File("some/file.txt") + ":125 \"a file message\""));
+        assertThat(message.toString(), is("javac warning in " +  Path.of("some/file.txt") + ":125 \"a file message\""));
     }
     
     @Test
     public void allFields() {
         ResultMessage message = new ResultMessage("checkstyle", MessageType.WARNING, "now with column");
-        message.setFile(new File("Source.java"));
+        message.setFile(Path.of("Source.java"));
         message.setLine(6);
         message.setColumn(534);
         
         assertThat(message.getType(), is(MessageType.WARNING));
         assertThat(message.getMessage(), is("now with column"));
-        assertThat(message.getFile(), is(new File("Source.java")));
+        assertThat(message.getFile(), is(Path.of("Source.java")));
         assertThat(message.getLine(), is(6));
         assertThat(message.getColumn(), is(534));
 
@@ -94,8 +94,8 @@ public class ResultMessageTest {
     
     @Test
     public void equalsMissingFields() {
-        ResultMessage full = new ResultMessage("tool", MessageType.WARNING, "some message").setFile(new File("Source.java")).setLine(6).setColumn(534);
-        ResultMessage medium = new ResultMessage("tool", MessageType.WARNING, "some message").setFile(new File("Source.java")).setLine(6);
+        ResultMessage full = new ResultMessage("tool", MessageType.WARNING, "some message").setFile(Path.of("Source.java")).setLine(6).setColumn(534);
+        ResultMessage medium = new ResultMessage("tool", MessageType.WARNING, "some message").setFile(Path.of("Source.java")).setLine(6);
         ResultMessage sparse = new ResultMessage("tool", MessageType.WARNING, "some message");
         
         assertThat(full.equals(full), is(true));
@@ -113,13 +113,13 @@ public class ResultMessageTest {
     
     @Test
     public void equalsDifferentField() {
-        ResultMessage v1 = new ResultMessage("toolA", MessageType.WARNING, "some message").setFile(new File("Source.java")).setLine(6).setColumn(534);
-        ResultMessage v2 = new ResultMessage("toolB", MessageType.WARNING, "some message").setFile(new File("Source.java")).setLine(6).setColumn(534);
-        ResultMessage v3 = new ResultMessage("toolA", MessageType.ERROR, "some message").setFile(new File("Source.java")).setLine(6).setColumn(534);
-        ResultMessage v4 = new ResultMessage("toolA", MessageType.WARNING, "other message").setFile(new File("Source.java")).setLine(6).setColumn(534);
-        ResultMessage v5 = new ResultMessage("toolA", MessageType.WARNING, "some message").setFile(new File("Other.java")).setLine(6).setColumn(534);
-        ResultMessage v6 = new ResultMessage("toolA", MessageType.WARNING, "some message").setFile(new File("Source.java")).setLine(654).setColumn(534);
-        ResultMessage v7 = new ResultMessage("toolA", MessageType.WARNING, "some message").setFile(new File("Source.java")).setLine(6).setColumn(5);
+        ResultMessage v1 = new ResultMessage("toolA", MessageType.WARNING, "some message").setFile(Path.of("Source.java")).setLine(6).setColumn(534);
+        ResultMessage v2 = new ResultMessage("toolB", MessageType.WARNING, "some message").setFile(Path.of("Source.java")).setLine(6).setColumn(534);
+        ResultMessage v3 = new ResultMessage("toolA", MessageType.ERROR, "some message").setFile(Path.of("Source.java")).setLine(6).setColumn(534);
+        ResultMessage v4 = new ResultMessage("toolA", MessageType.WARNING, "other message").setFile(Path.of("Source.java")).setLine(6).setColumn(534);
+        ResultMessage v5 = new ResultMessage("toolA", MessageType.WARNING, "some message").setFile(Path.of("Other.java")).setLine(6).setColumn(534);
+        ResultMessage v6 = new ResultMessage("toolA", MessageType.WARNING, "some message").setFile(Path.of("Source.java")).setLine(654).setColumn(534);
+        ResultMessage v7 = new ResultMessage("toolA", MessageType.WARNING, "some message").setFile(Path.of("Source.java")).setLine(6).setColumn(5);
         
         ResultMessage[] array = {v1, v2, v3, v4, v5, v6, v7};
         
@@ -133,8 +133,8 @@ public class ResultMessageTest {
     
     @Test
     public void equalsDifferentInstance() {
-        ResultMessage one = new ResultMessage("javac", MessageType.WARNING, "some message").setFile(new File("Source.java")).setLine(6).setColumn(534);
-        ResultMessage two = new ResultMessage("javac", MessageType.WARNING, "some message").setFile(new File("Source.java")).setLine(6).setColumn(534);
+        ResultMessage one = new ResultMessage("javac", MessageType.WARNING, "some message").setFile(Path.of("Source.java")).setLine(6).setColumn(534);
+        ResultMessage two = new ResultMessage("javac", MessageType.WARNING, "some message").setFile(Path.of("Source.java")).setLine(6).setColumn(534);
         
         assertThat(one.equals(two), is(true));
         assertThat(two.equals(one), is(true));
@@ -147,14 +147,14 @@ public class ResultMessageTest {
     
     @Test
     public void sortingByLocation() {
-        ResultMessage m0 = new ResultMessage("checkstyle", MessageType.ERROR, "other tool").setFile(new File("A.txt"));
+        ResultMessage m0 = new ResultMessage("checkstyle", MessageType.ERROR, "other tool").setFile(Path.of("A.txt"));
         ResultMessage m1 = new ResultMessage("javac", MessageType.ERROR, "no file");
-        ResultMessage m2 = new ResultMessage("javac", MessageType.ERROR, "first file").setFile(new File("A.txt"));
-        ResultMessage m3 = new ResultMessage("javac", MessageType.ERROR, "second file").setFile(new File("B.txt"));
-        ResultMessage m4 = new ResultMessage("javac", MessageType.ERROR, "second file with line number").setFile(new File("B.txt")).setLine(17);
-        ResultMessage m5 = new ResultMessage("javac", MessageType.ERROR, "second file with line number").setFile(new File("B.txt")).setLine(19);
-        ResultMessage m6 = new ResultMessage("javac", MessageType.ERROR, "second file with line number and column").setFile(new File("B.txt")).setLine(19).setColumn(2);
-        ResultMessage m7 = new ResultMessage("javac", MessageType.ERROR, "second file with line number and column").setFile(new File("B.txt")).setLine(19).setColumn(5);
+        ResultMessage m2 = new ResultMessage("javac", MessageType.ERROR, "first file").setFile(Path.of("A.txt"));
+        ResultMessage m3 = new ResultMessage("javac", MessageType.ERROR, "second file").setFile(Path.of("B.txt"));
+        ResultMessage m4 = new ResultMessage("javac", MessageType.ERROR, "second file with line number").setFile(Path.of("B.txt")).setLine(17);
+        ResultMessage m5 = new ResultMessage("javac", MessageType.ERROR, "second file with line number").setFile(Path.of("B.txt")).setLine(19);
+        ResultMessage m6 = new ResultMessage("javac", MessageType.ERROR, "second file with line number and column").setFile(Path.of("B.txt")).setLine(19).setColumn(2);
+        ResultMessage m7 = new ResultMessage("javac", MessageType.ERROR, "second file with line number and column").setFile(Path.of("B.txt")).setLine(19).setColumn(5);
         
         List<ResultMessage> messages = new LinkedList<>();
         messages.add(m7);
@@ -174,9 +174,9 @@ public class ResultMessageTest {
     @Test
     public void compareWithEmptyFields() {
         ResultMessage bare = new ResultMessage("javac", MessageType.ERROR, "msg");
-        ResultMessage withFile = new ResultMessage("javac", MessageType.ERROR, "msg").setFile(new File("some"));
-        ResultMessage withLine = new ResultMessage("javac", MessageType.ERROR, "msg").setFile(new File("some")).setLine(1);
-        ResultMessage withColumn = new ResultMessage("javac", MessageType.ERROR, "msg").setFile(new File("some")).setLine(1).setColumn(1);
+        ResultMessage withFile = new ResultMessage("javac", MessageType.ERROR, "msg").setFile(Path.of("some"));
+        ResultMessage withLine = new ResultMessage("javac", MessageType.ERROR, "msg").setFile(Path.of("some")).setLine(1);
+        ResultMessage withColumn = new ResultMessage("javac", MessageType.ERROR, "msg").setFile(Path.of("some")).setLine(1).setColumn(1);
         
         ResultMessage[] arraySorted = {bare, withFile, withLine, withColumn};
         
@@ -204,18 +204,18 @@ public class ResultMessageTest {
         assertThat(check1.compareTo(check2), is(-1));
         assertThat(check2.compareTo(check1), is(1));
         
-        ResultMessage file1 = new ResultMessage("javac", MessageType.WARNING, "msg").setFile(new File("A"));
-        ResultMessage file2 = new ResultMessage("javac", MessageType.WARNING, "msg").setFile(new File("B"));
+        ResultMessage file1 = new ResultMessage("javac", MessageType.WARNING, "msg").setFile(Path.of("A"));
+        ResultMessage file2 = new ResultMessage("javac", MessageType.WARNING, "msg").setFile(Path.of("B"));
         assertThat(file1.compareTo(file2), is(-1));
         assertThat(file2.compareTo(file1), is(1));
         
-        ResultMessage line1 = new ResultMessage("javac", MessageType.WARNING, "msg").setFile(new File("A")).setLine(15);
-        ResultMessage line2 = new ResultMessage("javac", MessageType.WARNING, "msg").setFile(new File("A")).setLine(17);
+        ResultMessage line1 = new ResultMessage("javac", MessageType.WARNING, "msg").setFile(Path.of("A")).setLine(15);
+        ResultMessage line2 = new ResultMessage("javac", MessageType.WARNING, "msg").setFile(Path.of("A")).setLine(17);
         assertThat(line1.compareTo(line2), is(-1));
         assertThat(line2.compareTo(line1), is(1));
         
-        ResultMessage column1 = new ResultMessage("javac", MessageType.WARNING, "msg").setFile(new File("A")).setLine(15).setColumn(3);
-        ResultMessage column2 = new ResultMessage("javac", MessageType.WARNING, "msg").setFile(new File("A")).setLine(15).setColumn(5);
+        ResultMessage column1 = new ResultMessage("javac", MessageType.WARNING, "msg").setFile(Path.of("A")).setLine(15).setColumn(3);
+        ResultMessage column2 = new ResultMessage("javac", MessageType.WARNING, "msg").setFile(Path.of("A")).setLine(15).setColumn(5);
         assertThat(column1.compareTo(column2), is(-1));
         assertThat(column2.compareTo(column1), is(1));
     }

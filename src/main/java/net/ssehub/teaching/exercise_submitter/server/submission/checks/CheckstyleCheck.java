@@ -15,16 +15,17 @@
  */
 package net.ssehub.teaching.exercise_submitter.server.submission.checks;
 
-import java.io.File;
+import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
+import java.nio.file.Path;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 import com.puppycrawl.tools.checkstyle.Checker;
 import com.puppycrawl.tools.checkstyle.ConfigurationLoader;
@@ -47,7 +48,7 @@ public class CheckstyleCheck extends Check {
     
     private static final Logger LOGGER = Logger.getLogger(CheckstyleCheck.class.getName());
     
-    private File checkstyleRules;
+    private Path checkstyleRules;
 
     private Charset charset;
     
@@ -56,7 +57,7 @@ public class CheckstyleCheck extends Check {
      * 
      * @param checkstyleRules A file with the XML ruleset for Checkstyle.
      */
-    public CheckstyleCheck(File checkstyleRules) {
+    public CheckstyleCheck(Path checkstyleRules) {
         this.checkstyleRules = checkstyleRules;
         this.charset = StandardCharsets.UTF_8;
     }
@@ -76,7 +77,7 @@ public class CheckstyleCheck extends Check {
      * 
      * @return The configured Checkstyle rules file.
      */
-    public File getCheckstyleRules() {
+    public Path getCheckstyleRules() {
         return checkstyleRules;
     }
     
@@ -92,16 +93,25 @@ public class CheckstyleCheck extends Check {
     }
     
     @Override
-    public boolean run(File submissionDirectory) {
+    public boolean run(Path submissionDirectory) {
         boolean success;
         
-        Set<File> javaFiles = FileUtils.findFilesBySuffix(submissionDirectory, ".java");
-        
-        if (!javaFiles.isEmpty()) {
-            success = runCheckstyle(submissionDirectory, javaFiles);
+        try {
+            Set<Path> javaFiles = FileUtils.findFilesBySuffix(submissionDirectory, ".java");
             
-        } else {
-            success = true;
+            if (!javaFiles.isEmpty()) {
+                success = runCheckstyle(submissionDirectory, javaFiles);
+                
+            } else {
+                success = true;
+            }
+            
+        } catch (IOException e) {
+            LOGGER.log(Level.WARNING, "Exception while getting files for Checkstyle", e);
+            
+            addResultMessage(new ResultMessage(CHECK_NAME, MessageType.ERROR,
+                    "An internal error occurred while running Checkstyle"));
+            success = false;
         }
         
         return success;
@@ -115,7 +125,7 @@ public class CheckstyleCheck extends Check {
      * 
      * @return Whether the check was successful.
      */
-    private boolean runCheckstyle(File submissionDirectory, Set<File> javaFiles) {
+    private boolean runCheckstyle(Path submissionDirectory, Set<Path> javaFiles) {
         boolean success;
         
         LOGGER.log(Level.FINE, "Using rules: {0}", checkstyleRules);
@@ -123,19 +133,19 @@ public class CheckstyleCheck extends Check {
         
         try {
             Configuration configuration = ConfigurationLoader.loadConfiguration(
-                    checkstyleRules.getAbsolutePath(), null);
+                    checkstyleRules.toAbsolutePath().toString(), null);
             
             Checker checkstyle = new Checker();
             checkstyle.setModuleClassLoader(Checker.class.getClassLoader());
             checkstyle.configure(configuration);
-            checkstyle.setBasedir(submissionDirectory.getAbsolutePath());
+            checkstyle.setBasedir(submissionDirectory.toAbsolutePath().toString());
             checkstyle.setCharset(this.charset.name());
             checkstyle.setHaltOnException(false);
             
             CheckstyleOutputListener listener = new CheckstyleOutputListener();
             checkstyle.addListener(listener);
             
-            checkstyle.process(new ArrayList<>(javaFiles));
+            checkstyle.process(javaFiles.stream().map(Path::toFile).collect(Collectors.toList()));
             checkstyle.destroy();
             
             success = listener.getNumErrors() == 0;
@@ -228,7 +238,7 @@ public class CheckstyleCheck extends Check {
                 ResultMessage resultMessage = new ResultMessage(CHECK_NAME, type, message);
                 
                 if (event.getFileName() != null) {
-                    resultMessage.setFile(new File(event.getFileName()));
+                    resultMessage.setFile(Path.of(event.getFileName()));
                 }
                 if (line != 0) {
                     resultMessage.setLine(line);

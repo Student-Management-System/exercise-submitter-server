@@ -20,9 +20,10 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.fail;
 
-import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Arrays;
 
 import org.junit.jupiter.api.BeforeAll;
@@ -33,14 +34,14 @@ import net.ssehub.teaching.exercise_submitter.server.submission.checks.ResultMes
 
 public class EncodingCheckTest {
 
-    private static final File TESTDATA = new File("src/test/resources/EncodingCheckTest");
+    private static final Path TESTDATA = Path.of("src/test/resources/EncodingCheckTest");
     
     @Test
     @DisplayName("succeeds on submission with no files")
     public void noFiles() {
-        File directory = new File(TESTDATA, "emptyDirectory");
+        Path directory = TESTDATA.resolve("emptyDirectory");
         assertThat("Precondition: directory with test files should exist",
-                directory.isDirectory(), is(true));
+                Files.isDirectory(directory), is(true));
         
         EncodingCheck check = new EncodingCheck();
         
@@ -55,9 +56,9 @@ public class EncodingCheckTest {
     @Test
     @DisplayName("succeeds on UTF-8 files with UTF-8 required")
     public void expectUtf8OnUtf8() {
-        File directory = new File(TESTDATA, "UTF-8");
+        Path directory = TESTDATA.resolve("UTF-8");
         assertThat("Precondition: directory with test files should exist",
-                directory.isDirectory(), is(true));
+                Files.isDirectory(directory), is(true));
         
         EncodingCheck check = new EncodingCheck();
         
@@ -72,9 +73,9 @@ public class EncodingCheckTest {
     @Test
     @DisplayName("does not succeed on windows-1258 files with UTF-8 required")
     public void expectUtf8OnWindows1258() {
-        File directory = new File(TESTDATA, "windows-1258");
+        Path directory = TESTDATA.resolve("windows-1258");
         assertThat("Precondition: directory with test files should exist",
-                directory.isDirectory(), is(true));
+                Files.isDirectory(directory), is(true));
         
         EncodingCheck check = new EncodingCheck();
         
@@ -83,7 +84,7 @@ public class EncodingCheckTest {
         assertAll(
             () -> assertThat("Postcondition: should not succeed", success, is(false)),
             () -> assertThat("Postcondition: should create an error message", check.getResultMessages(), is(Arrays.asList(
-                    new ResultMessage("encoding", MessageType.ERROR, "File has invalid encoding; expected UTF-8").setFile(new File("umlauts.txt"))
+                    new ResultMessage("encoding", MessageType.ERROR, "File has invalid encoding; expected UTF-8").setFile(Path.of("umlauts.txt"))
                 )))
         );
     }
@@ -91,9 +92,9 @@ public class EncodingCheckTest {
     @Test
     @DisplayName("does not succeed on UTF-16 files with UTF-8 required")
     public void expectUtf8OnUtf16() {
-        File directory = new File(TESTDATA, "UTF-16");
+        Path directory = TESTDATA.resolve("UTF-16");
         assertThat("Precondition: directory with test files should exist",
-                directory.isDirectory(), is(true));
+                Files.isDirectory(directory), is(true));
         
         EncodingCheck check = new EncodingCheck();
         
@@ -102,7 +103,7 @@ public class EncodingCheckTest {
         assertAll(
             () -> assertThat("Postcondition: should not succeed", success, is(false)),
             () -> assertThat("Postcondition: should create an error message", check.getResultMessages(), is(Arrays.asList(
-                    new ResultMessage("encoding", MessageType.ERROR, "File has invalid encoding; expected UTF-8").setFile(new File("umlauts.txt"))
+                    new ResultMessage("encoding", MessageType.ERROR, "File has invalid encoding; expected UTF-8").setFile(Path.of("umlauts.txt"))
                 )))
         );
     }
@@ -110,9 +111,9 @@ public class EncodingCheckTest {
     @Test
     @DisplayName("does not succeed on ISO 8859-1 files with UTF-8 expected")
     public void expectUtf8OnIso88591() {
-        File directory = new File(TESTDATA, "ISO 8859-1");
+        Path directory = TESTDATA.resolve("ISO 8859-1");
         assertThat("Precondition: directory with test files should exist",
-                directory.isDirectory(), is(true));
+                Files.isDirectory(directory), is(true));
         
         EncodingCheck check = new EncodingCheck();
         
@@ -121,7 +122,7 @@ public class EncodingCheckTest {
         assertAll(
             () -> assertThat("Postcondition: should not succeed", success, is(false)),
             () -> assertThat("Postcondition: should create an error message", check.getResultMessages(), is(Arrays.asList(
-                    new ResultMessage("encoding", MessageType.ERROR, "File has invalid encoding; expected UTF-8").setFile(new File("umlauts.txt"))
+                    new ResultMessage("encoding", MessageType.ERROR, "File has invalid encoding; expected UTF-8").setFile(Path.of("umlauts.txt"))
                 )))
         );
     }
@@ -129,13 +130,13 @@ public class EncodingCheckTest {
     @Test
     @DisplayName("creates an internal error for an unreadable file")
     public void unreadableFile() throws IOException {
-        File directory = new File(TESTDATA, "UTF-8");
+        Path directory = TESTDATA.resolve("UTF-8");
         assertThat("Precondition: directory with test files should exist",
-                directory.isDirectory(), is(true));
+                Files.isDirectory(directory), is(true));
         
-        File file = new File(directory, "umlauts.txt");
+        Path file = directory.resolve("umlauts.txt");
         assertThat("Precondition: file should exist",
-                file.isFile(), is(true));
+                Files.isRegularFile(file), is(true));
         try {
             
             EncodingCheck check = new EncodingCheck();
@@ -159,9 +160,9 @@ public class EncodingCheckTest {
     @Test
     @DisplayName("ignores binary files with a known mime-type (pdf and application/octet-stream)")
     public void ignoreBinaryFileKnownMimetype() {
-        File directory = new File(TESTDATA, "binaryFile");
+        Path directory = TESTDATA.resolve("binaryFile");
         assertThat("Precondition: directory with test files should exist",
-                directory.isDirectory(), is(true));
+                Files.isDirectory(directory), is(true));
         
         EncodingCheck check = new EncodingCheck();
         
@@ -176,9 +177,9 @@ public class EncodingCheckTest {
     @Test
     @DisplayName("ignores files with an unknown mime-type (empty file)")
     public void ignoreBinaryFileNoMimetype() {
-        File directory = new File(TESTDATA, "emptyFile");
+        Path directory = TESTDATA.resolve("emptyFile");
         assertThat("Precondition: directory with test files should exist",
-                directory.isDirectory(), is(true));
+                Files.isDirectory(directory), is(true));
         
         EncodingCheck check = new EncodingCheck();
         
@@ -203,11 +204,12 @@ public class EncodingCheckTest {
     
     @BeforeAll
     public static void createEmptyDirectory() {
-        File directory = new File(TESTDATA, "emptyDirectory");
-        if (!directory.isDirectory()) {
-            boolean created = directory.mkdir();
-            if (!created) {
-                fail("Setup: Could not create empty test directory " + directory.getPath());
+        Path directory = TESTDATA.resolve("emptyDirectory");
+        if (!Files.isDirectory(directory)) {
+            try {
+                Files.createDirectory(directory);
+            } catch (IOException e) {
+                fail("Setup: Could not create empty test directory " + directory);
             }
         }
     }

@@ -19,6 +19,7 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertAll;
 
+import java.nio.file.Files;
 import java.util.Arrays;
 
 import org.junit.jupiter.api.DisplayName;
@@ -37,14 +38,14 @@ public class CliJavacCheckIT extends JavacCheckIT {
     @Test
     @DisplayName("creates internal error for invalid javac command")
     public void invalidJavacCommand() {
-        testDirecotry = TESTDATA;
+        testDirectory = TESTDATA;
         assertThat("Precondition: directory with test files does not exist",
-                testDirecotry.isDirectory());
+                Files.isDirectory(testDirectory));
         
         CliJavacCheck check = creatInstance();
         check.setJavacCommand("doesnt_exist");
         
-        boolean success = check.run(testDirecotry);
+        boolean success = check.run(testDirectory);
         
         assertAll(
             () -> assertThat("Postcondition: should not succeed", success, is(false)),

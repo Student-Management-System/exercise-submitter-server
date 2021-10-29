@@ -19,11 +19,11 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 import java.io.ByteArrayOutputStream;
-import java.io.File;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.io.UnsupportedEncodingException;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.List;
 import java.util.logging.Level;
@@ -196,7 +196,7 @@ public class SingleLineLogFormatterTest {
     
     @Test
     public void messageFormat() {
-        testLogger.log(Level.INFO, "a: {0}, b: {1}", new Object[] {1, new File("test.txt")});
+        testLogger.log(Level.INFO, "a: {0}, b: {1}", new Object[] {1, Path.of("test.txt")});
         
         List<String> lines = getLogLines();
         

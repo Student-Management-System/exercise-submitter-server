@@ -8,7 +8,6 @@ import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -16,10 +15,8 @@ import java.nio.file.Path;
 import java.time.Instant;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.Stream;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
@@ -30,6 +27,7 @@ import net.ssehub.teaching.exercise_submitter.server.storage.Submission;
 import net.ssehub.teaching.exercise_submitter.server.storage.SubmissionBuilder;
 import net.ssehub.teaching.exercise_submitter.server.storage.SubmissionTarget;
 import net.ssehub.teaching.exercise_submitter.server.storage.Version;
+import net.ssehub.teaching.exercise_submitter.server.submission.checks.FileUtils;
 
 public class FilesystemStorageTest {
 
@@ -472,11 +470,7 @@ public class FilesystemStorageTest {
     @AfterEach
     public void cleanTemporaryDirectory() throws IOException {
         if (temporaryDirectory != null) {
-            try (Stream<Path> walk = Files.walk(temporaryDirectory)) {
-                walk.sorted(Comparator.reverseOrder())
-                    .map(Path::toFile)
-                    .forEach(File::delete);
-            }
+            FileUtils.deleteDirectory(temporaryDirectory);
         }
     }
     
