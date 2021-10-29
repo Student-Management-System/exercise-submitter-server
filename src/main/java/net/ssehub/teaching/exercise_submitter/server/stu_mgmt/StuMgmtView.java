@@ -34,10 +34,10 @@ import net.ssehub.studentmgmt.backend_api.model.AssessmentUpdateDto;
 import net.ssehub.studentmgmt.backend_api.model.AssignmentDto;
 import net.ssehub.studentmgmt.backend_api.model.AssignmentDto.CollaborationEnum;
 import net.ssehub.studentmgmt.backend_api.model.AssignmentDto.StateEnum;
-import net.ssehub.studentmgmt.backend_api.model.MarkerDto.SeverityEnum;
 import net.ssehub.studentmgmt.backend_api.model.CourseDto;
 import net.ssehub.studentmgmt.backend_api.model.GroupDto;
 import net.ssehub.studentmgmt.backend_api.model.MarkerDto;
+import net.ssehub.studentmgmt.backend_api.model.MarkerDto.SeverityEnum;
 import net.ssehub.studentmgmt.backend_api.model.NotificationDto;
 import net.ssehub.studentmgmt.backend_api.model.PartialAssessmentDto;
 import net.ssehub.studentmgmt.backend_api.model.ParticipantDto;
@@ -251,6 +251,10 @@ public class StuMgmtView {
                 
                 Assignment assignment = createAssignment(
                         course, aDto.getId(), aDto.getName(), aDto.getState(), aDto.getCollaboration());
+                // TODO: call assignment.setCheckConfigurationString() once it's available in the DTO
+                assignment.setCheckConfigurationString(
+                        "[{\"check\":\"encoding\",\"rejecting\":true},{\"check\":\"javac\"},"
+                        + "{\"check\":\"checkstyle\",\"rules\":\"checkstyle.xml\"}]");
                 
                 for (GroupDto gDto : groupApi.getRegisteredGroups(course.getId(), aDto.getId(), null, null, null)) {
                     

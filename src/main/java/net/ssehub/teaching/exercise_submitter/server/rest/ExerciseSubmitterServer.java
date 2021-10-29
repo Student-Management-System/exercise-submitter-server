@@ -1,6 +1,5 @@
 package net.ssehub.teaching.exercise_submitter.server.rest;
 
-import java.io.File;
 import java.io.IOException;
 import java.net.URI;
 import java.nio.file.Path;
@@ -29,12 +28,7 @@ import net.ssehub.teaching.exercise_submitter.server.stu_mgmt.StuMgmtLoadingExce
 import net.ssehub.teaching.exercise_submitter.server.stu_mgmt.StuMgmtView;
 import net.ssehub.teaching.exercise_submitter.server.submission.SubmissionManager;
 import net.ssehub.teaching.exercise_submitter.server.submission.checks.Check;
-import net.ssehub.teaching.exercise_submitter.server.submission.checks.CheckstyleCheck;
-import net.ssehub.teaching.exercise_submitter.server.submission.checks.CliJavacCheck;
-import net.ssehub.teaching.exercise_submitter.server.submission.checks.EncodingCheck;
 import net.ssehub.teaching.exercise_submitter.server.submission.checks.FileSizeCheck;
-import net.ssehub.teaching.exercise_submitter.server.submission.checks.InternalJavacCheck;
-import net.ssehub.teaching.exercise_submitter.server.submission.checks.JavacCheck;
 
 /**
  * Main class to start the rest server.
@@ -82,27 +76,16 @@ public class ExerciseSubmitterServer {
     }
     
     /**
-     * Creates the standard {@link Check}s. TODO: make this configurable.
+     * Creates the standard {@link Check}s for all courses. Currently this is only the {@link FileSizeCheck}.
      * 
      * @param submissionManager The manager to add the {@link Check}s to.
      */
-    private static void createChecks(SubmissionManager submissionManager) {
+    private static void createStandardChecks(SubmissionManager submissionManager) {
         FileSizeCheck fileSizeCheck = new FileSizeCheck();
         fileSizeCheck.setMaxFileSize(1024 * 1024); // 1 KiB
         fileSizeCheck.setMaxSubmissionSize(1024 * 1024); // 1 KiB
         
-        EncodingCheck encodingCheck = new EncodingCheck();
-        
-        JavacCheck javacCheck = InternalJavacCheck.isSupported() ? new InternalJavacCheck() : new CliJavacCheck();
-        javacCheck.setJavaVersion(11);
-        
-        CheckstyleCheck checkstyleCheck = new CheckstyleCheck(new File("checkstyle.xml"));
-        
-        submissionManager.addRejectingCheck(fileSizeCheck);
-        submissionManager.addRejectingCheck(encodingCheck);
-        
-        submissionManager.addNonRejectingCheck(javacCheck);
-        submissionManager.addNonRejectingCheck(checkstyleCheck);
+        submissionManager.addDefaultRejectingCheck(fileSizeCheck);
     }
     
     /**
@@ -131,7 +114,7 @@ public class ExerciseSubmitterServer {
         StuMgmtView stuMgmtView = new StuMgmtView(stuMgmtUrl, authSystemUrl, username, password);
         
         SubmissionManager submissionManager = new SubmissionManager(storage, stuMgmtView);
-        createChecks(submissionManager);
+        createStandardChecks(submissionManager);
         
         AuthManager authManager = new AuthManager(authSystemUrl, stuMgmtView);
 
@@ -172,8 +155,6 @@ public class ExerciseSubmitterServer {
      *      </ol>
      * 
      * @throws IOException If reading user input fails.
-     * @throws ApiException If reading from the student management system fails.
-     * @throws net.ssehub.studentmgmt.sparkyservice_api.ApiException If authenticating fails.
      */
     public static void main(String[] args) throws IOException {
         

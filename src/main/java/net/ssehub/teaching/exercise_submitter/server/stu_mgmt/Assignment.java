@@ -1,11 +1,23 @@
 package net.ssehub.teaching.exercise_submitter.server.stu_mgmt;
 
+import java.io.StringReader;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
+import com.google.gson.JsonParseException;
+
+import jakarta.json.Json;
+import jakarta.json.JsonArray;
+import jakarta.json.JsonException;
+import jakarta.json.JsonObject;
+import jakarta.json.JsonString;
+import jakarta.json.JsonValue;
+import jakarta.json.JsonValue.ValueType;
 import net.ssehub.studentmgmt.backend_api.model.AssignmentDto.CollaborationEnum;
 import net.ssehub.studentmgmt.backend_api.model.AssignmentDto.StateEnum;
 import net.ssehub.studentmgmt.backend_api.model.ParticipantDto.RoleEnum;
@@ -26,6 +38,8 @@ public class Assignment {
     private CollaborationEnum collaboration;
     
     private Map<String, Group> groupsByNames;
+    
+    private List<CheckConfiguration> checkConfigurations;
 
     /**
      * Creates an assignment.
@@ -41,6 +55,7 @@ public class Assignment {
         this.state = state;
         this.collaboration = collaboration;
         this.groupsByNames = new HashMap<>();
+        this.checkConfigurations = new LinkedList<>();
     }
     
     /**
@@ -138,6 +153,52 @@ public class Assignment {
         boolean stateInProgressOrEvaluated = this.state == StateEnum.IN_PROGRESS || this.state == StateEnum.EVALUATED;
         
         return isTutor || (stateInProgressOrEvaluated && isStudent);
+    }
+    
+    /**
+     * Sets the {@link CheckConfiguration}s for this assignment.
+     * 
+     * @param checkConfigJson A JSON string representing the configuration.
+     */
+    public void setCheckConfigurationString(String checkConfigJson) {
+        this.checkConfigurations.clear();
+        
+        try {
+            JsonArray array = Json.createReader(new StringReader(checkConfigJson)).readArray();
+            for (int i = 0; i < array.size(); i++) {
+                JsonObject object = array.getJsonObject(i);
+                if (!object.containsKey("check")) {
+                    throw new JsonException("Missing key \"check\"");
+                }
+                JsonString checkName = object.getJsonString("check");
+                JsonValue rejecting = object.getOrDefault("rejecting", JsonValue.FALSE);
+                if (rejecting.getValueType() != ValueType.TRUE && rejecting.getValueType() != ValueType.FALSE) {
+                    throw new JsonException("\"rejecting\" must be a boolean");
+                }
+                CheckConfiguration check = new CheckConfiguration(checkName.getString(), rejecting == JsonValue.TRUE);
+                
+                for (String key : object.keySet()) {
+                    if (!key.equals("check") && !key.equals("rejecting")) {
+                        check.setProperty(key, object.getJsonString(key).getString());
+                    }
+                }
+                
+                this.checkConfigurations.add(check);
+            }
+            
+        } catch (JsonException | JsonParseException | ClassCastException e) {
+            throw new IllegalArgumentException("Failed to parse check configuration for assignment " + name
+                    + ": " + checkConfigJson, e);
+        }
+    }
+
+    /**
+     * Returns the {@link CheckConfiguration} set for this assignment.
+     * 
+     * @return The {@link CheckConfiguration} for this assignment.
+     */
+    public List<CheckConfiguration> getCheckConfigurations() {
+        return Collections.unmodifiableList(this.checkConfigurations);
     }
     
 }

@@ -1,6 +1,8 @@
 package net.ssehub.teaching.exercise_submitter.server.submission;
 
+import java.io.File;
 import java.io.IOException;
+import java.nio.charset.Charset;
 import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -9,6 +11,7 @@ import java.nio.file.attribute.BasicFileAttributes;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.NoSuchElementException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
@@ -20,8 +23,16 @@ import net.ssehub.teaching.exercise_submitter.server.storage.NoSuchTargetExcepti
 import net.ssehub.teaching.exercise_submitter.server.storage.StorageException;
 import net.ssehub.teaching.exercise_submitter.server.storage.Submission;
 import net.ssehub.teaching.exercise_submitter.server.storage.SubmissionTarget;
+import net.ssehub.teaching.exercise_submitter.server.stu_mgmt.Assignment;
+import net.ssehub.teaching.exercise_submitter.server.stu_mgmt.CheckConfiguration;
+import net.ssehub.teaching.exercise_submitter.server.stu_mgmt.Course;
 import net.ssehub.teaching.exercise_submitter.server.stu_mgmt.StuMgmtView;
 import net.ssehub.teaching.exercise_submitter.server.submission.checks.Check;
+import net.ssehub.teaching.exercise_submitter.server.submission.checks.CheckstyleCheck;
+import net.ssehub.teaching.exercise_submitter.server.submission.checks.CliJavacCheck;
+import net.ssehub.teaching.exercise_submitter.server.submission.checks.EncodingCheck;
+import net.ssehub.teaching.exercise_submitter.server.submission.checks.InternalJavacCheck;
+import net.ssehub.teaching.exercise_submitter.server.submission.checks.JavacCheck;
 import net.ssehub.teaching.exercise_submitter.server.submission.checks.ResultMessage;
 import net.ssehub.teaching.exercise_submitter.server.submission.checks.ResultMessage.MessageType;
 
@@ -39,9 +50,7 @@ public class SubmissionManager {
     
     private StuMgmtView stuMgmtView;
     
-    private List<Check> rejectingChecks;
-    
-    private List<Check> nonRejectingChecks;
+    private List<Check> defaultRejectingChecks;
     
     /**
      * Creates a new {@link SubmissionManager}.
@@ -53,27 +62,99 @@ public class SubmissionManager {
         this.storage = storage;
         this.stuMgmtView = stuMgmtView;
         
-        this.rejectingChecks = new LinkedList<>();
-        this.nonRejectingChecks = new LinkedList<>();
+        this.defaultRejectingChecks = new LinkedList<>();
     }
     
     /**
-     * Adds a {@link Check} that will reject submissions if it fails.
+     * Adds a {@link Check} that will reject submissions if it fails. This is run for all submissions in all courses.
      * 
      * @param check The check to perform on submissions.
      */
-    public void addRejectingCheck(Check check) {
-        this.rejectingChecks.add(check);
+    public void addDefaultRejectingCheck(Check check) {
+        this.defaultRejectingChecks.add(check);
+    }
+
+    /**
+     * Helper class to hold checks to run.
+     */
+    private static class Checks {
+        private List<Check> rejecting = new LinkedList<>();
+        private List<Check> nonRejecting = new LinkedList<>();
     }
     
     /**
-     * Adds a {@link Check} that will <b>not</b> reject submissions if it fails. It's {@link ResultMessage}s will
-     * appear in the response, though.
+     * Creates the {link Check}s to run for the given target.
      * 
-     * @param check The check to perform on submissions.
+     * @param target The target that is submitted to.
+     * 
+     * @return The {@link Check}s to run on the submission.
      */
-    public void addNonRejectingCheck(Check check) {
-        this.nonRejectingChecks.add(check);
+    private Checks createChecks(SubmissionTarget target) {
+        Checks result = new Checks();
+        result.rejecting.addAll(defaultRejectingChecks);
+        
+        try {
+            Course course = stuMgmtView.getCourse(target.getCourse()).orElseThrow();
+            Assignment assignment = course.getAssignment(target.getAssignmentName()).orElseThrow();
+            
+            for (CheckConfiguration checkConfig : assignment.getCheckConfigurations()) {
+                Check check = createCheck(checkConfig);
+                if (checkConfig.isRejecting()) {
+                    result.rejecting.add(check);
+                } else {
+                    result.nonRejecting.add(check);
+                }
+            }
+            
+        } catch (NoSuchElementException e) {
+            LOGGER.warning(() -> "Could not get assignment " + target.getAssignmentName() + " in  course "
+                    + target.getCourse() + " to create checks; only running default rejecting checks");
+        }
+        
+        return result;
+    }
+    
+    /**
+     * Creates a {@link Check} instance for the given {@link CheckConfiguration}.
+     * <p>
+     * Protected visibility for test cases.
+     * 
+     * @param checkConfiguration The configuration that specifies the check to create.
+     * 
+     * @return The created check.
+     * 
+     * @throws IllegalArgumentException If he check could not be created.
+     */
+    protected Check createCheck(CheckConfiguration checkConfiguration) throws IllegalArgumentException {
+        Check result;
+        
+        switch (checkConfiguration.getCheckName()) {
+        case EncodingCheck.CHECK_NAME:
+            EncodingCheck encodingCheck = new EncodingCheck();
+            checkConfiguration.getProperty("encoding")
+                    .ifPresent(encoding -> encodingCheck.setWantedCharset(Charset.forName(encoding)));
+            result = encodingCheck;
+            break;
+            
+        case JavacCheck.CHECK_NAME:
+            JavacCheck javacCheck = InternalJavacCheck.isSupported() ? new InternalJavacCheck() : new CliJavacCheck();
+            checkConfiguration.getProperty("version")
+                    .map(Integer::parseInt)
+                    .ifPresent(version -> javacCheck.setJavaVersion(version));
+            result = javacCheck;
+            break;
+            
+        case CheckstyleCheck.CHECK_NAME:
+            CheckstyleCheck checkstyleChek = new CheckstyleCheck(new File(checkConfiguration.getProperty("rules")
+                    .orElseThrow(() -> new IllegalArgumentException("Checkstyle check must have \"rules\" set"))));
+            result = checkstyleChek;
+            break;
+        
+        default:
+            throw new IllegalArgumentException("Unknown check name: " + checkConfiguration.getCheckName());
+        }
+        
+        return result;
     }
     
     /**
@@ -92,6 +173,8 @@ public class SubmissionManager {
     public SubmissionResultDto submit(SubmissionTarget target, Submission submission)
             throws NoSuchTargetException, StorageException {
     
+        Checks checks = createChecks(target);
+        
         List<ResultMessage> checkMessages = new LinkedList<>();
         boolean reject = false;
         
@@ -100,7 +183,7 @@ public class SubmissionManager {
             temporaryDirectory = Files.createTempDirectory("exercise-submission");
             submission.writeToDirectory(temporaryDirectory);
             
-            for (Check check : rejectingChecks) {
+            for (Check check : checks.rejecting) {
                 boolean passed = check.run(temporaryDirectory.toFile());
                 checkMessages.addAll(check.getResultMessages());
                 
@@ -111,7 +194,7 @@ public class SubmissionManager {
             }
             
             if (!reject) {
-                for (Check check : nonRejectingChecks) {
+                for (Check check : checks.nonRejecting) {
                     check.run(temporaryDirectory.toFile());
                     checkMessages.addAll(check.getResultMessages());
                 }
@@ -142,7 +225,9 @@ public class SubmissionManager {
         LOGGER.info(() -> "Submission to " + target + " " + (result.getAccepted() ? "accepted" : "rejected")
                 + "; messages: " + result.getMessages());
         
-        if (!reject && !nonRejectingChecks.isEmpty()) {
+        boolean hasAssignmentSpecificTests = checks.nonRejecting.size() > 0
+                || checks.rejecting.size() > defaultRejectingChecks.size();
+        if (!reject && hasAssignmentSpecificTests) {
             stuMgmtView.sendSubmissionResult(target, checkMessages);
         }
         

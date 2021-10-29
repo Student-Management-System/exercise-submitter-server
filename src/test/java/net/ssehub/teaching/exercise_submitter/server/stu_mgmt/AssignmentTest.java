@@ -1,9 +1,14 @@
 package net.ssehub.teaching.exercise_submitter.server.stu_mgmt;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.Map;
 
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
 import net.ssehub.studentmgmt.backend_api.model.AssignmentDto.CollaborationEnum;
@@ -68,6 +73,87 @@ public class AssignmentTest {
                         "role " + role + " trying to replay " + state + " should return " + expected);
             }
         }
+    }
+    
+    @Nested
+    public class SetCheckConfigurationString {
+        
+        @Test
+        public void notAnArrayThrows() {
+            Assignment a = new Assignment("", "", StateEnum.IN_PROGRESS, CollaborationEnum.SINGLE);
+            assertThrows(IllegalArgumentException.class, () -> a.setCheckConfigurationString("{}"));
+        }
+        
+        @Test
+        public void emptyArray() {
+            Assignment a = new Assignment("", "", StateEnum.IN_PROGRESS, CollaborationEnum.SINGLE);
+            assertDoesNotThrow(() -> a.setCheckConfigurationString("[]"));
+            assertEquals(Collections.emptyList(), a.getCheckConfigurations());
+        }
+        
+        @Test
+        public void arrayElementNotObjectThrows() {
+            Assignment a = new Assignment("", "", StateEnum.IN_PROGRESS, CollaborationEnum.SINGLE);
+            assertThrows(IllegalArgumentException.class, () -> a.setCheckConfigurationString("[\"str\"]"));
+        }
+        
+        @Test
+        public void missingCheckNameThrows() {
+            Assignment a = new Assignment("", "", StateEnum.IN_PROGRESS, CollaborationEnum.SINGLE);
+            assertThrows(IllegalArgumentException.class, () -> a.setCheckConfigurationString("[{}]"));
+        }
+        
+        @Test
+        public void checkNameNotStringThrows() {
+            Assignment a = new Assignment("", "", StateEnum.IN_PROGRESS, CollaborationEnum.SINGLE);
+            assertThrows(IllegalArgumentException.class, () -> a.setCheckConfigurationString("[{\"check\":3}]"));
+        }
+        
+        @Test
+        public void rejectingNotBooleanThrows() {
+            Assignment a = new Assignment("", "", StateEnum.IN_PROGRESS, CollaborationEnum.SINGLE);
+            assertThrows(IllegalArgumentException.class, () -> a.setCheckConfigurationString("[{\"check\":\"\",\"rejecting\":3}]"));
+        }
+        
+        @Test
+        public void onlyCheckNameDefaultForRejectinganProperties() {
+            Assignment a = new Assignment("", "", StateEnum.IN_PROGRESS, CollaborationEnum.SINGLE);
+            assertDoesNotThrow(() -> a.setCheckConfigurationString("[{\"check\":\"javac\"}]"));
+            assertEquals(Arrays.asList(new CheckConfiguration("javac", false)), a.getCheckConfigurations());
+        }
+        
+        @Test
+        public void rejectingTrue() {
+            Assignment a = new Assignment("", "", StateEnum.IN_PROGRESS, CollaborationEnum.SINGLE);
+            assertDoesNotThrow(() -> a.setCheckConfigurationString("[{\"check\":\"checkstyle\",\"rejecting\":true}]"));
+            assertEquals(Arrays.asList(new CheckConfiguration("checkstyle", true)), a.getCheckConfigurations());
+        }
+        
+        @Test
+        public void propertyValueNotStringThrows() {
+            Assignment a = new Assignment("", "", StateEnum.IN_PROGRESS, CollaborationEnum.SINGLE);
+            assertThrows(IllegalArgumentException.class, () -> a.setCheckConfigurationString("[{\"check\":\"javac\",\"a\":1}]"));
+        }
+        
+        @Test
+        public void propertiesSet() {
+            Assignment a = new Assignment("", "", StateEnum.IN_PROGRESS, CollaborationEnum.SINGLE);
+            assertDoesNotThrow(() -> a.setCheckConfigurationString("[{\"check\":\"javac\",\"a\":\"b\",\"c\":\"d\"}]"));
+            
+            CheckConfiguration expected = new CheckConfiguration("javac", false);
+            expected.setProperty("a", "b");
+            expected.setProperty("c", "d");
+            assertEquals(Arrays.asList(expected), a.getCheckConfigurations());
+        }
+        
+        @Test
+        public void multipleChecks() {
+            Assignment a = new Assignment("", "", StateEnum.IN_PROGRESS, CollaborationEnum.SINGLE);
+            assertDoesNotThrow(() -> a.setCheckConfigurationString("[{\"check\":\"javac\"},{\"check\":\"checkstyle\"}]"));
+            assertEquals(Arrays.asList(new CheckConfiguration("javac", false), new CheckConfiguration("checkstyle", false)),
+                    a.getCheckConfigurations());
+        }
+        
     }
     
 }
