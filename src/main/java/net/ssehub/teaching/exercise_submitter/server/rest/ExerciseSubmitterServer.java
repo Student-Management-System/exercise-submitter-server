@@ -70,6 +70,7 @@ public class ExerciseSubmitterServer {
                 .register(HeartbeatRoute.class)
                 .register(new SubmissionRoute(submissionManager, storage, authManager))
                 .register(new NotificationRoute(storage, stuMgmtView))
+                .packages("net.ssehub.teaching.exercise_submitter.server.rest.filters")
                 .packages("net.ssehub.teaching.exercise_submitter.server.rest.exceptions")
                 .register(JsonBindingFeature.class);
         return GrizzlyHttpServerFactory.createHttpServer(URI.create(baseUri), config);

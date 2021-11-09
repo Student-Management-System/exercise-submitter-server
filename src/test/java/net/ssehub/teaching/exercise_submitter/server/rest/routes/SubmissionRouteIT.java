@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.math.BigDecimal;
@@ -18,6 +19,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
 
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
@@ -739,6 +742,146 @@ public class SubmissionRouteIT extends AbstractRestTest {
                 () -> assertEquals(
                         Base64.getEncoder().encodeToString("max".getBytes(StandardCharsets.UTF_8)),
                         files.get(0).get("content"))
+            );
+        }
+        
+    }
+    
+    @Nested
+    public class Cors {
+        
+        private String oldPropertyValue;
+        
+        @BeforeEach
+        public void allowSettingOriginHeader() {
+            oldPropertyValue = System.getProperty("sun.net.http.allowRestrictedHeaders");
+            System.setProperty("sun.net.http.allowRestrictedHeaders", "true");
+        }
+        
+        @AfterEach
+        public void resetPropertyValue() {
+            if (oldPropertyValue == null) {
+                System.getProperties().remove("sun.net.http.allowRestrictedHeaders");
+            } else {
+                System.setProperty("sun.net.http.allowRestrictedHeaders", oldPropertyValue);
+            }
+        }
+        
+        @BeforeEach
+        public void startServer() {
+            setStorage(new EmptyStorage() {
+                @Override
+                public List<Version> getVersions(SubmissionTarget target)
+                        throws NoSuchTargetException, StorageException {
+                    return Arrays.asList();
+                }
+            });
+            SubmissionRouteIT.this.startServer();
+        }
+        
+        @Test
+        public void preflight() {
+            Response response = target.path("/submission/foo-wise2122/Homework01/Group01/versions")
+                    .request()
+                    .header("Origin", "https://some-origin.com")
+                    .options();
+            
+            assertAll(
+                () -> assertEquals(204, response.getStatus()),
+                () -> assertEquals("Origin, Access-Control-Request-Method, Access-Control-Request-Headers", response.getHeaderString("Vary")),
+                () -> assertEquals("https://some-origin.com", response.getHeaderString("Access-Control-Allow-Origin")),
+                () -> assertEquals("true", response.getHeaderString("Access-Control-Allow-Credentials")),
+                () -> assertNull(response.getHeaderString("Access-Control-Allow-Methods")),
+                () -> assertNull(response.getHeaderString("Access-Control-Allow-Headers"))
+            );
+        }
+        
+        @Test
+        public void preflightWithRequestMethod() {
+            Response response = target.path("/submission/foo-wise2122/Homework01/Group01/versions")
+                    .request()
+                    .header("Origin", "https://some-origin.com")
+                    .header("Access-Control-Request-Method", "GET")
+                    .options();
+            
+            assertAll(
+                () -> assertEquals(204, response.getStatus()),
+                () -> assertEquals("Origin, Access-Control-Request-Method, Access-Control-Request-Headers", response.getHeaderString("Vary")),
+                () -> assertEquals("https://some-origin.com", response.getHeaderString("Access-Control-Allow-Origin")),
+                () -> assertEquals("true", response.getHeaderString("Access-Control-Allow-Credentials")),
+                () -> assertEquals("GET", response.getHeaderString("Access-Control-Allow-Methods")),
+                () -> assertNull(response.getHeaderString("Access-Control-Allow-Headers"))
+            );
+        }
+        
+        @Test
+        public void preflightWithRequestHeaders() {
+            Response response = target.path("/submission/foo-wise2122/Homework01/Group01/versions")
+                    .request()
+                    .header("Origin", "https://some-origin.com")
+                    .header("Access-Control-Request-Headers", "X-SomeHeader")
+                    .options();
+            
+            assertAll(
+                () -> assertEquals(204, response.getStatus()),
+                () -> assertEquals("Origin, Access-Control-Request-Method, Access-Control-Request-Headers", response.getHeaderString("Vary")),
+                () -> assertEquals("https://some-origin.com", response.getHeaderString("Access-Control-Allow-Origin")),
+                () -> assertEquals("true", response.getHeaderString("Access-Control-Allow-Credentials")),
+                () -> assertNull(response.getHeaderString("Access-Control-Allow-Methods")),
+                () -> assertEquals("X-SomeHeader", response.getHeaderString("Access-Control-Allow-Headers"))
+            );
+        }
+        
+        @Test
+        public void preflightNoOrigin() {
+            Response response = target.path("/submission/foo-wise2122/Homework01/Group01/versions")
+                    .request()
+                    .options();
+            
+            assertAll(
+                () -> assertEquals(200, response.getStatus()),
+                () -> assertNull(response.getHeaderString("Vary")),
+                () -> assertNull(response.getHeaderString("Access-Control-Allow-Origin")),
+                () -> assertNull(response.getHeaderString("Access-Control-Allow-Credentials")),
+                () -> assertNull(response.getHeaderString("Access-Control-Allow-Methods")),
+                () -> assertNull(response.getHeaderString("Access-Control-Allow-Headers"))
+            );
+        }
+        
+        @Test
+        public void requestWithOriginResponseContainsRequiredHeaders() {
+            Response response = target.path("/submission/foo-wise2122/Homework01/Group01/versions")
+                    .request()
+                    .header("Origin", "https://other-origin.com")
+                    .header("Authorization", JWT_TOKEN)
+                    .get();
+            
+            assertAll(
+                () -> assertEquals(200, response.getStatus()),
+                () -> assertEquals("Origin, Access-Control-Request-Method, Access-Control-Request-Headers", response.getHeaderString("Vary")),
+                () -> assertEquals("https://other-origin.com", response.getHeaderString("Access-Control-Allow-Origin")),
+                () -> assertEquals("true", response.getHeaderString("Access-Control-Allow-Credentials")),
+                () -> assertEquals("GET", response.getHeaderString("Access-Control-Allow-Methods")),
+                () -> assertNull(response.getHeaderString("Access-Control-Allow-Headers")),
+                () -> assertEquals(Collections.emptyList(), response.readEntity(List.class))
+            );
+        }
+        
+        @Test
+        public void requestWithoutOrigin() {
+            Response response = target.path("/submission/foo-wise2122/Homework01/Group01/versions")
+                    .request()
+                    .header("Authorization", JWT_TOKEN)
+                    .get();
+            
+            assertAll(
+                () -> assertEquals(200, response.getStatus()),
+                () -> assertNull(response.getHeaderString("Vary")),
+                () -> assertNull(response.getHeaderString("Access-Control-Allow-Origin")),
+                () -> assertNull(response.getHeaderString("Access-Control-Allow-Credentials")),
+                () -> assertNull(response.getHeaderString("Access-Control-Allow-Methods")),
+                () -> assertNull(response.getHeaderString("Access-Control-Allow-Headers")),
+                () -> assertEquals(Collections.emptyList(), response.readEntity(List.class))
             );
         }
         
