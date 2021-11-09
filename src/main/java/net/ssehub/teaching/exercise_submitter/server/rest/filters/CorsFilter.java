@@ -50,9 +50,9 @@ public class CorsFilter implements ContainerRequestFilter, ContainerResponseFilt
                 response.header(ALLOW_ORIGIN, origin);
                 response.header(ALLOW_CREDENTIALS, "true");
                 getHeaderValue(requestContext, REQUEST_METHOD).ifPresent(
-                        requestedMethod -> response.header(ALLOW_METHODS, requestedMethod));
+                    requestedMethod -> response.header(ALLOW_METHODS, requestedMethod));
                 getHeaderValue(requestContext, REQUEST_HEADERS).ifPresent(
-                        requestedHeaders -> response.header(ALLOW_HEADERS, requestedHeaders));
+                    requestedHeaders -> response.header(ALLOW_HEADERS, requestedHeaders));
                 response.header("Vary", VARY_HEADERS);
                 
                 requestContext.abortWith(response.build());
