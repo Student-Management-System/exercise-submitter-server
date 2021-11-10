@@ -24,6 +24,12 @@ import net.ssehub.teaching.exercise_submitter.server.submission.SubmissionManage
 
 public abstract class AbstractRestTest {
 
+    static {
+        // this property is needed in order to set the Origin HTTP header for CORS tests
+        // set it here so that is set before any jersey HTTP connection classes are loaded
+        System.setProperty("sun.net.http.allowRestrictedHeaders", "true");
+    }
+    
     private HttpServer server;
     
     protected WebTarget target;

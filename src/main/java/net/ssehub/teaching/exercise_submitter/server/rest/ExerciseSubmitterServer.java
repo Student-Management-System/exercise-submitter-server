@@ -7,6 +7,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.glassfish.grizzly.http.server.HttpServer;
+import org.glassfish.hk2.utilities.binding.AbstractBinder;
 import org.glassfish.jersey.grizzly2.httpserver.GrizzlyHttpServerFactory;
 import org.glassfish.jersey.jsonb.JsonBindingFeature;
 import org.glassfish.jersey.server.ResourceConfig;
@@ -18,7 +19,6 @@ import io.swagger.v3.oas.annotations.security.SecurityScheme;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import net.ssehub.teaching.exercise_submitter.server.auth.AuthManager;
 import net.ssehub.teaching.exercise_submitter.server.logging.LoggingSetup;
-import net.ssehub.teaching.exercise_submitter.server.rest.routes.HeartbeatRoute;
 import net.ssehub.teaching.exercise_submitter.server.rest.routes.NotificationRoute;
 import net.ssehub.teaching.exercise_submitter.server.rest.routes.SubmissionRoute;
 import net.ssehub.teaching.exercise_submitter.server.storage.ISubmissionStorage;
@@ -67,11 +67,17 @@ public class ExerciseSubmitterServer {
             ISubmissionStorage storage, AuthManager authManager, StuMgmtView stuMgmtView) {
         
         ResourceConfig config = new ResourceConfig()
-                .register(HeartbeatRoute.class)
-                .register(new SubmissionRoute(submissionManager, storage, authManager))
-                .register(new NotificationRoute(storage, stuMgmtView))
-                .packages("net.ssehub.teaching.exercise_submitter.server.rest.filters")
+                .packages("net.ssehub.teaching.exercise_submitter.server.rest.routes")
                 .packages("net.ssehub.teaching.exercise_submitter.server.rest.exceptions")
+                .packages("net.ssehub.teaching.exercise_submitter.server.rest.filters")
+                .register(new AbstractBinder() {
+                    @Override
+                    protected void configure() {
+                        bindFactory(new SubmissionRoute.Factory(submissionManager, storage, authManager))
+                                .to(SubmissionRoute.class);
+                        bindFactory(new NotificationRoute.Factory(storage, stuMgmtView)).to(NotificationRoute.class);
+                    }
+                })
                 .register(JsonBindingFeature.class);
         return GrizzlyHttpServerFactory.createHttpServer(URI.create(baseUri), config);
     }

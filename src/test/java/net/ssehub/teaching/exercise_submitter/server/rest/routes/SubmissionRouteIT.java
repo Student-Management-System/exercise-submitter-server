@@ -19,7 +19,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
 
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -43,7 +42,7 @@ import net.ssehub.teaching.exercise_submitter.server.submission.UnauthorizedExce
 import net.ssehub.teaching.exercise_submitter.server.submission.checks.ResultMessage.MessageType;
 
 public class SubmissionRouteIT extends AbstractRestTest {
-
+    
     private static final String JWT_TOKEN = "Bearer 123";
     
     private static final String GENERATED_USERNAME = PermissiveAuthManager.generateUsername("123");
@@ -750,25 +749,8 @@ public class SubmissionRouteIT extends AbstractRestTest {
     @Nested
     public class Cors {
         
-        private String oldPropertyValue;
-        
         @BeforeEach
-        public void allowSettingOriginHeader() {
-            oldPropertyValue = System.getProperty("sun.net.http.allowRestrictedHeaders");
-            System.setProperty("sun.net.http.allowRestrictedHeaders", "true");
-        }
-        
-        @AfterEach
-        public void resetPropertyValue() {
-            if (oldPropertyValue == null) {
-                System.getProperties().remove("sun.net.http.allowRestrictedHeaders");
-            } else {
-                System.setProperty("sun.net.http.allowRestrictedHeaders", oldPropertyValue);
-            }
-        }
-        
-        @BeforeEach
-        public void startServer() {
+        public void setupServer() {
             setStorage(new EmptyStorage() {
                 @Override
                 public List<Version> getVersions(SubmissionTarget target)
@@ -776,7 +758,7 @@ public class SubmissionRouteIT extends AbstractRestTest {
                     return Arrays.asList();
                 }
             });
-            SubmissionRouteIT.this.startServer();
+            startServer();
         }
         
         @Test

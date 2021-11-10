@@ -82,6 +82,42 @@ public class SubmissionRoute {
     }
     
     /**
+     * Factory for creating instances of {@link SubmissionRoute}.
+     */
+    public static class Factory implements org.glassfish.hk2.api.Factory<SubmissionRoute> {
+        
+        private SubmissionManager submissionManager;
+        
+        private ISubmissionStorage storage;
+        
+        private AuthManager authManager;
+        
+        /**
+         * Creates a factory with the given parameters.
+         * 
+         * @param submissionManager The {@link SubmissionManager} to use for new submissions.
+         * @param storage The {@link ISubmissionStorage} to use for replaying old versions.
+         * @param authManager The {@link AuthManager} to use for authentication and authorization.
+         */
+        public Factory(SubmissionManager submissionManager, ISubmissionStorage storage, AuthManager authManager) {
+            this.submissionManager = submissionManager;
+            this.storage = storage;
+            this.authManager = authManager;
+        }
+
+        @Override
+        public SubmissionRoute provide() {
+            return new SubmissionRoute(submissionManager, storage, authManager);
+        }
+
+        @Override
+        public void dispose(SubmissionRoute instance) {
+        }
+        
+    }
+    
+    
+    /**
      * Authenticates the user using the given value of the <code>Authorization</code> HTTP header.
      * 
      * @param authorizationHeader The value of the <code>Authorization</code> HTTP header. Must start with

@@ -47,6 +47,37 @@ public class NotificationRoute {
         this.storage = storage;
         this.stuMgmtView = stuMgmtView;
     }
+    
+    /**
+     * Factory for creating {@link NotificationRoute}s.
+     */
+    public static class Factory implements org.glassfish.hk2.api.Factory<NotificationRoute> {
+
+        private ISubmissionStorage storage;
+        
+        private StuMgmtView stuMgmtView;
+        
+        /**
+         * Creates a factory with the given parameters.
+         * 
+         * @param storage The storage to create the assignment and group directories in.
+         * @param stuMgmtView The view on the student management system that will be updated.
+         */
+        public Factory(ISubmissionStorage storage, StuMgmtView stuMgmtView) {
+            this.storage = storage;
+            this.stuMgmtView = stuMgmtView;
+        }
+
+        @Override
+        public NotificationRoute provide() {
+            return new NotificationRoute(storage, stuMgmtView);
+        }
+
+        @Override
+        public void dispose(NotificationRoute instance) {
+        }
+        
+    }
 
     /**
      * Receiving point for notifications from the student management system.
