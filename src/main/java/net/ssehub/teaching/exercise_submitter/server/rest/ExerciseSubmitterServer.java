@@ -19,6 +19,11 @@ import io.swagger.v3.oas.annotations.security.SecurityScheme;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import net.ssehub.teaching.exercise_submitter.server.auth.AuthManager;
 import net.ssehub.teaching.exercise_submitter.server.logging.LoggingSetup;
+import net.ssehub.teaching.exercise_submitter.server.rest.exceptions.NoSuchTargetExceptionMapper;
+import net.ssehub.teaching.exercise_submitter.server.rest.exceptions.StorageExceptionMapper;
+import net.ssehub.teaching.exercise_submitter.server.rest.exceptions.UnauthorizedExceptionMapper;
+import net.ssehub.teaching.exercise_submitter.server.rest.filters.CorsFilter;
+import net.ssehub.teaching.exercise_submitter.server.rest.routes.HeartbeatRoute;
 import net.ssehub.teaching.exercise_submitter.server.rest.routes.NotificationRoute;
 import net.ssehub.teaching.exercise_submitter.server.rest.routes.SubmissionRoute;
 import net.ssehub.teaching.exercise_submitter.server.storage.ISubmissionStorage;
@@ -67,9 +72,17 @@ public class ExerciseSubmitterServer {
             ISubmissionStorage storage, AuthManager authManager, StuMgmtView stuMgmtView) {
         
         ResourceConfig config = new ResourceConfig()
-                .packages("net.ssehub.teaching.exercise_submitter.server.rest.routes")
-                .packages("net.ssehub.teaching.exercise_submitter.server.rest.exceptions")
-                .packages("net.ssehub.teaching.exercise_submitter.server.rest.filters")
+                // routes
+                .register(SubmissionRoute.class)
+                .register(NotificationRoute.class)
+                .register(HeartbeatRoute.class)
+                // filters
+                .register(CorsFilter.class)
+                // exception mappers
+                .register(UnauthorizedExceptionMapper.class)
+                .register(StorageExceptionMapper.class)
+                .register(NoSuchTargetExceptionMapper.class)
+                // factories for routes that require constructor parameters
                 .register(new AbstractBinder() {
                     @Override
                     protected void configure() {
@@ -78,7 +91,11 @@ public class ExerciseSubmitterServer {
                         bindFactory(new NotificationRoute.Factory(storage, stuMgmtView)).to(NotificationRoute.class);
                     }
                 })
+                // JSON support
                 .register(JsonBindingFeature.class);
+        
+        LOGGER.fine(() -> "The following resource classes are registered: " + config.getClasses());
+        
         return GrizzlyHttpServerFactory.createHttpServer(URI.create(baseUri), config);
     }
     
