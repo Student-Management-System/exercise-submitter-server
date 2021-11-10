@@ -104,7 +104,7 @@ public class SubmissionManager {
             }
             
         } catch (NoSuchElementException e) {
-            LOGGER.warning(() -> "Could not get assignment " + target.getAssignmentName() + " in  course "
+            LOGGER.warning(() -> "Could not get assignment " + target.getAssignmentName() + " in course "
                     + target.getCourse() + " to create checks; only running default rejecting checks");
         }
         
