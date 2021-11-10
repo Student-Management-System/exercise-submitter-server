@@ -9,6 +9,8 @@ import java.io.IOException;
 import java.math.BigDecimal;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.Arrays;
 import java.util.Base64;
 import java.util.List;
@@ -121,14 +123,16 @@ public class ScenarioIT {
                 .get();
         
         List<?> versionsResult = versionsResponse.readEntity(List.class);
+        long timestamp = ((Map<String, BigDecimal>) versionsResult.get(0)).get("timestamp").longValue();
+        long diffToNow = Instant.now().minus(Instant.ofEpochSecond(timestamp).getEpochSecond(), ChronoUnit.SECONDS)
+                    .getEpochSecond();
         
         assertAll(
             () -> assertEquals(200, versionsResponse.getStatus()),
             () -> assertEquals(1, versionsResult.size()),
-            () -> assertEquals("student1", ((Map<String, Object>) versionsResult.get(0)).get("author"))
+            () -> assertEquals("student1", ((Map<String, Object>) versionsResult.get(0)).get("author")),
+            () -> assertTrue(diffToNow < 60 && diffToNow >= 0) // check that timestamp is reasonable (within the last minute)
         );
-        
-        long timestamp = ((Map<String, BigDecimal>) versionsResult.get(0)).get("timestamp").longValue();
         
         Response replayResponse = target.path("/submission/java-wise2122/Homework01/TheOdds/" + timestamp)
                 .request()
@@ -180,13 +184,17 @@ public class ScenarioIT {
         
         List<?> versionsResult = versionsResponse.readEntity(List.class);
         
+        long timestamp = ((Map<String, BigDecimal>) versionsResult.get(0)).get("timestamp").longValue();
+        long diffToNow = Instant.now().minus(Instant.ofEpochSecond(timestamp).getEpochSecond(), ChronoUnit.SECONDS)
+                .getEpochSecond();
+        
         assertAll(
             () -> assertEquals(200, versionsResponse.getStatus()),
             () -> assertEquals(1, versionsResult.size()),
-            () -> assertEquals("student1", ((Map<String, Object>) versionsResult.get(0)).get("author"))
+            () -> assertEquals("student1", ((Map<String, Object>) versionsResult.get(0)).get("author")),
+            () -> assertTrue(diffToNow < 60 && diffToNow >= 0) // check that timestamp is reasonable (within the last minute)
         );
         
-        long timestamp = ((Map<String, BigDecimal>) versionsResult.get(0)).get("timestamp").longValue();
         
         Response replayResponse = target.path("/submission/java-wise2122/Testat/student1/" + timestamp)
                 .request()
