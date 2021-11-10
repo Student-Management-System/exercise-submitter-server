@@ -89,8 +89,8 @@ public class ExerciseSubmitterServer {
      */
     private static void createStandardChecks(SubmissionManager submissionManager) {
         FileSizeCheck fileSizeCheck = new FileSizeCheck();
-        fileSizeCheck.setMaxFileSize(1024 * 1024); // 1 KiB
-        fileSizeCheck.setMaxSubmissionSize(1024 * 1024); // 1 KiB
+        fileSizeCheck.setMaxFileSize(1024 * 1024); // 1 MiB
+        fileSizeCheck.setMaxSubmissionSize(1024 * 1024); // 1 MiB
         
         submissionManager.addDefaultRejectingCheck(fileSizeCheck);
     }
