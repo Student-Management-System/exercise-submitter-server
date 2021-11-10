@@ -109,7 +109,7 @@ public class ScenarioIT {
         assertAll(
             () -> assertEquals(201, submissionResponse.getStatus()),
             () -> assertTrue(submissionResult.getAccepted()),
-//            () -> assertEquals(Collections.emptyList(), result1.getMessages()), // TODO: checkstyle.xml missing
+//            () -> assertEquals(Collections.emptyList(), submissionResult.getMessages()), // TODO: checkstyle.xml not found
             () -> assertEquals(1L, Files.list(groupDir).count()),
             () -> assertArrayEquals(fileContent,
                     Files.readAllBytes(Files.list(groupDir).findFirst().get().resolve("Main.java")))
@@ -168,7 +168,7 @@ public class ScenarioIT {
         assertAll(
             () -> assertEquals(201, submissionResponse.getStatus()),
             () -> assertTrue(submissionResult.getAccepted()),
-//            () -> assertEquals(Collections.emptyList(), submissionResult.getMessages()), // TODO: checkstyle.xml missing
+            // TODO: first checkmessage is about checkstyle.xml missing
             () -> assertEquals("javac", submissionResult.getMessages().get(1).getCheckName()),
             () -> assertEquals(1L, Files.list(groupDir).count()),
             () -> assertArrayEquals(fileContent,
@@ -228,7 +228,9 @@ public class ScenarioIT {
         assertAll(
             () -> assertEquals(201, submissionResponse.getStatus()),
             () -> assertTrue(submissionResult.getAccepted()),
-//            () -> assertEquals(Collections.emptyList(), result1.getMessages()), // TODO: checkstyle.xml missing
+            () -> assertEquals(1, submissionResult.getMessages().size()),
+            () -> assertEquals("javac", submissionResult.getMessages().get(0).getCheckName()),
+            () -> assertEquals("No Java files found", submissionResult.getMessages().get(0).getMessage()),
             () -> assertEquals(1L, Files.list(groupDir).count()),
             () -> assertArrayEquals(fileContent,
                     Files.readAllBytes(Files.list(groupDir).findFirst().get().resolve("one-pixel.png")))
