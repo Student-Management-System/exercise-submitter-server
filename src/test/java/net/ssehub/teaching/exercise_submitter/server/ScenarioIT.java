@@ -16,7 +16,6 @@ import java.util.Base64;
 import java.util.List;
 import java.util.Map;
 
-import org.glassfish.grizzly.http.server.HttpServer;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -41,7 +40,7 @@ public class ScenarioIT {
 
     private static StuMgmtDocker docker;
     
-    private static HttpServer server;
+    private static ExerciseSubmitterServer server;
     
     private static WebTarget target;
     
@@ -85,7 +84,7 @@ public class ScenarioIT {
     
     @AfterAll
     public static void stopServer() {
-        server.shutdown();
+        server.stop();
         docker.close();
     }
     

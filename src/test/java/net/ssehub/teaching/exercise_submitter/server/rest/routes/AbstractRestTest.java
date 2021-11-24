@@ -5,7 +5,6 @@ import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import java.io.IOException;
 import java.net.ServerSocket;
 
-import org.glassfish.grizzly.http.server.HttpServer;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 
@@ -30,11 +29,11 @@ public abstract class AbstractRestTest {
         System.setProperty("sun.net.http.allowRestrictedHeaders", "true");
     }
     
-    private HttpServer server;
+    private ExerciseSubmitterServer server;
     
     protected WebTarget target;
     
-    private String uri;
+    private int port;
     
     private SubmissionManager submissionManager;
     
@@ -46,9 +45,9 @@ public abstract class AbstractRestTest {
     
     @BeforeEach
     public void setupServer() {
-        uri = "http://localhost:" + generateRandomPort() + "/";
+        port = generateRandomPort();
         Client client = ClientBuilder.newClient();
-        target = client.target(uri);
+        target = client.target("http://localhost:" + port + "/");
         
         storage = new EmptyStorage();
         submissionManager = new NoChecksSubmissionManager(storage);
@@ -74,13 +73,20 @@ public abstract class AbstractRestTest {
     
     protected void startServer() {
         assertDoesNotThrow(() -> stuMgmtView.fullReload());
-        server = ExerciseSubmitterServer.startServer(uri, submissionManager, storage, authManager, stuMgmtView);
+        
+        server = new ExerciseSubmitterServer()
+                .setPort(port)
+                .setStorage(storage)
+                .setSubmissionManager(submissionManager)
+                .setAuthManager(authManager)
+                .setStuMgmtView(stuMgmtView);
+        server.start();
     }
     
     @AfterEach
     public void shutdownServer() {
         if (server != null) {
-            server.shutdown();
+            server.stop();
         }
     }
     

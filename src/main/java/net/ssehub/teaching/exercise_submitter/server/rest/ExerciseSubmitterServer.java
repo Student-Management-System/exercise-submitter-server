@@ -57,19 +57,148 @@ public class ExerciseSubmitterServer {
 
     private static final Logger LOGGER = Logger.getLogger(ExerciseSubmitterServer.class.getName());
     
+    private HttpServer server;
+    
+    private int port = -1;
+    
+    private SubmissionManager submissionManager;
+    
+    private ISubmissionStorage storage;
+    
+    private AuthManager authManager;
+    
+    private StuMgmtView stuMgmtView;
+    
     /**
-     * Creates and starts the server.
+     * Sets the port that the server should use.
      * 
-     * @param baseUri The base URI to use.
-     * @param submissionManager The {@link SubmissionManager} to use for new submissions.
-     * @param storage The {@link ISubmissionStorage} to use for replaying old versions.
-     * @param authManager The {@link AuthManager} to use for authentication and authorization.
-     * @param stuMgmtView The view on the student management system.
+     * @param port The port to use.
      * 
-     * @return The started server.
+     * @return this.
+     * 
+     * @throws IllegalStateException If the server is already started.
      */
-    public static HttpServer startServer(String baseUri, SubmissionManager submissionManager,
-            ISubmissionStorage storage, AuthManager authManager, StuMgmtView stuMgmtView) {
+    public ExerciseSubmitterServer setPort(int port) throws IllegalStateException {
+        requireNotStarted();
+        this.port = port;
+        return this;
+    }
+    
+    /**
+     * Sets the {@link SubmissionManager} to use.
+     * 
+     * @param submissionManager The {@link SubmissionManager} to use.
+     * 
+     * @return this.
+     * 
+     * @throws IllegalStateException If the server is already started.
+     */
+    public ExerciseSubmitterServer setSubmissionManager(SubmissionManager submissionManager)
+            throws IllegalStateException {
+        requireNotStarted();
+        this.submissionManager = submissionManager;
+        return this;
+    }
+    
+    /**
+     * Sets the {@link ISubmissionStorage} to use.
+     * 
+     * @param storage The {@link ISubmissionStorage} to use.
+     * 
+     * @return this.
+     * 
+     * @throws IllegalStateException If the server is already started.
+     */
+    public ExerciseSubmitterServer setStorage(ISubmissionStorage storage) throws IllegalStateException {
+        requireNotStarted();
+        this.storage = storage;
+        return this;
+    }
+    
+    /**
+     * Sets the {@link AuthManager} to use.
+     * 
+     * @param authManager The {@link AuthManager} to use.
+     * 
+     * @return this.
+     * 
+     * @throws IllegalStateException If the server is already started.
+     */
+    public ExerciseSubmitterServer setAuthManager(AuthManager authManager) throws IllegalStateException {
+        requireNotStarted();
+        this.authManager = authManager;
+        return this;
+    }
+    
+    /**
+     * Sets the {@link StuMgmtView} to use.
+     * 
+     * @param stuMgmtView The {@link StuMgmtView} to use.
+     * 
+     * @return this.
+     * 
+     * @throws IllegalStateException If the server is already started.
+     */
+    public ExerciseSubmitterServer setStuMgmtView(StuMgmtView stuMgmtView) throws IllegalStateException {
+        requireNotStarted();
+        this.stuMgmtView = stuMgmtView;
+        return this;
+    }
+    
+    /**
+     * Starts the HTTP server.
+     * 
+     * @throws IllegalStateException If the server is already started or a required property was not set.
+     */
+    public void start() throws IllegalStateException {
+        requireNotStarted();
+        
+        if (port <= 0) {
+            throw new IllegalStateException("Port not specified");
+        }
+        
+        ResourceConfig config = createConfig();
+        
+        server = GrizzlyHttpServerFactory.createHttpServer(URI.create("http://0.0.0.0:" + port + "/"), config);
+    }
+    
+    /**
+     * Stops the HTTP server.
+     * 
+     * @throws IllegalStateException If the server is not running.
+     */
+    public void stop() throws IllegalStateException {
+        if (server == null) {
+            throw new IllegalStateException("Server not running");
+        }
+        server.shutdown();
+        server = null;
+    }
+    
+    /**
+     * Ensures that the server is currently not running.
+     * 
+     * @throws IllegalStateException If the server is running.
+     */
+    private void requireNotStarted() throws IllegalStateException {
+        if (server != null) {
+            throw new IllegalStateException("Server already started");
+        }
+    }
+    
+    /**
+     * Creates the {@link ResourceConfig} with all necessary registrations to serve our rest routes.
+     * 
+     * @return A {@link ResourceConfig} for our rest routes.
+     * 
+     * @throws IllegalStateException If a required property is <code>null</code>.
+     */
+    private ResourceConfig createConfig() throws IllegalStateException {
+        
+        checkNotNull(submissionManager, "SubmissionManager");
+        checkNotNull(storage, "storage");
+        checkNotNull(authManager, "AuthManager");
+        checkNotNull(stuMgmtView, "StuMgmtView");
         
         ResourceConfig config = new ResourceConfig()
                 // routes
@@ -95,8 +224,21 @@ public class ExerciseSubmitterServer {
                 .register(JsonBindingFeature.class);
         
         LOGGER.fine(() -> "The following resource classes are registered: " + config.getClasses());
-        
-        return GrizzlyHttpServerFactory.createHttpServer(URI.create(baseUri), config);
+        return config;
+    }
+    
+    /**
+     * Ensures that the given object is not <code>null</code>.
+     * 
+     * @param object The object to check.
+     * @param name The name of the object to use in the exception message.
+     * 
+     * @throws IllegalStateException If the object is <code>null</code>.
+     */
+    private static void checkNotNull(Object object, String name) throws IllegalStateException {
+        if (object == null) {
+            throw new IllegalStateException("No " + name + " specified");
+        }
     }
     
     /**
@@ -127,11 +269,9 @@ public class ExerciseSubmitterServer {
      * @throws IOException If creating the {@link FilesystemStorage} fails.
      */
     // checkstyle: stop parameter number check
-    public static HttpServer startDefaultServer(int port, String storagePath, String authSystemUrl, String stuMgmtUrl,
-            String username, String password) throws IOException {
+    public static ExerciseSubmitterServer startDefaultServer(int port, String storagePath, String authSystemUrl,
+            String stuMgmtUrl, String username, String password) throws IOException {
     // checkstyle: resume parameter number check
-        
-        String url = "http://0.0.0.0:" + port + "/";
         
         LOGGER.config(() -> "Using storage directory " + storagePath);
         ISubmissionStorage storage = new FilesystemStorage(Path.of(storagePath));
@@ -141,9 +281,16 @@ public class ExerciseSubmitterServer {
         createStandardChecks(submissionManager);
         
         AuthManager authManager = new AuthManager(authSystemUrl, stuMgmtView);
-
+        
+        ExerciseSubmitterServer server = new ExerciseSubmitterServer();
+        server.setPort(port);
+        server.setStorage(storage);
+        server.setStuMgmtView(stuMgmtView);
+        server.setSubmissionManager(submissionManager);
+        server.setAuthManager(authManager);
+        
         LOGGER.config("Starting HTTP server on port " + port);
-        HttpServer server = startServer(url, submissionManager, storage, authManager, stuMgmtView);
+        server.start();
         
         boolean success = false;
         while (!success) {
@@ -186,12 +333,12 @@ public class ExerciseSubmitterServer {
         LoggingSetup.setLevel("INFO");
         LOGGER.info("Starting");
         
-        HttpServer server = startDefaultServer(Integer.parseInt(args[0]), args[1], args[2], args[3], 
+        ExerciseSubmitterServer server = startDefaultServer(Integer.parseInt(args[0]), args[1], args[2], args[3], 
                 System.getenv("SUBMISSION_SERVER_MGMT_USER"), System.getenv("SUBMISSION_SERVER_MGMT_PW"));
         
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
             LOGGER.info("Shutting down HTTP server");
-            server.shutdown();
+            server.stop();
         }));
     }
 
