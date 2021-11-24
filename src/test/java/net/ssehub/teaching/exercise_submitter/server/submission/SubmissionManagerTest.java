@@ -10,6 +10,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
+import java.time.Instant;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.LinkedList;
@@ -25,8 +26,12 @@ import net.ssehub.teaching.exercise_submitter.server.rest.dto.CheckMessageDto;
 import net.ssehub.teaching.exercise_submitter.server.rest.dto.SubmissionResultDto;
 import net.ssehub.teaching.exercise_submitter.server.storage.EmptyStorage;
 import net.ssehub.teaching.exercise_submitter.server.storage.ISubmissionStorage;
+import net.ssehub.teaching.exercise_submitter.server.storage.NoSuchTargetException;
+import net.ssehub.teaching.exercise_submitter.server.storage.StorageException;
+import net.ssehub.teaching.exercise_submitter.server.storage.Submission;
 import net.ssehub.teaching.exercise_submitter.server.storage.SubmissionBuilder;
 import net.ssehub.teaching.exercise_submitter.server.storage.SubmissionTarget;
+import net.ssehub.teaching.exercise_submitter.server.storage.Version;
 import net.ssehub.teaching.exercise_submitter.server.stu_mgmt.Assignment;
 import net.ssehub.teaching.exercise_submitter.server.stu_mgmt.CheckConfiguration;
 import net.ssehub.teaching.exercise_submitter.server.stu_mgmt.Course;
@@ -586,5 +591,151 @@ public class SubmissionManagerTest {
         }
         
     }
+    
+    @Test
+    public void submissionWithSameContentRejected() {
+        SubmissionManager manager = new TestSubmissionManager(new EmptyStorage() {
+            
+            @Override
+            public List<Version> getVersions(SubmissionTarget target) throws NoSuchTargetException, StorageException {
+                return Arrays.asList(new Version("student3", Instant.now()));
+            }
+            
+            @Override
+            public Submission getSubmission(SubmissionTarget target, Version version)
+                    throws NoSuchTargetException, StorageException {
+                
+                SubmissionBuilder sb = new SubmissionBuilder("student3");
+                sb.addUtf8File(Path.of("Main.java"), "some content");
+                sb.addUtf8File(Path.of("Util.java"), "some different content");
+                return sb.build();
+            }
+            
+        }, new EmptyStuMgmtView() {
+            @Override
+            public void fullReload() throws StuMgmtLoadingException {
+                Course c = createCourse("c");
+                createAssignment(c, "a", "a", StateEnum.IN_PROGRESS, CollaborationEnum.GROUP);
+            }
+        });
+        
+        SubmissionBuilder sb = new SubmissionBuilder("student1");
+        sb.addUtf8File(Path.of("Main.java"), "some content");
+        sb.addUtf8File(Path.of("Util.java"), "some different content");
+        
+        SubmissionResultDto result = assertDoesNotThrow(() -> manager.submit(
+                new SubmissionTarget("c", "a", "g"), sb.build()));
+        
+        assertAll(
+            () -> assertFalse(result.getAccepted()),
+            () -> assertEquals(
+                    Arrays.asList(new CheckMessageDto("submission", MessageType.WARNING,
+                            "Submission is the same as the previous one")), result.getMessages())
+        );
+    }
+    
+    @Test
+    public void submissionWithNoPreviousAccepted() {
+        SubmissionManager manager = new TestSubmissionManager(new EmptyStorage(), new EmptyStuMgmtView() {
+            @Override
+            public void fullReload() throws StuMgmtLoadingException {
+                Course c = createCourse("c");
+                createAssignment(c, "a", "a", StateEnum.IN_PROGRESS, CollaborationEnum.GROUP);
+            }
+        });
+        
+        SubmissionBuilder sb = new SubmissionBuilder("student1");
+        sb.addUtf8File(Path.of("Main.java"), "some content");
+        sb.addUtf8File(Path.of("Util.java"), "some different content");
+        
+        SubmissionResultDto result = assertDoesNotThrow(() -> manager.submit(
+                new SubmissionTarget("c", "a", "g"), sb.build()));
+        
+        assertAll(
+            () -> assertTrue(result.getAccepted()),
+            () -> assertEquals(Collections.emptyList(), result.getMessages())
+        );
+    }
+    
+    @Test
+    public void submissionWithDifferentFilesAccepted() {
+        SubmissionManager manager = new TestSubmissionManager(new EmptyStorage() {
+            
+            @Override
+            public List<Version> getVersions(SubmissionTarget target) throws NoSuchTargetException, StorageException {
+                return Arrays.asList(new Version("student3", Instant.now()));
+            }
+            
+            @Override
+            public Submission getSubmission(SubmissionTarget target, Version version)
+                    throws NoSuchTargetException, StorageException {
+                
+                SubmissionBuilder sb = new SubmissionBuilder("student3");
+                sb.addUtf8File(Path.of("Main.java"), "some content");
+                sb.addUtf8File(Path.of("Util.java"), "some different content");
+                return sb.build();
+            }
+            
+        }, new EmptyStuMgmtView() {
+            @Override
+            public void fullReload() throws StuMgmtLoadingException {
+                Course c = createCourse("c");
+                createAssignment(c, "a", "a", StateEnum.IN_PROGRESS, CollaborationEnum.GROUP);
+            }
+        });
+        
+        SubmissionBuilder sb = new SubmissionBuilder("student1");
+        sb.addUtf8File(Path.of("Main2.java"), "some content");
+        sb.addUtf8File(Path.of("Util.java"), "some different content");
+        
+        SubmissionResultDto result = assertDoesNotThrow(() -> manager.submit(
+                new SubmissionTarget("c", "a", "g"), sb.build()));
+        
+        assertAll(
+            () -> assertTrue(result.getAccepted()),
+            () -> assertEquals(Collections.emptyList(), result.getMessages())
+        );
+    }
+    
+    @Test
+    public void submissionWithDifferentFileContentAccepted() {
+        SubmissionManager manager = new TestSubmissionManager(new EmptyStorage() {
+            
+            @Override
+            public List<Version> getVersions(SubmissionTarget target) throws NoSuchTargetException, StorageException {
+                return Arrays.asList(new Version("student3", Instant.now()));
+            }
+            
+            @Override
+            public Submission getSubmission(SubmissionTarget target, Version version)
+                    throws NoSuchTargetException, StorageException {
+                
+                SubmissionBuilder sb = new SubmissionBuilder("student3");
+                sb.addUtf8File(Path.of("Main.java"), "some content");
+                sb.addUtf8File(Path.of("Util.java"), "some different content");
+                return sb.build();
+            }
+            
+        }, new EmptyStuMgmtView() {
+            @Override
+            public void fullReload() throws StuMgmtLoadingException {
+                Course c = createCourse("c");
+                createAssignment(c, "a", "a", StateEnum.IN_PROGRESS, CollaborationEnum.GROUP);
+            }
+        });
+        
+        SubmissionBuilder sb = new SubmissionBuilder("student1");
+        sb.addUtf8File(Path.of("Main.java"), "different");
+        sb.addUtf8File(Path.of("Util.java"), "some different content");
+        
+        SubmissionResultDto result = assertDoesNotThrow(() -> manager.submit(
+                new SubmissionTarget("c", "a", "g"), sb.build()));
+        
+        assertAll(
+            () -> assertTrue(result.getAccepted()),
+            () -> assertEquals(Collections.emptyList(), result.getMessages())
+        );
+    }
+    
     
 }

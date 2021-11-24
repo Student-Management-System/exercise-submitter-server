@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
@@ -19,6 +20,7 @@ import net.ssehub.teaching.exercise_submitter.server.storage.NoSuchTargetExcepti
 import net.ssehub.teaching.exercise_submitter.server.storage.StorageException;
 import net.ssehub.teaching.exercise_submitter.server.storage.Submission;
 import net.ssehub.teaching.exercise_submitter.server.storage.SubmissionTarget;
+import net.ssehub.teaching.exercise_submitter.server.storage.Version;
 import net.ssehub.teaching.exercise_submitter.server.stu_mgmt.Assignment;
 import net.ssehub.teaching.exercise_submitter.server.stu_mgmt.CheckConfiguration;
 import net.ssehub.teaching.exercise_submitter.server.stu_mgmt.Course;
@@ -169,11 +171,95 @@ public class SubmissionManager {
      */
     public SubmissionResultDto submit(SubmissionTarget target, Submission submission)
             throws NoSuchTargetException, StorageException {
-    
-        Checks checks = createChecks(target);
         
         List<ResultMessage> checkMessages = new LinkedList<>();
-        boolean reject = false;
+        boolean accept;
+        boolean hasAssignmentSpecificTests = false;
+        
+        if (submissionContentDiffers(target, submission)) {
+            Checks checks = createChecks(target);
+            hasAssignmentSpecificTests = checks.nonRejecting.size() > 0
+                    || checks.rejecting.size() > defaultRejectingChecks.size();
+            
+            accept = runChecks(submission, checks, checkMessages);
+            if (accept) {
+                storage.submitNewVersion(target, submission);
+            }
+        } else {
+            accept = false;
+            checkMessages.add(new ResultMessage("submission", MessageType.WARNING,
+                    "Submission is the same as the previous one"));
+        }
+
+        Collections.sort(checkMessages);
+        
+        LOGGER.info(() -> "Submission to " + target + " " + (accept ? "accepted" : "rejected")
+                + "; messages: " + checkMessages);
+        
+        SubmissionResultDto result = new SubmissionResultDto();
+        result.setAccepted(accept);
+        result.setMessages(checkMessages.stream()
+                .map(CheckMessageDto::new)
+                .collect(Collectors.toList()));
+        
+        if (accept && hasAssignmentSpecificTests) {
+            stuMgmtView.sendSubmissionResult(target, checkMessages);
+        }
+        
+        return result;
+    }
+    
+    /**
+     * Checks if the given submission content differs from the latest submission in the storage.
+     * 
+     * @param target The target of the submission.
+     * @param newSubmission The new submission.
+     * 
+     * @return Whether the new submission differs from the latest stored submission.
+     * 
+     * @throws NoSuchTargetException If the given target does not exist.
+     * @throws StorageException If an exception occurred in the storage backend.
+     */
+    private boolean submissionContentDiffers(SubmissionTarget target, Submission newSubmission) 
+            throws NoSuchTargetException, StorageException {
+
+        boolean different;
+        List<Version> versions = storage.getVersions(target);
+        if (!versions.isEmpty()) {
+            Submission latest = storage.getSubmission(target, versions.get(0));
+            
+            if (latest.getFilepaths().equals(newSubmission.getFilepaths())) {
+                different = false;
+                for (Path file : latest.getFilepaths()) {
+                    if (!Arrays.equals(latest.getFileContent(file), newSubmission.getFileContent(file))) {
+                        different = true;
+                        break;
+                    }
+                }
+                
+            } else {
+                different = true;
+            }
+            
+        } else {
+            different = true;
+        }
+        
+        return different;
+    }
+
+    /**
+     * Runs {@link Check}s on the given submission. For this, the submission is written to a temporary directory.
+     * 
+     * @param submission The submission to run {@link Check}s on.
+     * @param checks The checks to run on the submission.
+     * @param checkMessages {@link ResultMessage}s from the checks are added to this list.
+     * 
+     * @return Whether the submission should be accepted (<code>true</code>) or rejected (<code>false</code>).
+     */
+    private boolean runChecks(Submission submission, Checks checks, List<ResultMessage> checkMessages) {
+        
+        boolean accept = true;
         
         Path temporaryDirectory = null;
         try {
@@ -185,24 +271,22 @@ public class SubmissionManager {
                 checkMessages.addAll(check.getResultMessages());
                 
                 if (!passed) {
-                    reject = true;
+                    accept = false;
                     break;
                 }
             }
             
-            if (!reject) {
+            if (accept) {
                 for (Check check : checks.nonRejecting) {
                     check.run(temporaryDirectory);
                     checkMessages.addAll(check.getResultMessages());
                 }
-                
-                storage.submitNewVersion(target, submission);
             }
             
             
         } catch (IOException e) {
             LOGGER.log(Level.WARNING, "Failed to create temporary submission directory", e);
-            reject = true;
+            accept = false;
             checkMessages.add(new ResultMessage("hook", MessageType.ERROR, "An internal error occurred"));
             
         } finally {
@@ -215,24 +299,7 @@ public class SubmissionManager {
             }
         }
         
-        Collections.sort(checkMessages);
-        
-        SubmissionResultDto result = new SubmissionResultDto();
-        result.setAccepted(!reject);
-        result.setMessages(checkMessages.stream()
-                .map(CheckMessageDto::new)
-                .collect(Collectors.toList()));
-        
-        LOGGER.info(() -> "Submission to " + target + " " + (result.getAccepted() ? "accepted" : "rejected")
-                + "; messages: " + result.getMessages());
-        
-        boolean hasAssignmentSpecificTests = checks.nonRejecting.size() > 0
-                || checks.rejecting.size() > defaultRejectingChecks.size();
-        if (!reject && hasAssignmentSpecificTests) {
-            stuMgmtView.sendSubmissionResult(target, checkMessages);
-        }
-        
-        return result;
+        return accept;
     }
     
 }
