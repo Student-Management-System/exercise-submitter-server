@@ -4,7 +4,6 @@ import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.io.IOException;
-import java.lang.ProcessBuilder.Redirect;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.file.Files;
@@ -110,15 +109,11 @@ public class ExerciseSubmitterServerIT {
                 "-keyalg", "RSA",
                 "-keystore", keystore.toAbsolutePath().toString(),
                 "-keysize", "2048",
-                "-storepass", KEYSTORE_PASSWORD);
+                "-storepass", KEYSTORE_PASSWORD,
+                "-dname", "CN=localhost");
         
-        pb.redirectErrorStream(true);
-        pb.redirectOutput(Redirect.INHERIT);
-        pb.redirectInput(Redirect.PIPE);
+        pb.inheritIO();
         Process p = pb.start();
-        
-        p.getOutputStream().write("localhost\n\n\n\n\n\nyes\n".getBytes());
-        p.getOutputStream().close();
         
         try {
             p.waitFor();
