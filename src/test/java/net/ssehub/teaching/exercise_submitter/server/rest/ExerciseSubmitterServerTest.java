@@ -1,15 +1,18 @@
 package net.ssehub.teaching.exercise_submitter.server.rest;
 
-import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.fail;
 
+import java.lang.reflect.Field;
+import java.net.URI;
+import java.nio.file.Path;
+
+import org.glassfish.jersey.grizzly2.httpserver.GrizzlyHttpServerFactory;
 import org.junit.jupiter.api.Test;
 
 import net.ssehub.teaching.exercise_submitter.server.auth.PermissiveAuthManager;
-import net.ssehub.teaching.exercise_submitter.server.rest.routes.AbstractRestTest;
 import net.ssehub.teaching.exercise_submitter.server.storage.EmptyStorage;
-import net.ssehub.teaching.exercise_submitter.server.storage.ISubmissionStorage;
 import net.ssehub.teaching.exercise_submitter.server.stu_mgmt.EmptyStuMgmtView;
 import net.ssehub.teaching.exercise_submitter.server.submission.NoChecksSubmissionManager;
 import net.ssehub.teaching.exercise_submitter.server.submission.SubmissionManager;
@@ -68,32 +71,16 @@ public class ExerciseSubmitterServerTest {
         assertEquals("No StuMgmtView specified", e.getMessage());
     }
     
-    @Test
-    public void startAllSpecifiedDoesNotThrow() {
-        ExerciseSubmitterServer server = new ExerciseSubmitterServer();
-        server.setPort(AbstractRestTest.generateRandomPort());
-        ISubmissionStorage storage = new EmptyStorage();
-        server.setSubmissionManager(new NoChecksSubmissionManager(storage));
-        server.setStorage(storage);
-        server.setAuthManager(new PermissiveAuthManager());
-        server.setStuMgmtView(new EmptyStuMgmtView());
-
-        try {
-            assertDoesNotThrow(() -> server.start());
-        } finally {
-            server.stop();
-        }
-    }
-    
     private ExerciseSubmitterServer createStartedServer() {
         ExerciseSubmitterServer server = new ExerciseSubmitterServer();
-        server.setPort(AbstractRestTest.generateRandomPort());
-        ISubmissionStorage storage = new EmptyStorage();
-        server.setSubmissionManager(new NoChecksSubmissionManager(storage));
-        server.setStorage(storage);
-        server.setAuthManager(new PermissiveAuthManager());
-        server.setStuMgmtView(new EmptyStuMgmtView());
-        server.start();
+        try {
+            Field serverField = server.getClass().getDeclaredField("server");
+            serverField.setAccessible(true);
+            serverField.set(server, GrizzlyHttpServerFactory.createHttpServer(URI.create("http://0.0.0.0:23456/"), false));
+        } catch (ReflectiveOperationException e) {
+            fail("Failed to set server field: " + e.getMessage());
+        }
+        
         return server;
     }
     
@@ -133,6 +120,14 @@ public class ExerciseSubmitterServerTest {
         ExerciseSubmitterServer server = createStartedServer();
         IllegalStateException e = assertThrows(IllegalStateException.class,
             () -> server.setStuMgmtView(new EmptyStuMgmtView()));
+        assertEquals("Server already started", e.getMessage());
+    }
+    
+    @Test
+    public void setTlsKeystoreStartedThrows() {
+        ExerciseSubmitterServer server = createStartedServer();
+        IllegalStateException e = assertThrows(IllegalStateException.class,
+            () -> server.setTlsKeystore(Path.of("test"), "123456"));
         assertEquals("Server already started", e.getMessage());
     }
     

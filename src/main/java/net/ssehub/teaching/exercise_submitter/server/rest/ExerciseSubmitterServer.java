@@ -3,10 +3,13 @@ package net.ssehub.teaching.exercise_submitter.server.rest;
 import java.io.IOException;
 import java.net.URI;
 import java.nio.file.Path;
+import java.util.Optional;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.glassfish.grizzly.http.server.HttpServer;
+import org.glassfish.grizzly.ssl.SSLContextConfigurator;
+import org.glassfish.grizzly.ssl.SSLEngineConfigurator;
 import org.glassfish.hk2.utilities.binding.AbstractBinder;
 import org.glassfish.jersey.grizzly2.httpserver.GrizzlyHttpServerFactory;
 import org.glassfish.jersey.jsonb.JsonBindingFeature;
@@ -68,6 +71,10 @@ public class ExerciseSubmitterServer {
     private AuthManager authManager;
     
     private StuMgmtView stuMgmtView;
+    
+    private Path tlsKeystore;
+
+    private String tlsKeystorePassword;
     
     /**
      * Sets the port that the server should use.
@@ -146,6 +153,24 @@ public class ExerciseSubmitterServer {
     }
     
     /**
+     * Sets the path to the file containing the TLS server keypair to use. If this set, the server will serve HTTPS,
+     * otherwise plain HTTP is used.
+     * 
+     * @param tlsKeystore The path to the keystore file.
+     * @param password The password for this keystore file.
+     * 
+     * @return this.
+     * 
+     * @throws IllegalStateException If the server is already started.
+     */
+    public ExerciseSubmitterServer setTlsKeystore(Path tlsKeystore, String password) throws IllegalStateException {
+        requireNotStarted();
+        this.tlsKeystore = tlsKeystore;
+        this.tlsKeystorePassword = password;
+        return this;
+    }
+    
+    /**
      * Starts the HTTP server.
      * 
      * @throws IllegalStateException If the server is already started or a required property was not set.
@@ -159,7 +184,22 @@ public class ExerciseSubmitterServer {
         
         ResourceConfig config = createConfig();
         
-        server = GrizzlyHttpServerFactory.createHttpServer(URI.create("http://0.0.0.0:" + port + "/"), config);
+        if (tlsKeystore != null) {
+            // HTTPS
+            SSLContextConfigurator sslContextConfig = new SSLContextConfigurator();
+            sslContextConfig.setKeyStoreFile(tlsKeystore.toAbsolutePath().toString());
+            sslContextConfig.setKeyStorePass(tlsKeystorePassword);
+            
+            SSLEngineConfigurator sslEngineConfig = new SSLEngineConfigurator(sslContextConfig, false, false, false);
+            
+            server = GrizzlyHttpServerFactory.createHttpServer(
+                    URI.create("https://0.0.0.0:" + port + "/"), config, true, sslEngineConfig);
+            
+        } else {
+            // HTTP
+            server = GrizzlyHttpServerFactory.createHttpServer(
+                    URI.create("http://0.0.0.0:" + port + "/"), config);
+        }
     }
     
     /**
@@ -263,6 +303,8 @@ public class ExerciseSubmitterServer {
      * @param stuMgmtUrl The URL to the student management system API.
      * @param username The username to authenticate this service as in the auth sytem.
      * @param password The password to authenticate this service with in the auth system.
+     * @param keystorePath The path to the keystore file to use for TLS.
+     * @param keystorePassword The password of the keystore file to use for TLS.
      * 
      * @return The started HTTP server.
      * 
@@ -270,7 +312,8 @@ public class ExerciseSubmitterServer {
      */
     // checkstyle: stop parameter number check
     public static ExerciseSubmitterServer startDefaultServer(int port, String storagePath, String authSystemUrl,
-            String stuMgmtUrl, String username, String password) throws IOException {
+            String stuMgmtUrl, String username, String password,
+            Optional<String> keystorePath, Optional<String> keystorePassword) throws IOException {
     // checkstyle: resume parameter number check
         
         LOGGER.config(() -> "Using storage directory " + storagePath);
@@ -288,6 +331,9 @@ public class ExerciseSubmitterServer {
         server.setStuMgmtView(stuMgmtView);
         server.setSubmissionManager(submissionManager);
         server.setAuthManager(authManager);
+        if (keystorePath.isPresent() && keystorePassword.isPresent()) {
+            server.setTlsKeystore(Path.of(keystorePath.get()), keystorePassword.get());
+        }
         
         LOGGER.config("Starting HTTP server on port " + port);
         server.start();
@@ -315,7 +361,7 @@ public class ExerciseSubmitterServer {
     }
     
     /**
-     * Calls {@link #startServer()}, waits for user input on {@link System#in} and then shuts down the server.
+     * Starts the server.
      * 
      * @param args Command line arguments. Content:
      *      <ol>
@@ -325,7 +371,7 @@ public class ExerciseSubmitterServer {
      *          <li>URL to student management system API</li>
      *      </ol>
      * 
-     * @throws IOException If reading user input fails.
+     * @throws IOException If creating the submission storage fails (e.g. is not a directory).
      */
     public static void main(String[] args) throws IOException {
         
@@ -334,7 +380,9 @@ public class ExerciseSubmitterServer {
         LOGGER.info("Starting");
         
         ExerciseSubmitterServer server = startDefaultServer(Integer.parseInt(args[0]), args[1], args[2], args[3], 
-                System.getenv("SUBMISSION_SERVER_MGMT_USER"), System.getenv("SUBMISSION_SERVER_MGMT_PW"));
+                System.getenv("SUBMISSION_SERVER_MGMT_USER"), System.getenv("SUBMISSION_SERVER_MGMT_PW"),
+                Optional.ofNullable(System.getenv("SUBMISSION_SERVER_KEYSTORE_PATH")),
+                Optional.ofNullable(System.getenv("SUBMISSION_SERVER_KEYSTORE_PW")));
         
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
             LOGGER.info("Shutting down HTTP server");

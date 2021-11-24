@@ -15,6 +15,7 @@ import java.util.Arrays;
 import java.util.Base64;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -79,7 +80,8 @@ public class ScenarioIT {
         storagePath = Files.createTempDirectory("exercise-submitter-server-scenario-it");
         
         server = ExerciseSubmitterServer.startDefaultServer(port, storagePath.toString(),
-                docker.getAuthUrl(), docker.getStuMgmtUrl(), "submission-system", "123456");
+                docker.getAuthUrl(), docker.getStuMgmtUrl(), "submission-system", "123456",
+                Optional.empty(), Optional.empty());
     }
     
     @AfterAll
