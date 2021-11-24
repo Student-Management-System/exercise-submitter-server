@@ -255,7 +255,7 @@ public class ExerciseSubmitterServer {
     }
     
     /**
-     * Creates and starts the server with default configuration.
+     * Creates and starts the server with default configuration. Also does the initial loading of the StuMgmtView.
      *  
      * @param port The port to use.
      * @param storagePath The path to the {@link FilesystemStorage} to use.
