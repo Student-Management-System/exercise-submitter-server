@@ -72,6 +72,9 @@ public class StuMgmtViewIT {
         
         homework01Id = docker.createAssignment(course, "Homework01", AssignmentState.SUBMISSION, Collaboration.GROUP);
         testatId = docker.createAssignment(course, "Testat", AssignmentState.INVISIBLE, Collaboration.SINGLE);
+        
+        docker.setAssignmentToolConfigString(course, homework01Id, "exercise-submitter-checks",
+                "[{\"check\":\"encoding\",\"rejecting\":true,\"encoding\":\"UTF-8\"}, {\"check\":\"javac\"}]");
     }
     
     @AfterAll
@@ -125,6 +128,11 @@ public class StuMgmtViewIT {
         assertEquals(StateEnum.IN_PROGRESS, homework01.getState());
         assertEquals(CollaborationEnum.GROUP, homework01.getCollaboration());
         assertEquals(2, homework01.getGroups().size());
+        
+        CheckConfiguration encodingCheckConfig = new CheckConfiguration("encoding", true);
+        encodingCheckConfig.setProperty("encoding", "UTF-8");
+        assertEquals(Arrays.asList(encodingCheckConfig, new CheckConfiguration("javac", false)),
+                homework01.getCheckConfigurations());
         
         assertEquals("Testat", testat.getName());
         assertEquals(StateEnum.INVISIBLE, testat.getState());

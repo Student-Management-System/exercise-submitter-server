@@ -42,6 +42,7 @@ import net.ssehub.studentmgmt.backend_api.model.NotificationDto;
 import net.ssehub.studentmgmt.backend_api.model.PartialAssessmentDto;
 import net.ssehub.studentmgmt.backend_api.model.ParticipantDto;
 import net.ssehub.studentmgmt.backend_api.model.ParticipantDto.RoleEnum;
+import net.ssehub.studentmgmt.backend_api.model.SubmissionConfigDto;
 import net.ssehub.studentmgmt.sparkyservice_api.api.AuthControllerApi;
 import net.ssehub.studentmgmt.sparkyservice_api.model.AuthenticationInfoDto;
 import net.ssehub.studentmgmt.sparkyservice_api.model.CredentialsDto;
@@ -79,6 +80,8 @@ public class StuMgmtView {
     private static final String PARTIAL_ASSESSMENT_KEY = "exercise-submitter-checks";
     
     private static final String PARTIAL_ASSESSMENT_TITLE = "Automatic Checks";
+    
+    private static final String CHECK_CONFIGURATION_KEY = "exercise-submitter-checks";
     
     private Map<String, Course> courses;
     
@@ -222,6 +225,29 @@ public class StuMgmtView {
     }
     
     /**
+     * Retrieves the correct {@link SubmissionConfigDto} from the given {@link AssignmentDto} and sets its
+     * configuration string for the given {@link Assignment}. If no such configuration string exists, nothing is set.
+     * 
+     * @param assignment The assignment to set the configuration string for.
+     * @param dto The DTO to get the configuration string form.
+     */
+    private void setCheckConfigurationString(Assignment assignment, AssignmentDto dto) {
+        List<SubmissionConfigDto> configDtos = dto.getConfigs();
+        if (configDtos != null) {
+            for (SubmissionConfigDto configDto : configDtos) {
+                if (configDto.getTool().equals(CHECK_CONFIGURATION_KEY)) {
+                    try {
+                        assignment.setCheckConfigurationString(configDto.getConfig());
+                    } catch (IllegalArgumentException e) {
+                        LOGGER.log(Level.WARNING, "Invalid check configuration string for assignment "
+                                + assignment.getName() + ": " + configDto.getConfig(), e);
+                    }
+                }
+            }
+        }
+    }
+    
+    /**
      * Re-loads the given course. The course is removed and re-created with updated information.
      * 
      * @param courseId The ID of the course to re-load.
@@ -251,10 +277,7 @@ public class StuMgmtView {
                 
                 Assignment assignment = createAssignment(
                         course, aDto.getId(), aDto.getName(), aDto.getState(), aDto.getCollaboration());
-                // TODO: call assignment.setCheckConfigurationString() once it's available in the DTO
-                assignment.setCheckConfigurationString(
-                        "[{\"check\":\"encoding\",\"rejecting\":true},{\"check\":\"javac\"},"
-                        + "{\"check\":\"checkstyle\",\"rules\":\"checkstyle.xml\"}]");
+                setCheckConfigurationString(assignment, aDto);
                 
                 for (GroupDto gDto : groupApi.getRegisteredGroups(course.getId(), aDto.getId(), null, null, null)) {
                     

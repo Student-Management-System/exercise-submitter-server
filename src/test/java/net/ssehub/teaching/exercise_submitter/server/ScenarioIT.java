@@ -13,6 +13,7 @@ import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Arrays;
 import java.util.Base64;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -66,11 +67,15 @@ public class ScenarioIT {
         docker.createGroup(course, "TheEvens", "student2");
         
         // used in singleFileSubmissionAndReplay()
-        docker.createAssignment(course, "Homework01", AssignmentState.SUBMISSION, Collaboration.GROUP);
+        String homework01 = docker.createAssignment(course, "Homework01", AssignmentState.SUBMISSION, Collaboration.GROUP);
         // used in submissionWithCompilationErrorAndReplay()
-        docker.createAssignment(course, "Testat", AssignmentState.SUBMISSION, Collaboration.SINGLE);
+        String testat = docker.createAssignment(course, "Testat", AssignmentState.SUBMISSION, Collaboration.SINGLE);
         // used in submissionWithBinaryFile()
-        docker.createAssignment(course, "Homework02", AssignmentState.SUBMISSION, Collaboration.GROUP);
+        String homework02 = docker.createAssignment(course, "Homework02", AssignmentState.SUBMISSION, Collaboration.GROUP);
+        
+        docker.setAssignmentToolConfigString(course, homework01, "exercise-submitter-checks", "[{\"check\":\"javac\"}]");
+        docker.setAssignmentToolConfigString(course, testat, "exercise-submitter-checks", "[{\"check\":\"javac\"}]");
+        docker.setAssignmentToolConfigString(course, homework02, "exercise-submitter-checks", "[{\"check\":\"javac\"}]");
         
         
         int port = AbstractRestTest.generateRandomPort();
@@ -110,7 +115,7 @@ public class ScenarioIT {
         assertAll(
             () -> assertEquals(201, submissionResponse.getStatus()),
             () -> assertTrue(submissionResult.getAccepted()),
-//            () -> assertEquals(Collections.emptyList(), submissionResult.getMessages()), // TODO: checkstyle.xml not found
+            () -> assertEquals(Collections.emptyList(), submissionResult.getMessages()),
             () -> assertEquals(1L, Files.list(groupDir).count()),
             () -> assertArrayEquals(fileContent,
                     Files.readAllBytes(Files.list(groupDir).findFirst().get().resolve("Main.java")))
@@ -169,7 +174,8 @@ public class ScenarioIT {
         assertAll(
             () -> assertEquals(201, submissionResponse.getStatus()),
             () -> assertTrue(submissionResult.getAccepted()),
-            // TODO: first checkmessage is about checkstyle.xml missing
+            () -> assertEquals(2, submissionResult.getMessages().size()),
+            () -> assertEquals("javac", submissionResult.getMessages().get(0).getCheckName()),
             () -> assertEquals("javac", submissionResult.getMessages().get(1).getCheckName()),
             () -> assertEquals(1L, Files.list(groupDir).count()),
             () -> assertArrayEquals(fileContent,
