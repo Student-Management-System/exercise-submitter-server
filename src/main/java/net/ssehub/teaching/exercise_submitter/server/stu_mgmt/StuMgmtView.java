@@ -30,7 +30,6 @@ import net.ssehub.studentmgmt.backend_api.api.CourseApi;
 import net.ssehub.studentmgmt.backend_api.api.CourseParticipantsApi;
 import net.ssehub.studentmgmt.backend_api.model.AssessmentCreateDto;
 import net.ssehub.studentmgmt.backend_api.model.AssessmentDto;
-import net.ssehub.studentmgmt.backend_api.model.AssessmentUpdateDto;
 import net.ssehub.studentmgmt.backend_api.model.AssignmentDto;
 import net.ssehub.studentmgmt.backend_api.model.AssignmentDto.CollaborationEnum;
 import net.ssehub.studentmgmt.backend_api.model.AssignmentDto.StateEnum;
@@ -389,16 +388,18 @@ public class StuMgmtView {
             authenticateMgmtClient();
             AssessmentApi api = new AssessmentApi(mgmtClient);
             
-            List<AssessmentDto> existingAssessments;
+            AssessmentDto existingAssessments;
             if (isGroup) {
                 existingAssessments = api.getAssessmentsForAssignment(
-                        course.getId(), assginment.getMgmtId(), null, null, null, userOrGroupId, null, null, null);
+                        course.getId(), assginment.getMgmtId(), null, null, null, userOrGroupId, null, null, null)
+                        .stream().findAny().orElse(null);
             } else {
                 existingAssessments = api.getAssessmentsForAssignment(
-                        course.getId(), assginment.getMgmtId(), null, null, null, null, userOrGroupId, null, null);
+                        course.getId(), assginment.getMgmtId(), null, null, null, null, userOrGroupId, null, null)
+                        .stream().findAny().orElse(null);
             }
             
-            if (existingAssessments.isEmpty()) {
+            if (existingAssessments == null) {
                 AssessmentCreateDto newAssessment = new AssessmentCreateDto();
                 if (isGroup) {
                     newAssessment.setGroupId(userOrGroupId);
@@ -407,27 +408,17 @@ public class StuMgmtView {
                 }
                 newAssessment.setAssignmentId(assginment.getMgmtId());
                 newAssessment.setIsDraft(true);
-                newAssessment.addPartialAssessmentsItem(createPartialAssessment(resultMessages));
                 
-                api.createAssessment(newAssessment, course.getId(), assginment.getMgmtId());
+                existingAssessments = api.createAssessment(newAssessment, course.getId(), assginment.getMgmtId());
+            }
+            
+            if (existingAssessments.isIsDraft()) {
+                api.setPartialAssessment(createPartialAssessment(resultMessages), course.getId(),
+                        assginment.getMgmtId(), existingAssessments.getId());
                 
             } else {
-                AssessmentDto existingAssessment = existingAssessments.get(0);
-                
-                if (existingAssessment.isIsDraft()) {
-                    AssessmentUpdateDto assessmentUpdate = new AssessmentUpdateDto();
-                    existingAssessment.getPartialAssessments().stream()
-                        .filter(pa -> !pa.getKey().equals(PARTIAL_ASSESSMENT_KEY))
-                        .forEach(assessmentUpdate::addPartialAssessmentsItem);
-                    assessmentUpdate.addPartialAssessmentsItem(createPartialAssessment(resultMessages));
-                    
-                    api.updateAssessment(assessmentUpdate, course.getId(), assginment.getMgmtId(),
-                            existingAssessment.getId());
-                    
-                } else {
-                    LOGGER.warning(() -> "Existing assessment for " + target
-                            + " is not a draft; not adding partial assessment");
-                }
+                LOGGER.warning(() -> "Existing assessment for " + target
+                        + " is not a draft; not adding partial assessment");
             }
             
         } catch (NoSuchElementException e) {
