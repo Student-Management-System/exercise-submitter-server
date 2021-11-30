@@ -388,18 +388,18 @@ public class StuMgmtView {
             authenticateMgmtClient();
             AssessmentApi api = new AssessmentApi(mgmtClient);
             
-            AssessmentDto existingAssessments;
+            AssessmentDto existingAssessment;
             if (isGroup) {
-                existingAssessments = api.getAssessmentsForAssignment(
+                existingAssessment = api.getAssessmentsForAssignment(
                         course.getId(), assginment.getMgmtId(), null, null, null, userOrGroupId, null, null, null)
                         .stream().findAny().orElse(null);
             } else {
-                existingAssessments = api.getAssessmentsForAssignment(
+                existingAssessment = api.getAssessmentsForAssignment(
                         course.getId(), assginment.getMgmtId(), null, null, null, null, userOrGroupId, null, null)
                         .stream().findAny().orElse(null);
             }
             
-            if (existingAssessments == null) {
+            if (existingAssessment == null) {
                 AssessmentCreateDto newAssessment = new AssessmentCreateDto();
                 if (isGroup) {
                     newAssessment.setGroupId(userOrGroupId);
@@ -409,12 +409,12 @@ public class StuMgmtView {
                 newAssessment.setAssignmentId(assginment.getMgmtId());
                 newAssessment.setIsDraft(true);
                 
-                existingAssessments = api.createAssessment(newAssessment, course.getId(), assginment.getMgmtId());
+                existingAssessment = api.createAssessment(newAssessment, course.getId(), assginment.getMgmtId());
             }
             
-            if (existingAssessments.isIsDraft()) {
+            if (existingAssessment.isIsDraft()) {
                 api.setPartialAssessment(createPartialAssessment(resultMessages), course.getId(),
-                        assginment.getMgmtId(), existingAssessments.getId());
+                        assginment.getMgmtId(), existingAssessment.getId());
                 
             } else {
                 LOGGER.warning(() -> "Existing assessment for " + target
