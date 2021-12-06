@@ -47,7 +47,7 @@ import net.ssehub.teaching.exercise_submitter.server.submission.checks.FileSizeC
     info = @Info(
         title = "Exercise Submitter Server",
         description = "A sever for storing and retrieving exercise submissions.",
-        version = "1"
+        version = RestApiVersion.VERSION
     ),
     tags = {
         @Tag(name = "submission", description = "Sending and retrieving submission"),
