@@ -443,6 +443,8 @@ public class StuMgmtView {
         partialAssessment.setTitle(PARTIAL_ASSESSMENT_TITLE);
         if (resultMessages.isEmpty()) {
             partialAssessment.setComment("No errors or warnings.");
+        } else {
+            partialAssessment.setComment("Found errors and/or warnings.");
         }
         
         resultMessages.stream()

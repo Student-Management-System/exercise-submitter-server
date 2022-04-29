@@ -4,11 +4,13 @@ import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.nio.file.Path;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 import org.junit.jupiter.api.AfterAll;
@@ -38,6 +40,8 @@ public class StuMgmtViewIT {
     private static StuMgmtDocker docker;
     
     private static String homework01Id;
+    
+    private static String homework02Id;
     
     private static String testatId;
     
@@ -71,9 +75,12 @@ public class StuMgmtViewIT {
         theEvensId = docker.createGroup(course, "TheEvens", "student2");
         
         homework01Id = docker.createAssignment(course, "Homework01", AssignmentState.SUBMISSION, Collaboration.GROUP);
+        homework02Id = docker.createAssignment(course, "Homework02", AssignmentState.SUBMISSION, Collaboration.GROUP);
         testatId = docker.createAssignment(course, "Testat", AssignmentState.INVISIBLE, Collaboration.SINGLE);
         
         docker.setAssignmentToolConfigString(course, homework01Id, "exercise-submitter-checks",
+                "[{\"check\":\"encoding\",\"rejecting\":true,\"encoding\":\"UTF-8\"}, {\"check\":\"javac\"}]");
+        docker.setAssignmentToolConfigString(course, homework02Id, "exercise-submitter-checks",
                 "[{\"check\":\"encoding\",\"rejecting\":true,\"encoding\":\"UTF-8\"}, {\"check\":\"javac\"}]");
     }
     
@@ -120,8 +127,9 @@ public class StuMgmtViewIT {
         assertEquals("student3", student3.getName());
         
         
-        assertEquals(2, foo.getAssignments().size());
+        assertEquals(3, foo.getAssignments().size());
         Assignment homework01 = foo.getAssignment("Homework01").get();
+        assertNotNull(foo.getAssignment("Homework02").get());
         Assignment testat = foo.getAssignment("Testat").get();
         
         assertEquals("Homework01", homework01.getName());
@@ -276,6 +284,50 @@ public class StuMgmtViewIT {
                 
                 () -> assertEquals(1, assessments.get(0).getPartialAssessments().size()),
                 () -> assertEquals("(check1) new", assessments.get(0).getPartialAssessments().get(0).getMarkers().get(0).getComment())
+            );
+        }
+        
+        @Test
+        public void assessmentUpdatedUpdatesComment() throws ApiException {
+            StuMgmtView view = assertDoesNotThrow(() -> new StuMgmtView(docker.getStuMgmtUrl(), docker.getAuthUrl(),
+                    "teacher", "abcdefgh"));
+            assertDoesNotThrow(() -> view.fullReload());
+            
+            ApiClient client = new ApiClient();
+            client.setBasePath(docker.getStuMgmtUrl());
+            client.setAccessToken(docker.getAuthToken("teacher"));
+            AssessmentApi api = new AssessmentApi(client);
+            
+            view.sendSubmissionResult(new SubmissionTarget("foo-wise2122", "Homework02", "TheEvens"),
+                    Collections.emptyList());
+            
+            List<AssessmentDto> firstAssessments = api.getAssessmentsForAssignment(
+                    "foo-wise2122", homework02Id, null, null, null, theEvensId, null, null, null);
+            
+            assertAll(
+                () -> assertEquals(1, firstAssessments.size()),
+                () -> assertEquals("teacher", firstAssessments.get(0).getCreator().getUsername()),
+                () -> assertEquals(true, firstAssessments.get(0).isIsDraft()),
+                () -> assertEquals("TheEvens", firstAssessments.get(0).getGroup().getName()),
+                
+                () -> assertEquals(1, firstAssessments.get(0).getPartialAssessments().size()),
+                () -> assertEquals("No errors or warnings.", firstAssessments.get(0).getPartialAssessments().get(0).getComment())
+            );  
+            
+            view.sendSubmissionResult(new SubmissionTarget("foo-wise2122", "Homework02", "TheEvens"),
+                    Arrays.asList(new ResultMessage("check1", MessageType.WARNING, "new")));
+            
+            List<AssessmentDto> secondAssessments = api.getAssessmentsForAssignment(
+                    "foo-wise2122", homework02Id, null, null, null, theEvensId, null, null, null);
+            
+            assertAll(
+                () -> assertEquals(1, secondAssessments.size()),
+                () -> assertEquals("teacher", secondAssessments.get(0).getCreator().getUsername()),
+                () -> assertEquals(true, secondAssessments.get(0).isIsDraft()),
+                () -> assertEquals("TheEvens", secondAssessments.get(0).getGroup().getName()),
+                
+                () -> assertEquals(1, secondAssessments.get(0).getPartialAssessments().size()),
+                () -> assertEquals("Found errors and/or warnings.", secondAssessments.get(0).getPartialAssessments().get(0).getComment())
             );
         }
         
