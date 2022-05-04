@@ -447,9 +447,10 @@ public class StuMgmtView {
             partialAssessment.setComment("Found errors and/or warnings.");
         }
         
-        resultMessages.stream()
+        partialAssessment.setMarkers(resultMessages.stream()
                 .map(StuMgmtView::resultMessageToMarkerDto)
-                .forEach(partialAssessment::addMarkersItem);
+                .collect(Collectors.toList()));
+        
         return partialAssessment;
     }
 

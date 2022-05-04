@@ -256,7 +256,7 @@ public class StuMgmtViewIT {
         }
         
         @Test
-        public void assessmentUpdatedOnSecondSubmission() throws ApiException {
+        public void assessmentMarkersUpdatedOnSecondSubmission() throws ApiException {
             StuMgmtView view = assertDoesNotThrow(() -> new StuMgmtView(docker.getStuMgmtUrl(), docker.getAuthUrl(),
                     "teacher", "abcdefgh"));
             assertDoesNotThrow(() -> view.fullReload());
@@ -288,7 +288,7 @@ public class StuMgmtViewIT {
         }
         
         @Test
-        public void assessmentUpdatedUpdatesComment() throws ApiException {
+        public void assessmentMarkersClearedForNoMessages() throws ApiException {
             StuMgmtView view = assertDoesNotThrow(() -> new StuMgmtView(docker.getStuMgmtUrl(), docker.getAuthUrl(),
                     "teacher", "abcdefgh"));
             assertDoesNotThrow(() -> view.fullReload());
@@ -299,7 +299,7 @@ public class StuMgmtViewIT {
             AssessmentApi api = new AssessmentApi(client);
             
             view.sendSubmissionResult(new SubmissionTarget("foo-wise2122", "Homework02", "TheEvens"),
-                    Collections.emptyList());
+                    Arrays.asList(new ResultMessage("check1", MessageType.WARNING, "some message")));
             
             List<AssessmentDto> firstAssessments = api.getAssessmentsForAssignment(
                     "foo-wise2122", homework02Id, null, null, null, theEvensId, null, null, null);
@@ -311,11 +311,12 @@ public class StuMgmtViewIT {
                 () -> assertEquals("TheEvens", firstAssessments.get(0).getGroup().getName()),
                 
                 () -> assertEquals(1, firstAssessments.get(0).getPartialAssessments().size()),
-                () -> assertEquals("No errors or warnings.", firstAssessments.get(0).getPartialAssessments().get(0).getComment())
+                () -> assertEquals("Found errors and/or warnings.", firstAssessments.get(0).getPartialAssessments().get(0).getComment()),
+                () -> assertEquals(1, firstAssessments.get(0).getPartialAssessments().get(0).getMarkers().size())
             );  
             
             view.sendSubmissionResult(new SubmissionTarget("foo-wise2122", "Homework02", "TheEvens"),
-                    Arrays.asList(new ResultMessage("check1", MessageType.WARNING, "new")));
+                    Collections.emptyList());
             
             List<AssessmentDto> secondAssessments = api.getAssessmentsForAssignment(
                     "foo-wise2122", homework02Id, null, null, null, theEvensId, null, null, null);
@@ -327,7 +328,8 @@ public class StuMgmtViewIT {
                 () -> assertEquals("TheEvens", secondAssessments.get(0).getGroup().getName()),
                 
                 () -> assertEquals(1, secondAssessments.get(0).getPartialAssessments().size()),
-                () -> assertEquals("Found errors and/or warnings.", secondAssessments.get(0).getPartialAssessments().get(0).getComment())
+                () -> assertEquals("No errors or warnings.", secondAssessments.get(0).getPartialAssessments().get(0).getComment()),
+                () -> assertEquals(0, secondAssessments.get(0).getPartialAssessments().get(0).getMarkers().size())
             );
         }
         
