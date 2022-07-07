@@ -44,6 +44,7 @@ import net.ssehub.teaching.exercise_submitter.server.submission.checks.EncodingC
 import net.ssehub.teaching.exercise_submitter.server.submission.checks.JavacCheck;
 import net.ssehub.teaching.exercise_submitter.server.submission.checks.ResultMessage;
 import net.ssehub.teaching.exercise_submitter.server.submission.checks.ResultMessage.MessageType;
+import net.ssehub.teaching.exercise_submitter.server.submission.checks.SrcFolderCheck;
 
 public class SubmissionManagerTest {
 
@@ -644,6 +645,17 @@ public class SubmissionManagerTest {
                 () -> assertInstanceOf(CheckstyleCheck.class, check),
                 () -> assertEquals(Path.of("basic.xml"), ((CheckstyleCheck) check).getCheckstyleRules())
             );
+        }
+        
+        @Test
+        public void srcFolderCheck() {
+            SubmissionManager manager = new SubmissionManager(new EmptyStorage(), new EmptyStuMgmtView());
+            
+            CheckConfiguration config = new CheckConfiguration("src-folder", false);
+            
+            Check check = manager.createCheck(config);
+            
+            assertInstanceOf(SrcFolderCheck.class, check);
         }
         
     }

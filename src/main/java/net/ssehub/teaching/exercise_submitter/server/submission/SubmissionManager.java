@@ -34,6 +34,7 @@ import net.ssehub.teaching.exercise_submitter.server.submission.checks.InternalJ
 import net.ssehub.teaching.exercise_submitter.server.submission.checks.JavacCheck;
 import net.ssehub.teaching.exercise_submitter.server.submission.checks.ResultMessage;
 import net.ssehub.teaching.exercise_submitter.server.submission.checks.ResultMessage.MessageType;
+import net.ssehub.teaching.exercise_submitter.server.submission.checks.SrcFolderCheck;
 
 /**
  * This class orchestrates a complete submission process. This should be the entry point for starting a submission.
@@ -147,6 +148,10 @@ public class SubmissionManager {
             CheckstyleCheck checkstyleChek = new CheckstyleCheck(Path.of(checkConfiguration.getProperty("rules")
                     .orElseThrow(() -> new IllegalArgumentException("Checkstyle check must have \"rules\" set"))));
             result = checkstyleChek;
+            break;
+            
+        case SrcFolderCheck.CHECK_NAME:
+            result = new SrcFolderCheck();
             break;
         
         default:
