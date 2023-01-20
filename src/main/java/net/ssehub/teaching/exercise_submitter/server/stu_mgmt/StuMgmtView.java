@@ -296,8 +296,8 @@ public class StuMgmtView {
             }
         
         } catch (ApiException e) {
-            LOGGER.warning(() -> "Failed to update course " + courseId + "; is " + username
-                    + " enrolled as lecturer?");
+            LOGGER.log(Level.WARNING, e, () -> "Failed to update course " + courseId + "; is " + username
+                    + " enrolled as lecturer?\n" + e.getResponseBody());
         }
         
     }
