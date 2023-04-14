@@ -593,7 +593,7 @@ public class SubmissionManagerTest {
             
             assertAll(
                 () -> assertInstanceOf(JavacCheck.class, check),
-                () -> assertEquals(11, ((JavacCheck) check).getJavaVersion())
+                () -> assertEquals(17, ((JavacCheck) check).getJavaVersion())
             );
         }
         
@@ -602,13 +602,13 @@ public class SubmissionManagerTest {
             SubmissionManager manager = new SubmissionManager(new EmptyStorage(), new EmptyStuMgmtView());
             
             CheckConfiguration config = new CheckConfiguration("javac", false);
-            config.setProperty("version", "17");
+            config.setProperty("version", "11");
             
             Check check = manager.createCheck(config);
             
             assertAll(
                 () -> assertInstanceOf(JavacCheck.class, check),
-                () -> assertEquals(17, ((JavacCheck) check).getJavaVersion())
+                () -> assertEquals(11, ((JavacCheck) check).getJavaVersion())
             );
         }
         

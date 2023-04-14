@@ -488,7 +488,7 @@ public abstract class JavacCheckIT {
         JavacCheck check = creatInstance();
         
         assertThat("should return correct default value",
-                check.getJavaVersion(), is(11));
+                check.getJavaVersion(), is(17));
         
         assertThat("should return correct default value",
                 check.getCharset(), is(StandardCharsets.UTF_8));

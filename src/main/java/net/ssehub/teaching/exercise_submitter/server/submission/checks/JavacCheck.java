@@ -52,7 +52,7 @@ public abstract class JavacCheck extends Check {
      * Creates a re-usable {@link JavacCheck}.
      */
     public JavacCheck() {
-        this.javaVersion = 11;
+        this.javaVersion = 17;
         this.charset = StandardCharsets.UTF_8;
         this.enableWarnings = false;
         this.additionalClasspath = new LinkedList<>();
